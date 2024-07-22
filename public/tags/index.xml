@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Tags on Yazeed</title>
+    <link>http://localhost:1313/blog/tags/</link>
+    <description>Recent content in Tags on Yazeed</description>
+    <generator>Hugo</generator>
+    <language>en</language>
+    <lastBuildDate>Sun, 21 Jul 2024 00:00:00 +0000</lastBuildDate>
+    <atom:link href="http://localhost:1313/blog/tags/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>C</title>
+      <link>http://localhost:1313/blog/tags/c/</link>
+      <pubDate>Sun, 21 Jul 2024 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/blog/tags/c/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Spacial Data Structures</title>
+      <link>http://localhost:1313/blog/tags/spacial-data-structures/</link>
+      <pubDate>Sun, 21 Jul 2024 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/blog/tags/spacial-data-structures/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Tiling Window Manager</title>
+      <link>http://localhost:1313/blog/tags/tiling-window-manager/</link>
+      <pubDate>Sun, 21 Jul 2024 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/blog/tags/tiling-window-manager/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Linux</title>
+      <link>http://localhost:1313/blog/tags/linux/</link>
+      <pubDate>Sun, 17 Dec 2023 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/blog/tags/linux/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Memory</title>
+      <link>http://localhost:1313/blog/tags/memory/</link>
+      <pubDate>Sun, 17 Dec 2023 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/blog/tags/memory/</guid>
+      <description></description>
+    </item>
+  </channel>
+</rss>

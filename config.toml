@@ -1,0 +1,67 @@
+baseURL = "https://yazeed1s.github.io"
+defaultContentLanguage = "en"
+languageCode = "en"
+title = "Yazeed"
+theme = "gokarna"
+enableRobotsTXT = true
+enableEmoji = true
+pygmentsStyle = "nord"
+canonifyURLs = true
+
+[params]
+description = "I move bytes around!"
+avatarURL = "/images/b.png"
+AvatarAltText = "avatar"
+avatarSize = "size-s"
+accentColor = "#8BB8D0"
+showPostsOnHomePage = "recent"
+metaKeywords = ["blog", "linux", "yazeed", "coding"]
+togglePreviousAndNextButtons = "true"
+customHeadHTML = """
+	
+	"""
+socialIcons = [
+	# { name = "twitter", url = "https://twitter.com/yazeed4n" },
+	{ name = "github", url = "https://github.com/yazeed1s" },
+	{ name = "discord", url = "https://discordapp.com/users/960530403142295583" },
+	 {name = "email", url = "yazeed4n@gmail.com"},
+]
+# metaKeywords = ["blog", "gokarna", "hugo"]
+[menu]
+	[[menu.main]]
+	name = "Home"
+	pre = "<span data-feather='home'></span>"
+	url = "/"
+	weight = 1
+
+	[[menu.main]]
+	name = "Posts"
+	pre = "<span data-feather='book'></span>"
+	url = "/posts/"
+	weight = 2
+
+	[[menu.main]]
+	#identifier = "tags"
+	name = "Tags"
+	pre = "<span data-feather='tag'></span>"
+	url = "/tags/"
+	weight = 3
+
+	[[menu.main]]
+	name = "Projects"
+	pre = "<span data-feather='code'></span>"
+	url = "/projects/"
+	weight = 4
+
+	[[menu.main]]
+	name = "github"
+	pre = "<span data-feather='github'></span>"
+	url = "https://github.com/yazeed1s"
+	weight = 5
+
+
+[markup]
+[markup.tableOfContents]
+startLevel = 1
+endLevel = 4
+ordered = false
