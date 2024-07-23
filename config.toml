@@ -9,8 +9,8 @@ pygmentsStyle = "nord"
 canonifyURLs = true
 
 [params]
-description = "I move bytes around!"
-avatarURL = "/images/b.png"
+description = "I love computers!"
+avatarURL = "/images/aa.png"
 AvatarAltText = "avatar"
 avatarSize = "size-s"
 accentColor = "#8BB8D0"
@@ -33,6 +33,12 @@ socialIcons = [
 	pre = "<span data-feather='home'></span>"
 	url = "/"
 	weight = 1
+
+   [[menu.main]]
+	name = "About"
+	pre = "<span data-feather='user'></span>"
+	url = "/about/"
+	weight = 2
 
 	[[menu.main]]
 	name = "Posts"

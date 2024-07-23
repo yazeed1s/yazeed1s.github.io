@@ -42,8 +42,8 @@ a:hover .feather-moon {
 }
 
 .post-tags .post-tag:hover {
-	background-color: var(--dark-text-color);
-	color: rgb(var(--dark-primary-color));
+	background-color: var(--accent-color);
+		color: var(--accent-color);
 }
 
 .tags-list .post-tags .post-tag a .tag-posts-count {
@@ -51,8 +51,8 @@ a:hover .feather-moon {
 }
 
 .tags-list .post-tags .post-tag:hover a .tag-posts-count {
-	background-color: var(--dark-text-color);
-	color: rgb(var(--dark-primary-color));
+	background-color: var(--accent-color);
+	color: var(--accent-color);
 }
 
 .footer {

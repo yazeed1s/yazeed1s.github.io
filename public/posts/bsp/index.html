@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"><head><script src="/blog/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=blog/livereload" data-no-instant defer></script>
+<html lang="en"><head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
@@ -21,29 +21,29 @@
     <meta name="description" content="How can we use BSP-trees to store and manage windows in a 2D fashion?">
     <meta name="keywords" content='blog, linux, yazeed, coding, C, Spacial Data Structures, Tiling Window Manager'>
 
-    <meta property="og:url" content="http://localhost:1313/blog/posts/bsp/">
+    <meta property="og:url" content="http://localhost:1313/posts/bsp/">
     <meta property="og:type" content="website">
     <meta property="og:title" content="The Inner workings of BSP-Trees in the context of window management">
     <meta property="og:description" content="How can we use BSP-trees to store and manage windows in a 2D fashion?">
-    <meta property="og:image" content="/images/b.png">
+    <meta property="og:image" content="/images/aa.png">
 
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="The Inner workings of BSP-Trees in the context of window management">
     <meta name="twitter:description" content="How can we use BSP-trees to store and manage windows in a 2D fashion?">
-    <meta property="twitter:domain" content="http://localhost:1313/blog/posts/bsp/">
-    <meta property="twitter:url" content="http://localhost:1313/blog/posts/bsp/">
-    <meta name="twitter:image" content="/images/b.png">
+    <meta property="twitter:domain" content="http://localhost:1313/posts/bsp/">
+    <meta property="twitter:url" content="http://localhost:1313/posts/bsp/">
+    <meta name="twitter:image" content="/images/aa.png">
 
     
-    <link rel="canonical" href="http://localhost:1313/blog/posts/bsp/" />
+    <link rel="canonical" href="http://localhost:1313/posts/bsp/" />
 
-    <link rel="stylesheet" type="text/css" href="http://localhost:1313/blog//css/normalize.min.css" media="print" onload="this.media='all'">
-    <link rel="stylesheet" type="text/css" href="http://localhost:1313/blog//css/main.css">
-    <link disabled id="dark-theme" rel="stylesheet" href="http://localhost:1313/blog//css/dark.css">
+    <link rel="stylesheet" type="text/css" href="http://localhost:1313//css/normalize.min.css" media="print" onload="this.media='all'">
+    <link rel="stylesheet" type="text/css" href="http://localhost:1313//css/main.css">
+    <link disabled id="dark-theme" rel="stylesheet" href="http://localhost:1313//css/dark.css">
 
-    <script src="http://localhost:1313/blog//js/svg-injector.min.js"></script>
-    <script src="http://localhost:1313/blog//js/feather-icons.min.js"></script>
-    <script src="http://localhost:1313/blog//js/main.js"></script>
+    <script src="http://localhost:1313//js/svg-injector.min.js"></script>
+    <script src="http://localhost:1313//js/feather-icons.min.js"></script>
+    <script src="http://localhost:1313//js/main.js"></script>
 
     
     
@@ -60,32 +60,36 @@
 
         
         <div class="avatar">
-            <a href="http://localhost:1313/blog/">
-                <img src="http://localhost:1313/blog//images/b.png" alt="avatar" />
+            <a href="http://localhost:1313/">
+                <img src="http://localhost:1313//images/aa.png" alt="avatar" />
             </a>
         </div>
         
 
         <div class="nav-title">
-            <a class="nav-brand" href="http://localhost:1313/blog/">Yazeed</a>
+            <a class="nav-brand" href="http://localhost:1313/">Yazeed</a>
         </div>
 
         <div class="nav-links">
             
             <div class="nav-link">
-                <a href="http://localhost:1313/blog/"><span data-feather='home'></span> Home </a>
+                <a href="http://localhost:1313/"><span data-feather='home'></span> Home </a>
             </div>
             
             <div class="nav-link">
-                <a href="http://localhost:1313/blog/posts/"><span data-feather='book'></span> Posts </a>
+                <a href="http://localhost:1313/about/"><span data-feather='user'></span> About </a>
             </div>
             
             <div class="nav-link">
-                <a href="http://localhost:1313/blog/tags/"><span data-feather='tag'></span> Tags </a>
+                <a href="http://localhost:1313/posts/"><span data-feather='book'></span> Posts </a>
             </div>
             
             <div class="nav-link">
-                <a href="http://localhost:1313/blog/projects/"><span data-feather='code'></span> Projects </a>
+                <a href="http://localhost:1313/tags/"><span data-feather='tag'></span> Tags </a>
+            </div>
+            
+            <div class="nav-link">
+                <a href="http://localhost:1313/projects/"><span data-feather='code'></span> Projects </a>
             </div>
             
             <div class="nav-link">
@@ -112,19 +116,23 @@
             <ul class="nav-hamburger-list visibility-hidden">
                 
                 <li class="nav-item">
-                    <a href="http://localhost:1313/blog/"><span data-feather='home'></span> Home </a>
+                    <a href="http://localhost:1313/"><span data-feather='home'></span> Home </a>
                 </li>
                 
                 <li class="nav-item">
-                    <a href="http://localhost:1313/blog/posts/"><span data-feather='book'></span> Posts </a>
+                    <a href="http://localhost:1313/about/"><span data-feather='user'></span> About </a>
                 </li>
                 
                 <li class="nav-item">
-                    <a href="http://localhost:1313/blog/tags/"><span data-feather='tag'></span> Tags </a>
+                    <a href="http://localhost:1313/posts/"><span data-feather='book'></span> Posts </a>
                 </li>
                 
                 <li class="nav-item">
-                    <a href="http://localhost:1313/blog/projects/"><span data-feather='code'></span> Projects </a>
+                    <a href="http://localhost:1313/tags/"><span data-feather='tag'></span> Tags </a>
+                </li>
+                
+                <li class="nav-item">
+                    <a href="http://localhost:1313/projects/"><span data-feather='code'></span> Projects </a>
                 </li>
                 
                 <li class="nav-item">
@@ -153,11 +161,11 @@
 
         <ul class="post-tags">
         
-            <li class="post-tag"><a href="http://localhost:1313/blog/tags/c">C</a></li>
+            <li class="post-tag"><a href="http://localhost:1313/tags/c">C</a></li>
         
-            <li class="post-tag"><a href="http://localhost:1313/blog/tags/spacial-data-structures">Spacial Data Structures</a></li>
+            <li class="post-tag"><a href="http://localhost:1313/tags/spacial-data-structures">Spacial Data Structures</a></li>
         
-            <li class="post-tag"><a href="http://localhost:1313/blog/tags/tiling-window-manager">Tiling Window Manager</a></li>
+            <li class="post-tag"><a href="http://localhost:1313/tags/tiling-window-manager">Tiling Window Manager</a></li>
         
         </ul>
     </div>
@@ -298,22 +306,22 @@
 </span></span><span style="display:flex;"><span><span style="color:#eceff4">}</span>
 </span></span></code></pre></div><p>I know code can be a bit overwhelming sometimes, so let&rsquo;s walk through this BSP-tree concept with some visuals. It&rsquo;ll make things much clearer.</p>
 <p>You&rsquo;re starting with a completely empty screen. In BSP-tree terms, this is super simple - it&rsquo;s just a single node marked as NULL and It would exactly look like this:
-<img src="http://localhost:1313/blog/images/bsp/bsp-null.png" alt="Figure" title="Empty"></p>
+<img src="http://localhost:1313/images/bsp/bsp-null.png" alt="Figure" title="Empty"></p>
 <h3 id="adding-the-first-window">Adding the First Window</h3>
 <p>Now, let&rsquo;s say you open your first window. Boom! It takes over the entire screen.</p>
-<p><img src="http://localhost:1313/blog/images/bsp/bsp-1w.png" alt="Figure" title="Preview"></p>
+<p><img src="http://localhost:1313/images/bsp/bsp-1w.png" alt="Figure" title="Preview"></p>
 <p>In our BSP tree, this becomes the root node. It&rsquo;s got all the info about the window and covers the whole screen.</p>
 <h3 id="adding-the-second-window">Adding the Second Window</h3>
-<p>Things get more interesting when you open a second window. The BSP tree gets clever here. It splits the screen in two, creating two child nodes under the root. Your first window slides into one of these nodes, and the new window goes into the other. The root node is now overseeing both children but not directly containing a window itself.</p>
-<p><img src="http://localhost:1313/blog/images/bsp/bsp-2w.png" alt="Figure" title="2nd-window"></p>
+<p>Things get more interesting when you open a second window. The BSP tree gets clever here. It splits the screen in two, creating two child nodes under the root. Your first window slides into one of these nodes, and the new window goes into the other.</p>
+<p><img src="http://localhost:1313/images/bsp/bsp-2w.png" alt="Figure" title="2nd-window"></p>
 <p>The root node is now overseeing both children but not directly containing a window itself.</p>
 <h3 id="adding-the-third-window">Adding the Third Window</h3>
 <p>Adding a third window gets even more interesting.</p>
-<p><img src="http://localhost:1313/blog/images/bsp/bsp-3w.png" alt="Figure" title="3rd-window"></p>
+<p><img src="http://localhost:1313/images/bsp/bsp-3w.png" alt="Figure" title="3rd-window"></p>
 <p>We pick one of the existing nodes (in this case, the right one) and splits it again. Now we&rsquo;ve got three leaf nodes, each with a window, and a couple of internal nodes keeping things organized.</p>
 <h3 id="adding-the-fourth-window">Adding the Fourth Window</h3>
 <p>By the time you get to four windows, you can really appreciate the system. The tree splits another leaf node, and now you&rsquo;ve got this neat structure with four windows, each in its own leaf node, and a few internal nodes managing the layout.</p>
-<p><img src="http://localhost:1313/blog/images/bsp/bsp-4w.png" alt="Figure" title="4th-window"></p>
+<p><img src="http://localhost:1313/images/bsp/bsp-4w.png" alt="Figure" title="4th-window"></p>
 <p>Every time the tree splits, it&rsquo;s making a decision to divide the screen either horizontally or vertically. No matter how many windows you open, the tree can always find a way to divide up the screen. And when you want to close a window or resize things? You just need to reuse the parent&rsquo;s rectangle of your targeted node.</p>
 <h2 id="deletion-in-a-bsp-tree">Deletion in a BSP-tree.</h2>
 <p>When deleting a node from the tree, we encounter two main scenarios:</p>
@@ -335,7 +343,7 @@
 <h3 id="case-1-external-sibling">Case 1: External Sibling</h3>
 <h4 id="external-sibling-with-no-grandparent">External Sibling with No Grandparent</h4>
 <p>Let&rsquo;s consider the following scenario. We have Node C, and it&rsquo;s got an external sibling and no grandparent! How can we remove it from the tree?</p>
-<p><img src="http://localhost:1313/blog/images/bsp/bsp-del01.png" alt="Figure" title="Preview"></p>
+<p><img src="http://localhost:1313/images/bsp/bsp-del01.png" alt="Figure" title="Preview"></p>
 <ul>
 <li>We want to delete <code>Node C</code> from the tree</li>
 <li>First, we need to remove the <code>parent-child</code> links between <code>node A</code> and <code>node C</code>.
@@ -351,10 +359,10 @@ between <code>node A</code> and <code>node B</code>.</li>
 <li>We can safely free <code>node B</code> and <code>node C</code> and resize the tree if we need to.</li>
 </ul>
 <p>The difference between the initial and final state is as follows:</p>
-<p><img src="http://localhost:1313/blog/images/bsp/bsp-del02.png" alt="Figure" title="Preview"></p>
+<p><img src="http://localhost:1313/images/bsp/bsp-del02.png" alt="Figure" title="Preview"></p>
 <h4 id="external-sibling-with-grandparent">External Sibling with Grandparent</h4>
 <p>Let&rsquo;s consider another scenario. We have Node C, and it&rsquo;s got an external sibling and a grandparent! How can we remove it from the tree?</p>
-<p><img src="http://localhost:1313/blog/images/bsp/bsp-del11.png" alt="Figure" title="Preview"></p>
+<p><img src="http://localhost:1313/images/bsp/bsp-del11.png" alt="Figure" title="Preview"></p>
 <ul>
 <li>We want to delete <code>Node C</code> from the tree</li>
 <li>First, <code>node A</code> is internal, it represents a rectangle in the screen
@@ -371,7 +379,7 @@ we aim to make it external by deleting its children and inserting a window in it
 <li>Finally we change <code>node A</code> type from <code>INTERNAL_NODE</code> to <code>EXTERNAL_NODE</code></li>
 </ul>
 <p>The difference between the initial and final state is as follows:</p>
-<p><img src="http://localhost:1313/blog/images/bsp/bsp-del12.png" alt="Figure" title="Preview"></p>
+<p><img src="http://localhost:1313/images/bsp/bsp-del12.png" alt="Figure" title="Preview"></p>
 <p>The code for both scenarios will pretty much look like this:</p>
 <div class="highlight"><pre tabindex="0" style="color:#d8dee9;background-color:#2e3440;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-C" data-lang="C"><span style="display:flex;"><span><span style="color:#81a1c1;font-weight:bold">if</span> <span style="color:#eceff4">(</span><span style="color:#88c0d0">is_sibling_external</span><span style="color:#eceff4">(</span>node<span style="color:#eceff4">))</span> <span style="color:#eceff4">{</span>
 </span></span><span style="display:flex;"><span>	<span style="color:#81a1c1">node_t</span> <span style="color:#81a1c1">*</span>e <span style="color:#81a1c1">=</span> <span style="color:#88c0d0">get_external_sibling</span><span style="color:#eceff4">(</span>node<span style="color:#eceff4">);</span>
@@ -410,7 +418,7 @@ we aim to make it external by deleting its children and inserting a window in it
 <p>Now if the targeted node has a an internal sibling, then a little extra work is required
 Lets consider the following scenario, we want to delete <code>Node EA (window 1)</code> from the tree. but its sibling<code>Node A</code>is an internal node with children <code>(Node B and Node C)</code>.</p>
 <p>How can we delete it?</p>
-<p><img src="http://localhost:1313/blog/images/bsp/bsp-del21.png" alt="Figure" title="del1"></p>
+<p><img src="http://localhost:1313/images/bsp/bsp-del21.png" alt="Figure" title="del1"></p>
 <ul>
 <li>We want to delete <code>Node EA (window 1)</code> from the tree. However,
 its sibling<code>Node A</code>is an internal node with children <code>(Node B and Node C)</code>.</li>
@@ -433,15 +441,15 @@ between (<code>node A</code> ⇄ <code>node C</code> and <code>node A</code> ⇄
 <li>After all that we free <code>Node A</code> and <code>Node EA</code> and resize the tree</li>
 </ul>
 <p>The difference between the initial and final state is as follows:</p>
-<p><img src="http://localhost:1313/blog/images/bsp/bsp-del22.png" alt="Figure" title="del2"></p>
+<p><img src="http://localhost:1313/images/bsp/bsp-del22.png" alt="Figure" title="del2"></p>
 <p>Or a shorter version:</p>
-<p><img src="http://localhost:1313/blog/images/bsp/bsp-del23.png" alt="Figure" title="del3"></p>
+<p><img src="http://localhost:1313/images/bsp/bsp-del23.png" alt="Figure" title="del3"></p>
 <h4 id="internal-sibling-with-grandparent">Internal sibling with grandparent</h4>
 <p>Now if the targeted node has a an internal sibling, and a grandparent then the logic will prety much be the same. We just need to find the psrent of the targeted node, get rid of the targeted node and its sibling then and link its children to the targeted node&rsquo;s parent (to their grandparent).</p>
 <p>Just like what the visual show, this is the initial state:</p>
-<p><img src="http://localhost:1313/blog/images/bsp/bsp-final.png" alt="Figure" title="del4"></p>
+<p><img src="http://localhost:1313/images/bsp/bsp-final.png" alt="Figure" title="del4"></p>
 <p>And this is how things look at the end:</p>
-<p><img src="http://localhost:1313/blog/images/bsp/bsp-final2.png" alt="Figure" title="del4"></p>
+<p><img src="http://localhost:1313/images/bsp/bsp-final2.png" alt="Figure" title="del4"></p>
 <p>The code for both scenarios will pretty much look like this:</p>
 <div class="highlight"><pre tabindex="0" style="color:#d8dee9;background-color:#2e3440;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-C" data-lang="C"><span style="display:flex;"><span><span style="color:#81a1c1;font-weight:bold">if</span> <span style="color:#eceff4">(</span><span style="color:#88c0d0">is_sibling_internal</span><span style="color:#eceff4">(</span>node<span style="color:#eceff4">))</span> <span style="color:#eceff4">{</span>
 </span></span><span style="display:flex;"><span>	<span style="color:#81a1c1">node_t</span> <span style="color:#81a1c1">*</span>n <span style="color:#81a1c1">=</span> <span style="color:#81a1c1">NULL</span><span style="color:#eceff4">;</span>
@@ -510,7 +518,7 @@ between (<code>node A</code> ⇄ <code>node C</code> and <code>node A</code> ⇄
                 
 <div class="prev-post">
     <p>
-        <a href="http://localhost:1313/blog/posts/force_memory_cleanup/">
+        <a href="http://localhost:1313/posts/force_memory_cleanup/">
             &#8592;
             Previous:
             Force Memory Cleanup on Crash in C Programs
@@ -534,12 +542,11 @@ between (<code>node A</code> ⇄ <code>node C</code> and <code>node A</code> ⇄
     
 
         </main><footer class="footer">
-    
-    <span>
-		Hi there &#128075; ...
-        
-        
-    </span>
-</footer>
-</body>
+	
+	<span>
+		
+		
+		
+	</span>
+</footer></body>
 </html>
