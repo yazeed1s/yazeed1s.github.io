@@ -2,17 +2,17 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Linux on Yazeed</title>
-    <link>http://localhost:38391/tags/linux/</link>
+    <link>http://localhost:1313/tags/linux/</link>
     <description>Recent content in Linux on Yazeed</description>
     <generator>Hugo</generator>
     <language>en</language>
     <lastBuildDate>Sun, 17 Dec 2023 00:00:00 +0000</lastBuildDate>
-    <atom:link href="http://localhost:38391/tags/linux/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="http://localhost:1313/tags/linux/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Force Memory Cleanup on Crash in C Programs</title>
-      <link>http://localhost:38391/posts/force_memory_cleanup/</link>
+      <link>http://localhost:1313/posts/force_memory_cleanup/</link>
       <pubDate>Sun, 17 Dec 2023 00:00:00 +0000</pubDate>
-      <guid>http://localhost:38391/posts/force_memory_cleanup/</guid>
+      <guid>http://localhost:1313/posts/force_memory_cleanup/</guid>
       <description>As you might already know.. In C (and other compiled languages as well) the main function serves as the entry point for program execution. It controls program execution by directing the calls to whatever code lives inside its body sequentially. Typically, sane programmers craft cleanup code that gets executed at the end of the program to free any allocated resources and give it back to the OS. This is simply done by calling free() on heap allocated object(s) before the main routine returns and exits out.</description>
     </item>
   </channel>

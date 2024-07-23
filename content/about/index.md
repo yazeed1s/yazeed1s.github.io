@@ -1,5 +1,5 @@
 ### About Me
-Hey there! I’m Yazeed Alharthi, and welcome to my corner of the internet. I am a software developer with a Bachelor of Science in CS from Pittsburgh. I’m currently job-hunting and awaiting responses from a few graduate schools. This blog is all about my personal projects, discoveries, and interests. Here, I share new topics I've learned, software development techniques, and cool demos.
+Hey there! I’m Yazeed Alharthi, and welcome to my corner of the internet. I am a software developer with a Bachelor of Science in CS from Pittsburgh. I’m currently job-hunting and awaiting responses from a few graduate schools. This blog is all about my personal projects, discoveries, and interests. Here, I share new topics I've learned, software development techniques, and cool demos.kk
 ### Software Preferences
 I’m a fan of keeping things simple and customizable. I like tools that let me get under the hood and tweak things just how I want.
 #### editor

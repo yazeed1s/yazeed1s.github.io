@@ -2,17 +2,17 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Tiling Window Manager on Yazeed</title>
-    <link>http://localhost:38391/tags/tiling-window-manager/</link>
+    <link>http://localhost:1313/tags/tiling-window-manager/</link>
     <description>Recent content in Tiling Window Manager on Yazeed</description>
     <generator>Hugo</generator>
     <language>en</language>
     <lastBuildDate>Sun, 21 Jul 2024 00:00:00 +0000</lastBuildDate>
-    <atom:link href="http://localhost:38391/tags/tiling-window-manager/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="http://localhost:1313/tags/tiling-window-manager/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>The Inner workings of BSP-Trees in the context of window management</title>
-      <link>http://localhost:38391/posts/bsp/</link>
+      <link>http://localhost:1313/posts/bsp/</link>
       <pubDate>Sun, 21 Jul 2024 00:00:00 +0000</pubDate>
-      <guid>http://localhost:38391/posts/bsp/</guid>
+      <guid>http://localhost:1313/posts/bsp/</guid>
       <description>Few months back, I was sick and tired of writing work-related code, so I decided to start a side project just to revive the fun of programming in me. I had a bunch of ideas floating around in my head, but I eventually settled on creating my own tiling window manager from scratch because it was both practical and challenging. At work, I&amp;rsquo;d been diving into various spatial data structures, and one in particular caught my eye - the binary space partitioning tree (BSP-tree).</description>
     </item>
   </channel>

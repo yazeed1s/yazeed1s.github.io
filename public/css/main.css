@@ -299,8 +299,8 @@ a:hover .feather-sun {
 }
 
 .post-tags .post-tag:hover {
-	background-color: var(--light-text-color);
-	color: rgb(var(--light-primary-color));
+	/* background-color: var(--light-text-color); */
+	color: var(--accent-color);
 }
 
 .post-tag a {
@@ -550,7 +550,7 @@ table td {
 }
 
 .tags-list .post-tags .post-tag a .tag-posts-count {
-	background-color: var(--light-secondary-color);
+	/* background-color: var(--light-secondary-color); */
 	border-radius: inherit;
 	color: inherit;
 	opacity: 0.8;
@@ -560,8 +560,8 @@ table td {
 }
 
 .tags-list .post-tags .post-tag:hover a .tag-posts-count {
-	background-color: var(--light-text-color);
-	color: rgb(var(--light-primary-color));
+	/* background-color: var(--light-text-color); */
+	color: var(--accent-color);
 }
 
 .text-404 {
