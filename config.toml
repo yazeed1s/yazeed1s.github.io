@@ -24,7 +24,7 @@ socialIcons = [
 	# { name = "twitter", url = "https://twitter.com/yazeed4n" },
 	{ name = "github", url = "https://github.com/yazeed1s" },
 	{ name = "discord", url = "https://discordapp.com/users/960530403142295583" },
-	 {name = "email", url = "yazeed4n@gmail.com"},
+	 {name = "email", url = "mailto:yazeed4n@gmail.com"},
 ]
 # metaKeywords = ["blog", "gokarna", "hugo"]
 [menu]

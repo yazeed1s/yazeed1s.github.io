@@ -2,44 +2,44 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>http://localhost:1313/posts/bsp/</loc>
+    <loc>http://localhost:38391/posts/bsp/</loc>
     <lastmod>2024-07-21T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/posts/force_memory_cleanup/</loc>
+    <loc>http://localhost:38391/posts/force_memory_cleanup/</loc>
     <lastmod>2023-12-17T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/tags/c/</loc>
+    <loc>http://localhost:38391/tags/c/</loc>
     <lastmod>2024-07-21T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/posts/</loc>
+    <loc>http://localhost:38391/posts/</loc>
     <lastmod>2024-07-21T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/tags/spacial-data-structures/</loc>
+    <loc>http://localhost:38391/tags/spacial-data-structures/</loc>
     <lastmod>2024-07-21T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/tags/</loc>
+    <loc>http://localhost:38391/tags/</loc>
     <lastmod>2024-07-21T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/tags/tiling-window-manager/</loc>
+    <loc>http://localhost:38391/tags/tiling-window-manager/</loc>
     <lastmod>2024-07-21T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/</loc>
+    <loc>http://localhost:38391/</loc>
     <lastmod>2024-07-21T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/tags/linux/</loc>
+    <loc>http://localhost:38391/tags/linux/</loc>
     <lastmod>2023-12-17T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/tags/memory/</loc>
+    <loc>http://localhost:38391/tags/memory/</loc>
     <lastmod>2023-12-17T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/projects/sqlweb/</loc>
+    <loc>http://localhost:38391/projects/sqlweb/</loc>
   </url><url>
-    <loc>http://localhost:1313/projects/zwm/</loc>
+    <loc>http://localhost:38391/projects/zwm/</loc>
   </url><url>
-    <loc>http://localhost:1313/about/</loc>
+    <loc>http://localhost:38391/about/</loc>
   </url><url>
-    <loc>http://localhost:1313/categories/</loc>
+    <loc>http://localhost:38391/categories/</loc>
   </url><url>
-    <loc>http://localhost:1313/projects/</loc>
+    <loc>http://localhost:38391/projects/</loc>
   </url>
 </urlset>
