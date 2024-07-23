@@ -1,15 +1,11 @@
----
-title: "About me"
-type: page
----
 ### About Me
-Hey there! I’m Yazeed Alharthi, and welcome to my corner of the internet. I am a software developer with a Bachelor of Science in CS from Pittsburgh. I’m currently job-hunting and awaiting responses from a few graduate schools. This blog is all about my personal projects, discoveries, and interests. Here, I share new topics I've learned, software development techniques, amd cool demos.
+Hey there! I’m Yazeed Alharthi, and welcome to my corner of the internet. I am a software developer with a Bachelor of Science in CS from Pittsburgh. I’m currently job-hunting and awaiting responses from a few graduate schools. This blog is all about my personal projects, discoveries, and interests. Here, I share new topics I've learned, software development techniques, and cool demos.
 ### Software Preferences
 I’m a fan of keeping things simple and customizable. I like tools that let me get under the hood and tweak things just how I want.
 #### editor
 I use Emacs as my primary text editor. It’s got everything I need like PDF tools, a built-in LSP client, a great built-in file manager, and smooth handling of shell commands. My Emacs setup is bare minimal; I stick to the defaults for buffer jumping, file switching, and code searching. Sometimes, I use VSCodium for quick tasks, so I juggle between the two.
 #### OS
-I favor Unix-based operating systems. I started with macOS, but a few years ago, I switched to Arch Linux. Arch’s philosophy and its solid package ecosystem won me over. The AUR and pacman are fantastic — I can confidently run pacman/yay -S [package name] and find what I’m looking for. I’ve got both an LTS kernel and a rolling kernel installed, and I can switch between them just in case one decides to misbehave (though that hasn’t happened yet).  My system is lean and purpose-built — no bloated desktop environment. It’s just a text editor, browser, file manager, terminal, and a few tools for managing audio, WiFi, Bluetooth, and media. It's simple, and I like it that way.
+I favor Unix-based operating systems. I started with macOS, but a few years ago, I switched to Arch Linux. Arch’s philosophy and its solid package ecosystem won me over. The AUR and pacman are fantastic — I can confidently run pacman/yay -S [package name] and find what I’m looking for. I’ve got both an LTS kernel and a rolling kernel installed, and I can switch between them just in case one decides to misbehave (though that hasn’t happened yet). My system is lean and purpose-built — no bloated desktop environment. It’s just a text editor, browser, file manager, terminal, and a few tools for managing audio, WiFi, Bluetooth, and media. It's simple, and I like it that way.
 #### Window manager
 I’m still sticking with X11. I started with bspwm and used it for years, but a few months ago, I switched to my own window manager. It’s opinionated and fits my workflow perfectly.
 #### Languages I like
