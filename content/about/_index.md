@@ -11,7 +11,7 @@ I’m still sticking with X11. I started with bspwm and used it for years, but a
 #### Languages I like
 I love exploring different languages. I’ve written small to medium-sized projects in Rust, TS, Java, Zig, Haskell, C, C++, and Go but C and Go are my top picks. For me, C and Go stand out because they’re **small** and **simple**, and one can have a comprehensive understanding of them easily. Plus, they basically lack what you take for granted in other languages, which I find both challenging and rewarding!
 ### If not coding, I will be
-I do have a life outside of coding. If I’m not tinkering with my OS or writing code, I’ll probably be out for a walk, catching up on a TV show (recommendations welcome!), reading a book, or playing chess (always up for a challenge), pool, or volleyball. I’ve collected around 150 books over the years on topics like fiction, non-fiction, history, religions, cultures, and psychology. Some of my favorite authors are Paulo Coelho, Robert Greene, Matt Haig, Hans Rosling, and Jostein Gaarder.
+I do have a life outside of coding. If I’m not tinkering with my OS or writing code, I’ll probably be out for a walk, catching up on a TV show (recommendations welcome!), reading a book, or playing chess (always up for a challenge), pool, or volleyball. I’ve collected around 100 books over the years on topics like fiction, non-fiction, history, religions, cultures, and psychology. Some of my favorite authors are Paulo Coelho, Robert Greene, Matt Haig, Hans Rosling, and Jostein Gaarder.
 
 I also enjoy following and learning from some of the big brains in computer science like Rob Pike, Andy Pavlo, John Carmack, James Gosling, and Linus Torvalds.
 ### Contact
