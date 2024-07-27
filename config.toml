@@ -10,7 +10,7 @@ canonifyURLs = true
 
 [params]
 description = "I love computers!"
-avatarURL = "/images/aa.png"
+avatarURL = "/images/x.png"
 AvatarAltText = "avatar"
 avatarSize = "size-s"
 accentColor = "#8BB8D0"
