@@ -155,7 +155,7 @@ body.dark #menu svg path {
 html,
 body,
 code {
-	font-family: "JetBrains Mono";
+	font-family: "JetBrains Mono", monospace;
 }
 
 code {
