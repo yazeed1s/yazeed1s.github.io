@@ -1,1 +1,3 @@
 User-agent: *
+Disallow:
+Sitemap: https://yazeed1s.github.io/sitemap.xml
