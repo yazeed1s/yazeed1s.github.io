@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
-    <title>Tiling Window Manager on Yazeed</title>
+    <title>Tiling Window Manager on Yazeed&#39;s blog</title>
     <link>http://localhost:1313/tags/tiling-window-manager/</link>
-    <description>Recent content in Tiling Window Manager on Yazeed</description>
-    <generator>Hugo</generator>
+    <description>Recent content in Tiling Window Manager on Yazeed&#39;s blog</description>
+    <generator>Hugo -- 0.133.0</generator>
     <language>en</language>
     <lastBuildDate>Sun, 21 Jul 2024 00:00:00 +0000</lastBuildDate>
     <atom:link href="http://localhost:1313/tags/tiling-window-manager/index.xml" rel="self" type="application/rss+xml" />
@@ -13,7 +13,7 @@
       <link>http://localhost:1313/posts/bsp/</link>
       <pubDate>Sun, 21 Jul 2024 00:00:00 +0000</pubDate>
       <guid>http://localhost:1313/posts/bsp/</guid>
-      <description>Few months back, I was sick and tired of writing work-related code, so I decided to start a side project just to revive the fun of programming in me. I had a bunch of ideas floating around in my head, but I eventually settled on creating my own tiling window manager from scratch because it was both practical and challenging. At work, I&amp;rsquo;d been diving into various spatial data structures, and one in particular caught my eye - the binary space partitioning tree (BSP-tree).</description>
+      <description>How can we use BSP-trees to store and manage windows in a 2D fashion?</description>
     </item>
   </channel>
 </rss>

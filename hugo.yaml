@@ -1,0 +1,149 @@
+baseURL: "https://yazeed1s.github.io"
+title: "Yazeed's blog"
+paginate: 5
+theme: PaperMod
+
+enableRobotsTXT: true
+buildDrafts: false
+buildFuture: false
+buildExpired: false
+enableEmoji: true
+mainsections: ["posts", "papermod"]
+minify:
+  disableXML: true
+  minifyOutput: false
+
+params:
+  env: production # to enable google analytics, opengraph, twitter-cards and schema.
+  title: Yazeed's blog
+  keywords: [Blog, Linux, Programming, Yazeed, Coding]
+  author: "Yazeed"
+  # images: ["<link or path of image for opengraph, twitter-cards>"]
+  DateFormat: "January 2, 2006"
+  defaultTheme: dark # dark, light
+  disableThemeToggle: true
+
+  ShowAllPagesInArchive: true
+  ShowReadingTime: false
+  ShowShareButtons: false
+  ShowPostNavLinks: false
+  ShowBreadCrumbs: false
+  ShowCodeCopyButtons: true
+  ShowWordCount: false
+  ShowRssButtonInSectionTermList: false
+  UseHugoToc: true
+  disableSpecial1stPost: false
+  disableScrollToTop: false
+  comments: false
+  hidemeta: false
+  hideSummary: true
+  showtoc: false
+  tocopen: false
+  hideFooter: true
+  # ShowPostNavLinks: false
+  assets:
+    disableFingerprinting: true
+    # disableHLJS: true # to disable highlight.js
+
+  label:
+    text: "Yazeed's blog"
+    icon: #
+    iconHeight: 35
+
+  # profile-mode
+  profileMode:
+    enabled: false # needs to be explicitly set
+    title: Yazeed Alharthi
+    subtitle: "I love computers"
+    imageUrl: "/images/aa.png"
+    imageWidth: 200
+    imageHeight: 200
+    imageTitle: my image
+    buttons:
+      - name: Posts
+        url: /archives/
+      - name: Projects
+        url: /projects/
+      - name: About
+        url: /about/
+
+  # home-info mode
+  homeInfoParams:
+    Title: "Hi there... "
+    Content: >
+      I'm Yazeed Alharthi, a software engineer with a Computer Science degree and a passion for software development. This blog covers my personal projects, topics that I've recently learned, and some of my interests.
+
+
+ 
+  socialIcons:
+    - name: github
+      title: my Github
+      url: "https://github.com/yazeed1s"
+    - name: Discord
+      title: discord
+      url: "https://discordapp.com/users/960530403142295583"
+    - name: Email
+      title: email
+      url: "mailto:yazeed4n@gmail.com"
+
+  analytics:
+    google:
+      SiteVerificationTag: "XYZabc"
+    bing:
+      SiteVerificationTag: "XYZabc"
+    yandex:
+      SiteVerificationTag: "XYZabc"
+
+  # cover:
+  #   hidden: false # hide everywhere but not in structured data
+  #   hiddenInList: false # hide on list pages and home
+  #   hiddenInSingle: false # hide on single page
+
+  # editPost:
+  #   URL: "https://github.com/<path_to_repo>/content"
+  #   Text: "Suggest Changes" # edit text
+  #   appendFilePath: true # to append file path to Edit link
+
+  # for search
+  # https://fusejs.io/api/options.html
+  fuseOpts:
+    isCaseSensitive: false
+    shouldSort: true
+    location: 0
+    distance: 1000
+    threshold: 0.4
+    minMatchCharLength: 0
+    limit: 10 # refer: https://www.fusejs.io/api/methods.html#search
+    keys: ["title", "permalink", "summary", "content"]
+menu:
+  main:
+    - identifier: Home
+      name: Home
+      pre: <span data-feather='github'></span>
+      url:  /
+      weight: 10
+    - identifier: Posts
+      name: Posts
+      url:  /archives/
+      weight: 10
+    - identifier: Projects
+      name: Projects
+      url: /projects/
+      weight: 20
+    - identifier: about
+      name: About
+      pre:
+      url: /about/
+      weight: 30
+
+# Read: https://github.com/adityatelange/hugo-PaperMod/wiki/FAQs#using-hugos-syntax-highlighter-chroma
+pygmentsUseClasses: true
+markup:
+  highlight:
+    # noClasses: false
+    # anchorLineNos: false
+    # codeFences: true
+    # guessSyntax: false
+    # lineNos: false
+    style: nord
+

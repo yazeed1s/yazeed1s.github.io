@@ -3,9 +3,17 @@ title: "Force Memory Cleanup on Crash in C Programs"
 date: 2023-12-17
 description: "Does the main function return on abnormal exit?"
 tags: ["C", "memory", "Linux"]
-type: post
-weight: 20
-showTableOfContents: false
+showToc: false
+TocOpen: false
+draft: false
+hidemeta: false
+comments: true
+searchHidden: false
+ShowReadingTime: true
+ShowBreadCrumbs: false
+ShowPostNavLinks: false
+ShowWordCount: true
+UseHugoToc: true
 ---
 ***
 As you might already know.. In C (and other compiled languages as well) the `main` function serves as the entry point for program execution. It controls program execution by directing the calls to whatever code lives inside its body sequentially. Typically, sane programmers craft cleanup code that gets executed at the end of the program to free any allocated resources and give it back to the OS. This is simply done by calling `free()` on heap allocated object(s) before the main routine returns and exits out.

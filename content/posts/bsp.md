@@ -3,9 +3,17 @@ title: "The Inner workings of BSP-Trees in the context of window management"
 date: 2024-07-21
 description: "How can we use BSP-trees to store and manage windows in a 2D fashion?"
 tags: ["C", "Spacial Data Structures", "Tiling Window Manager"]
-type: post
-weight: 20
-showTableOfContents: false
+showToc: false
+TocOpen: false
+draft: false
+hidemeta: false
+comments: true
+searchHidden: false
+ShowReadingTime: true
+ShowBreadCrumbs: false
+ShowPostNavLinks: true
+ShowWordCount: true
+UseHugoToc: true
 ---
 ***
 Few months back, I was sick and tired of writing work-related code, so I decided to start a side project just to revive the fun of programming in me. I had a bunch of ideas floating around in my head, but I eventually settled on creating my own tiling window manager from scratch because it was both practical and challenging. At work, I'd been diving into various spatial data structures, and one in particular caught my eye - the binary space partitioning tree ([BSP-tree](https://en.wikipedia.org/wiki/Binary_space_partitioning)). I thought it would be perfect for a tiling window manager.
