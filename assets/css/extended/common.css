@@ -115,13 +115,15 @@ body.dark #menu span {
 }
 
 .nav {
-	display: flex;
+	/* display: flex;
 	flex-wrap: wrap;
 	justify-content: space-between;
 	max-width: calc(var(--nav-width) + var(--gap) * 8);
 	margin-inline-start: auto;
 	margin-inline-end: auto;
-	line-height: var(--header-height);
+	line-height: var(--header-height); */
+	justify-content: center;
+	text-align: center;
 }
 
 #menu span {
@@ -152,25 +154,6 @@ body.dark #menu svg path {
 	fill: #8BB8D0;
 }
 
-html,
-body,
-code {
-	font-family: "JetBrains Mono", monospace;
-}
-
-code {
-	direction: ltr;
-}
-
-.archive-posts {
-	width: 100%;
-	font-size: 16px;
-}
-
-.archive-year {
-	margin-top: 40px;
-}
-
 .archive-year:not(:last-of-type) {
 	border-bottom: 2px solid var(--border);
 	/* opacity: .2; */
@@ -179,17 +162,6 @@ code {
 	/* background: transparent; */
 	width: 95%;
 	/* margin: 1.5em auto; */
-}
-
-.archive-month {
-	display: flex;
-	align-items: flex-start;
-	padding: 10px 0;
-}
-
-.archive-month-header {
-	margin: 25px 0;
-	width: 200px;
 }
 
 .archive-month:not(:last-of-type) {
@@ -202,23 +174,11 @@ code {
 	margin: 1.5em auto;
 }
 
-.archive-entry {
-	position: relative;
-	padding: 5px;
-	margin: 10px 0;
+html,
+body {
+	font-family: "JetBrains Mono", monospace;
 }
 
-.archive-entry-title {
-	margin: 5px 0;
-	font-weight: 400;
-}
-
-.archive-entry-title:hover {
-	color: #8BB8D0;
-}
-
-.archive-count,
-.archive-meta {
-	color: var(--secondary);
-	font-size: 14px;
+code {
+	font-family: "JetBrains Mono";
 }
