@@ -2,24 +2,24 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>C on Yazeed&#39;s blog</title>
-    <link>http://localhost:1313/tags/c/</link>
+    <link>https://yazeed1s.github.io/tags/c/</link>
     <description>Recent content in C on Yazeed&#39;s blog</description>
-    <generator>Hugo -- 0.133.0</generator>
+    <generator>Hugo -- 0.138.0</generator>
     <language>en</language>
     <lastBuildDate>Sun, 21 Jul 2024 00:00:00 +0000</lastBuildDate>
-    <atom:link href="http://localhost:1313/tags/c/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://yazeed1s.github.io/tags/c/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>The Inner workings of BSP-Trees in the context of window management</title>
-      <link>http://localhost:1313/posts/bsp/</link>
+      <link>https://yazeed1s.github.io/posts/bsp/</link>
       <pubDate>Sun, 21 Jul 2024 00:00:00 +0000</pubDate>
-      <guid>http://localhost:1313/posts/bsp/</guid>
+      <guid>https://yazeed1s.github.io/posts/bsp/</guid>
       <description>How can we use BSP-trees to store and manage windows in a 2D fashion?</description>
     </item>
     <item>
       <title>Force Memory Cleanup on Crash in C Programs</title>
-      <link>http://localhost:1313/posts/force_memory_cleanup/</link>
+      <link>https://yazeed1s.github.io/posts/force_memory_cleanup/</link>
       <pubDate>Sun, 17 Dec 2023 00:00:00 +0000</pubDate>
-      <guid>http://localhost:1313/posts/force_memory_cleanup/</guid>
+      <guid>https://yazeed1s.github.io/posts/force_memory_cleanup/</guid>
       <description>Does the main function return on abnormal exit?</description>
     </item>
   </channel>

@@ -2,54 +2,61 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>Yazeed&#39;s blog</title>
-    <link>http://localhost:1313/</link>
+    <link>https://yazeed1s.github.io/</link>
     <description>Recent content on Yazeed&#39;s blog</description>
-    <generator>Hugo -- 0.133.0</generator>
+    <generator>Hugo -- 0.138.0</generator>
     <language>en</language>
     <lastBuildDate>Sun, 21 Jul 2024 00:00:00 +0000</lastBuildDate>
-    <atom:link href="http://localhost:1313/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://yazeed1s.github.io/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>The Inner workings of BSP-Trees in the context of window management</title>
-      <link>http://localhost:1313/posts/bsp/</link>
+      <link>https://yazeed1s.github.io/posts/bsp/</link>
       <pubDate>Sun, 21 Jul 2024 00:00:00 +0000</pubDate>
-      <guid>http://localhost:1313/posts/bsp/</guid>
+      <guid>https://yazeed1s.github.io/posts/bsp/</guid>
       <description>How can we use BSP-trees to store and manage windows in a 2D fashion?</description>
     </item>
     <item>
       <title>Force Memory Cleanup on Crash in C Programs</title>
-      <link>http://localhost:1313/posts/force_memory_cleanup/</link>
+      <link>https://yazeed1s.github.io/posts/force_memory_cleanup/</link>
       <pubDate>Sun, 17 Dec 2023 00:00:00 +0000</pubDate>
-      <guid>http://localhost:1313/posts/force_memory_cleanup/</guid>
+      <guid>https://yazeed1s.github.io/posts/force_memory_cleanup/</guid>
       <description>Does the main function return on abnormal exit?</description>
     </item>
     <item>
       <title></title>
-      <link>http://localhost:1313/about/</link>
+      <link>https://yazeed1s.github.io/about/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      <guid>http://localhost:1313/about/</guid>
-      <description>About Me Hey there! I’m Yazeed Alharthi, and welcome to my corner of the internet. I am a software developer with a Bachelor of Science in CS from Pittsburgh. I’m currently job-hunting and awaiting responses from a few graduate schools. This blog is all about my personal projects, discoveries, and interests. Here, I share new topics I&amp;rsquo;ve learned, software development techniques, and cool demos.
-Software Preferences I’m a fan of keeping things simple and customizable.</description>
+      <guid>https://yazeed1s.github.io/about/</guid>
+      <description>&lt;h3 id=&#34;about-me&#34;&gt;About Me&lt;/h3&gt;
+&lt;p&gt;Hey there! I’m Yazeed Alharthi, and welcome to my corner of the internet. I am a software developer with a Bachelor of Science in CS from Pittsburgh. I’m currently job-hunting and awaiting responses from a few graduate schools. This blog is all about my personal projects, discoveries, and interests. Here, I share new topics I&amp;rsquo;ve learned, software development techniques, and cool demos.&lt;/p&gt;
+&lt;h3 id=&#34;software-preferences&#34;&gt;Software Preferences&lt;/h3&gt;
+&lt;p&gt;I’m a fan of keeping things simple and customizable. I like tools that let me get under the hood and tweak things just how I want.&lt;/p&gt;</description>
     </item>
     <item>
       <title>A Relational-Database web client</title>
-      <link>http://localhost:1313/sqlweb/</link>
+      <link>https://yazeed1s.github.io/sqlweb/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      <guid>http://localhost:1313/sqlweb/</guid>
-      <description>under construction</description>
+      <guid>https://yazeed1s.github.io/sqlweb/</guid>
+      <description>&lt;p&gt;under construction&lt;/p&gt;</description>
     </item>
     <item>
       <title>A tiling window manager for X11</title>
-      <link>http://localhost:1313/zwm/</link>
+      <link>https://yazeed1s.github.io/zwm/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      <guid>http://localhost:1313/zwm/</guid>
-      <description>under construction</description>
+      <guid>https://yazeed1s.github.io/zwm/</guid>
+      <description>&lt;p&gt;under construction&lt;/p&gt;</description>
     </item>
     <item>
       <title>Projects</title>
-      <link>http://localhost:1313/projects/</link>
+      <link>https://yazeed1s.github.io/projects/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      <guid>http://localhost:1313/projects/</guid>
-      <description>Some of my projects.. A tiling window manager for X11 A relational databse web client Don&amp;rsquo;t click me! </description>
+      <guid>https://yazeed1s.github.io/projects/</guid>
+      <description>&lt;h3 id=&#34;some-of-my-projects&#34;&gt;Some of my projects..&lt;/h3&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;a href=&#34;https://yazeed1s.github.io/zwm&#34;&gt;A tiling window manager for X11&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://yazeed1s.github.io/sqlweb&#34;&gt;A relational databse web client&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://www.nimh.nih.gov/health/topics&#34;&gt;Don&amp;rsquo;t click me!&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;</description>
     </item>
   </channel>
 </rss>
