@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <title>Yazeed&#x27;s Blog - Scheduling</title>
+    <subtitle>Notes on systems and low-level software.</subtitle>
+    <link rel="self" type="application/atom+xml" href="https://yazeed1s.github.io/tags/scheduling/atom.xml"/>
+    <link rel="alternate" type="text/html" href="https://yazeed1s.github.io"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2025-03-23T00:00:00+00:00</updated>
+    <id>https://yazeed1s.github.io/tags/scheduling/atom.xml</id>
+    <entry xml:lang="en">
+        <title>OS Context Switching: What Happens When Processes Switch</title>
+        <published>2025-03-23T00:00:00+00:00</published>
+        <updated>2025-03-23T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/context-switching/"/>
+        <id>https://yazeed1s.github.io/posts/context-switching/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/context-switching/">&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;introduction&quot;&gt;Introduction&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;What is a context switch?&lt;&#x2F;li&gt;
+&lt;li&gt;Why context switches are necessary&lt;&#x2F;li&gt;
+&lt;li&gt;The cost of switching&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;what-gets-saved&quot;&gt;What Gets Saved&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;CPU registers (general purpose, special)&lt;&#x2F;li&gt;
+&lt;li&gt;Program counter&lt;&#x2F;li&gt;
+&lt;li&gt;Stack pointer&lt;&#x2F;li&gt;
+&lt;li&gt;Floating point &#x2F; SIMD state&lt;&#x2F;li&gt;
+&lt;li&gt;Memory mappings (page table pointer)&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;triggers-for-context-switch&quot;&gt;Triggers for Context Switch&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Timer interrupt (preemption)&lt;&#x2F;li&gt;
+&lt;li&gt;System calls&lt;&#x2F;li&gt;
+&lt;li&gt;I&#x2F;O blocking&lt;&#x2F;li&gt;
+&lt;li&gt;Voluntary yield&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;the-context-switch-process&quot;&gt;The Context Switch Process&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Step-by-step walkthrough&lt;&#x2F;li&gt;
+&lt;li&gt;Kernel mode transition&lt;&#x2F;li&gt;
+&lt;li&gt;Saving old state&lt;&#x2F;li&gt;
+&lt;li&gt;Loading new state&lt;&#x2F;li&gt;
+&lt;li&gt;Return to user mode&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;linux-implementation&quot;&gt;Linux Implementation&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;task_struct&lt;&#x2F;code&gt;&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;switch_to()&lt;&#x2F;code&gt; macro&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;schedule()&lt;&#x2F;code&gt; function&lt;&#x2F;li&gt;
+&lt;li&gt;Where the actual switch happens&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;performance-impact&quot;&gt;Performance Impact&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Direct costs (saving&#x2F;restoring registers)&lt;&#x2F;li&gt;
+&lt;li&gt;Indirect costs (cache pollution, TLB flush)&lt;&#x2F;li&gt;
+&lt;li&gt;Measuring context switch overhead&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;reducing-context-switches&quot;&gt;Reducing Context Switches&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;User-space threading (green threads)&lt;&#x2F;li&gt;
+&lt;li&gt;Async I&#x2F;O (epoll, io_uring)&lt;&#x2F;li&gt;
+&lt;li&gt;CPU affinity&lt;&#x2F;li&gt;
+&lt;li&gt;Batching work&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;diagram-ideas&quot;&gt;Diagram Ideas&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Context switch flow&lt;&#x2F;li&gt;
+&lt;li&gt;State saved&#x2F;restored&lt;&#x2F;li&gt;
+&lt;li&gt;Timeline of a switch&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Context switches are unavoidable but can be minimized&lt;&#x2F;li&gt;
+&lt;li&gt;Tradeoffs between responsiveness and throughput&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;references&quot;&gt;References&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Linux kernel source (kernel&#x2F;sched&#x2F;)&lt;&#x2F;li&gt;
+&lt;li&gt;Operating systems textbooks&lt;&#x2F;li&gt;
+&lt;li&gt;Performance measurement tools (perf, ftrace)&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+</feed>

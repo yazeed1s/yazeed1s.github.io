@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <title>Yazeed&#x27;s Blog - CXL</title>
+    <subtitle>Notes on systems and low-level software.</subtitle>
+    <link rel="self" type="application/atom+xml" href="https://yazeed1s.github.io/tags/cxl/atom.xml"/>
+    <link rel="alternate" type="text/html" href="https://yazeed1s.github.io"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2025-03-23T00:00:00+00:00</updated>
+    <id>https://yazeed1s.github.io/tags/cxl/atom.xml</id>
+    <entry xml:lang="en">
+        <title>CXL: Compute Express Link</title>
+        <published>2025-03-23T00:00:00+00:00</published>
+        <updated>2025-03-23T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/cxl/"/>
+        <id>https://yazeed1s.github.io/posts/cxl/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/cxl/">&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;introduction&quot;&gt;Introduction&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;What is CXL?&lt;&#x2F;li&gt;
+&lt;li&gt;Why a new interconnect? (PCIe limitations for memory)&lt;&#x2F;li&gt;
+&lt;li&gt;Industry adoption (Intel, AMD, ARM, etc.)&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;cxl-vs-existing-technologies&quot;&gt;CXL vs Existing Technologies&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;CXL vs PCIe&lt;&#x2F;li&gt;
+&lt;li&gt;CXL vs RDMA (link to rdma.md)&lt;&#x2F;li&gt;
+&lt;li&gt;CXL vs NUMA&lt;&#x2F;li&gt;
+&lt;li&gt;Latency and bandwidth comparison&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;cxl-protocol-types&quot;&gt;CXL Protocol Types&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;CXL.io (PCIe compatibility)&lt;&#x2F;li&gt;
+&lt;li&gt;CXL.cache (cache coherent access)&lt;&#x2F;li&gt;
+&lt;li&gt;CXL.mem (memory access)&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;cxl-device-types&quot;&gt;CXL Device Types&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Type 1: Accelerators (cache coherent)&lt;&#x2F;li&gt;
+&lt;li&gt;Type 2: Accelerators with memory&lt;&#x2F;li&gt;
+&lt;li&gt;Type 3: Memory expanders&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;memory-expansion-use-cases&quot;&gt;Memory Expansion Use Cases&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Adding memory to existing servers&lt;&#x2F;li&gt;
+&lt;li&gt;Memory pooling&lt;&#x2F;li&gt;
+&lt;li&gt;Tiered memory (fast local + slower CXL)&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;software-support&quot;&gt;Software Support&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Linux kernel support&lt;&#x2F;li&gt;
+&lt;li&gt;Memory hotplug&lt;&#x2F;li&gt;
+&lt;li&gt;NUMA integration&lt;&#x2F;li&gt;
+&lt;li&gt;Application transparency&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;cxl-2-0-and-3-0&quot;&gt;CXL 2.0 and 3.0&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Switching and pooling&lt;&#x2F;li&gt;
+&lt;li&gt;Memory sharing&lt;&#x2F;li&gt;
+&lt;li&gt;What&#x27;s new in each version&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;challenges&quot;&gt;Challenges&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Latency overhead vs local DRAM&lt;&#x2F;li&gt;
+&lt;li&gt;Software ecosystem maturity&lt;&#x2F;li&gt;
+&lt;li&gt;Cost&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;CXL&#x27;s role in memory disaggregation&lt;&#x2F;li&gt;
+&lt;li&gt;Future of data center memory&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;references&quot;&gt;References&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;CXL specification&lt;&#x2F;li&gt;
+&lt;li&gt;Industry whitepapers&lt;&#x2F;li&gt;
+&lt;li&gt;Research papers&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+</feed>

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <title>Yazeed&#x27;s Blog - Paging</title>
+    <subtitle>Notes on systems and low-level software.</subtitle>
+    <link rel="self" type="application/atom+xml" href="https://yazeed1s.github.io/tags/paging/atom.xml"/>
+    <link rel="alternate" type="text/html" href="https://yazeed1s.github.io"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2025-03-23T00:00:00+00:00</updated>
+    <id>https://yazeed1s.github.io/tags/paging/atom.xml</id>
+    <entry xml:lang="en">
+        <title>Infiniswap: Remote Memory Paging Over RDMA</title>
+        <published>2025-03-23T00:00:00+00:00</published>
+        <updated>2025-03-23T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/infiniswap/"/>
+        <id>https://yazeed1s.github.io/posts/infiniswap/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/infiniswap/">&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;introduction&quot;&gt;Introduction&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;What is Infiniswap?&lt;&#x2F;li&gt;
+&lt;li&gt;The paper: &quot;Infiniswap: Efficient Memory Disaggregation&quot; (NSDI 2017)&lt;&#x2F;li&gt;
+&lt;li&gt;Core idea: swap to remote memory, not disk&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;background&quot;&gt;Background&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Traditional swapping (link to swap-paging.md)&lt;&#x2F;li&gt;
+&lt;li&gt;Why disk swap is slow&lt;&#x2F;li&gt;
+&lt;li&gt;RDMA basics (link to rdma.md)&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;how-infiniswap-works&quot;&gt;How Infiniswap Works&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Architecture overview&lt;&#x2F;li&gt;
+&lt;li&gt;Page fault handling&lt;&#x2F;li&gt;
+&lt;li&gt;Remote memory servers (daemons)&lt;&#x2F;li&gt;
+&lt;li&gt;Block device interface&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;key-design-decisions&quot;&gt;Key Design Decisions&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Transparency (works with unmodified applications)&lt;&#x2F;li&gt;
+&lt;li&gt;Integration with Linux swap subsystem&lt;&#x2F;li&gt;
+&lt;li&gt;Load balancing across remote memory servers&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;performance&quot;&gt;Performance&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Latency comparison: disk vs remote memory&lt;&#x2F;li&gt;
+&lt;li&gt;Throughput numbers from the paper&lt;&#x2F;li&gt;
+&lt;li&gt;Real workload results&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;limitations&quot;&gt;Limitations&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Network dependency&lt;&#x2F;li&gt;
+&lt;li&gt;Memory server failures&lt;&#x2F;li&gt;
+&lt;li&gt;Not a replacement for local memory&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;related-work&quot;&gt;Related Work&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Other remote paging systems&lt;&#x2F;li&gt;
+&lt;li&gt;Comparison with Fastswap, LegoOS, etc.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;When to use Infiniswap&lt;&#x2F;li&gt;
+&lt;li&gt;Impact on memory disaggregation research&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;references&quot;&gt;References&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Infiniswap paper&lt;&#x2F;li&gt;
+&lt;li&gt;Source code repository&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+</feed>

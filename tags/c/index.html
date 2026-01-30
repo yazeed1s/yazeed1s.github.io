@@ -1,3 +1,207 @@
-<!doctype html><html lang=en dir=auto><head><meta charset=utf-8><meta http-equiv=X-UA-Compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no"><meta name=robots content="index, follow"><title>C | Yazeed's blog</title>
-<meta name=keywords content><meta name=description content><meta name=author content="Yazeed"><link rel=canonical href=https://yazeed1s.github.io/tags/c/><meta name=google-site-verification content="XYZabc"><meta name=yandex-verification content="XYZabc"><meta name=msvalidate.01 content="XYZabc"><link crossorigin=anonymous href=/assets/css/stylesheet.css rel="preload stylesheet" as=style><link rel=icon href=https://yazeed1s.github.io/favicon.ico><link rel=icon type=image/png sizes=16x16 href=https://yazeed1s.github.io/favicon-16x16.png><link rel=icon type=image/png sizes=32x32 href=https://yazeed1s.github.io/favicon-32x32.png><link rel=apple-touch-icon href=https://yazeed1s.github.io/apple-touch-icon.png><link rel=mask-icon href=https://yazeed1s.github.io/safari-pinned-tab.svg><meta name=theme-color content="#2e2e33"><meta name=msapplication-TileColor content="#2e2e33"><link rel=alternate type=application/rss+xml href=https://yazeed1s.github.io/tags/c/index.xml><link rel=alternate hreflang=en href=https://yazeed1s.github.io/tags/c/><noscript><style>#theme-toggle,.top-link{display:none}</style></noscript><meta property="og:url" content="https://yazeed1s.github.io/tags/c/"><meta property="og:site_name" content="Yazeed's blog"><meta property="og:title" content="C"><meta property="og:locale" content="en"><meta property="og:type" content="website"><meta name=twitter:card content="summary"><meta name=twitter:title content="C"><meta name=twitter:description content></head><body class="list dark" id=top><header class=header><nav class=nav><div class=logo><a href=https://yazeed1s.github.io/ accesskey=h title="Yazeed's blog (Alt + H)">Yazeed's blog</a><div class=logo-switches></div></div><ul id=menu><li><a href=https://yazeed1s.github.io/ title=Home><span><span data-feather=github></span>Home</span></a></li><li><a href=https://yazeed1s.github.io/archives/ title=Posts><span>Posts</span></a></li><li><a href=https://yazeed1s.github.io/projects/ title=Projects><span>Projects</span></a></li><li><a href=https://yazeed1s.github.io/about/ title=About><span>About</span></a></li></ul></nav></header><main class=main><header class=page-header><h1>C</h1></header><article class="post-entry tag-entry"><header class=entry-header><h2 class=entry-hint-parent>The Inner workings of BSP-Trees in the context of window management</h2></header><footer class=entry-footer><span title='2024-07-21 00:00:00 +0000 UTC'>July 21, 2024</span>&nbsp;·&nbsp;15 min&nbsp;·&nbsp;3150 words&nbsp;·&nbsp;Yazeed</footer><a class=entry-link aria-label="post link to The Inner workings of BSP-Trees in the context of window management" href=https://yazeed1s.github.io/posts/bsp/></a></article><article class="post-entry tag-entry"><header class=entry-header><h2 class=entry-hint-parent>Force Memory Cleanup on Crash in C Programs</h2></header><footer class=entry-footer><span title='2023-12-17 00:00:00 +0000 UTC'>December 17, 2023</span>&nbsp;·&nbsp;5 min&nbsp;·&nbsp;1030 words&nbsp;·&nbsp;Yazeed</footer><a class=entry-link aria-label="post link to Force Memory Cleanup on Crash in C Programs" href=https://yazeed1s.github.io/posts/force_memory_cleanup/></a></article></main><a href=#top aria-label="go to top" title="Go to Top (Alt + G)" class=top-link id=top-link accesskey=g><svg viewBox="0 0 12 6" fill="currentcolor"><path d="M12 6H0l6-6z"/></svg>
-</a><script>let menu=document.getElementById("menu");menu&&(menu.scrollLeft=localStorage.getItem("menu-scroll-position"),menu.onscroll=function(){localStorage.setItem("menu-scroll-position",menu.scrollLeft)}),document.querySelectorAll('a[href^="#"]').forEach(e=>{e.addEventListener("click",function(e){e.preventDefault();var t=this.getAttribute("href").substr(1);window.matchMedia("(prefers-reduced-motion: reduce)").matches?document.querySelector(`[id='${decodeURIComponent(t)}']`).scrollIntoView():document.querySelector(`[id='${decodeURIComponent(t)}']`).scrollIntoView({behavior:"smooth"}),t==="top"?history.replaceState(null,null," "):history.pushState(null,null,`#${t}`)})})</script><script>var mybutton=document.getElementById("top-link");window.onscroll=function(){document.body.scrollTop>800||document.documentElement.scrollTop>800?(mybutton.style.visibility="visible",mybutton.style.opacity="1"):(mybutton.style.visibility="hidden",mybutton.style.opacity="0")}</script></body></html>
+<!doctype html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Notes on systems and low-level software." />
+<meta
+    name="keywords"
+    content="yazeed, blog, alharthi, yaz, yazeed1s"
+/>
+<link rel="canonical" href="https://yazeed1s.github.io/tags/c/" />
+
+<title>C | Yazeed&#x27;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
+<meta property="og:title" content="C | Yazeed&#x27;s Blog" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://yazeed1s.github.io/tags/c/" />
+<meta property="og:description" content="Notes on systems and low-level software." />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="C" />
+<meta name="twitter:description" content="Notes on systems and low-level software." />
+
+    <link rel="icon" href="&#x2F;favicon.ico" />
+    
+    <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
+    <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+
+                  
+    <style>
+        :root {
+            --nav-basis: 25
+
+            %;
+
+            --light-bg: #eae6deff
+
+            ;
+
+            --light-text: #1a1410
+
+            ;
+
+            --light-text-muted: #1a1410
+
+            ;
+
+            --light-accent: #9E4440
+
+            ;
+
+            --light-accent-hover: #7A3533
+
+            ;
+
+            --light-code-bg: #e1ded6ff
+
+            ;
+
+            --light-border: #abaaaaff
+
+            ;
+
+            --dark-bg: #303132
+
+            ;
+
+            --dark-text: #bebbb9ff
+
+            ;
+
+            --dark-text-muted: #d5d2cf
+
+            ;
+
+            --dark-accent: #e57665
+
+            ;
+
+            --dark-accent-hover: #888885
+
+            ;
+
+            --dark-code-bg: #282829
+
+            ;
+
+            --dark-border: #524f4c
+
+            ;
+        }
+    </style>
+    <meta name="theme-color" id="tc" />
+    <script>
+        (function () {
+            var m = matchMedia("(prefers-color-scheme:dark)"),
+                t = localStorage.theme || (m.matches ? "dark" : "light"),
+                h = document.documentElement,
+                c = document.getElementById("tc");
+            h.className = t;
+            function u() {
+                c.content = getComputedStyle(h).getPropertyValue("--tc");
+            }
+            u();
+            window.T = function () {
+                t = t === "dark" ? "light" : "dark";
+                localStorage.theme = t;
+                h.className = t;
+                u();
+            };
+        })();
+    </script>
+    
+</head>
+
+<body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><symbol id="light" viewBox="0 0 32 32"><rect x="15" y="2" width="2" height="5"/><rect x="21.6675" y="6.8536" width="4.958" height="1.9998" transform="translate(1.5191 19.3744) rotate(-45)"/><rect x="25" y="15" width="5" height="2"/><rect x="23.1466" y="21.6675" width="1.9998" height="4.958" transform="translate(-10.0018 24.1465) rotate(-45)"/><rect x="15" y="25" width="2" height="5"/><rect x="5.3745" y="23.1466" width="4.958" height="1.9998" transform="translate(-14.7739 12.6256) rotate(-45)"/><rect x="2" y="15" width="5" height="2"/><rect x="6.8536" y="5.3745" width="1.9998" height="4.958" transform="translate(-3.253 7.8535) rotate(-45)"/><path d="M16,12a4,4,0,1,1-4,4,4.0045,4.0045,0,0,1,4-4m0-2a6,6,0,1,0,6,6,6,6,0,0,0-6-6Z"/></symbol>
+<symbol id="asleep" viewBox="0 0 32 32"><path d="M13.5025,5.4136A15.0755,15.0755,0,0,0,25.096,23.6082a11.1134,11.1134,0,0,1-7.9749,3.3893c-.1385,0-.2782.0051-.4178,0A11.0944,11.0944,0,0,1,13.5025,5.4136M14.98,3a1.0024,1.0024,0,0,0-.1746.0156A13.0959,13.0959,0,0,0,16.63,28.9973c.1641.006.3282,0,.4909,0a13.0724,13.0724,0,0,0,10.702-5.5556,1.0094,1.0094,0,0,0-.7833-1.5644A13.08,13.08,0,0,1,15.8892,4.38,1.0149,1.0149,0,0,0,14.98,3Z"/></symbol>
+<symbol id="rss" viewBox="0 0 32 32"><path d="M8,18c-3.3,0-6,2.7-6,6s2.7,6,6,6s6-2.7,6-6C14,20.7,11.3,18,8,18z M8,28c-2.2,0-4-1.8-4-4s1.8-4,4-4s4,1.8,4,4C12,26.2,10.2,28,8,28z"/><path d="M30,24h-2C28,13,19,4,8,4V2C20.1,2,30,11.9,30,24z"/><path d="M22,24h-2c0-6.6-5.4-12-12-12v-2C15.7,10,22,16.3,22,24z"/></symbol>
+</svg>
+
+    <header id="site-header">
+        <div>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <nav>
+                <a href="https://yazeed1s.github.io/" >Home</a>
+                <a href="https://yazeed1s.github.io/posts/" >Posts</a>
+                <a href="https://yazeed1s.github.io/projects/" >Projects</a>
+                <a href="https://yazeed1s.github.io/tags/"  class="active" >Tags</a>
+                </nav>
+            <a href="#" onclick="
+                        T();
+                        return false;
+                    " class="theme" aria-label="Toggle theme" title="Toggle theme">
+<svg><use href="#light"/></svg>
+<svg><use href="#asleep"/></svg></a>
+        </div>
+    </header>
+    <hr class="site-sep" />
+    <main id="main">
+<h1>Tags: C</h1>
+
+<h2>2025</h2>
+<ul class="p">
+    
+    <li>
+        <time datetime="2025-01-21"
+            >21 Jan</time
+        >
+        <a href="https://yazeed1s.github.io/posts/bit-flags/">Using Bit Flags to Pack Multiple States Efficiently</a> 
+    </li>
+    
+</ul>
+
+<h2>2024</h2>
+<ul class="p">
+    
+    <li>
+        <time datetime="2024-07-21"
+            >21 Jul</time
+        >
+        <a href="https://yazeed1s.github.io/posts/bsp/">BSP Trees for Tiling Window Management</a> 
+    </li>
+    
+</ul>
+
+<h2>2023</h2>
+<ul class="p">
+    
+    <li>
+        <time datetime="2023-12-17"
+            >17 Dec</time
+        >
+        <a href="https://yazeed1s.github.io/posts/force-memory-cleanup/">Signal Handlers for Cleanup in C Programs</a> 
+    </li>
+    
+</ul>
+ </main>
+    <hr class="site-sep bottom-sep" />
+    <footer class="s">
+        
+    </footer>
+    
+    <script>
+        document.querySelectorAll("article img[srcset]").forEach((i) => {
+            if (i.closest("a")) return;
+            i.style.cursor = "pointer";
+            i.onclick = () => {
+                let d = document.createElement("div"),
+                    s = i.srcset.split(",").pop().trim().split(" ")[0];
+                d.className = "lb";
+                d.innerHTML = '<img src="' + s + '">';
+                document.body.style.overflow = "hidden";
+                d.onclick = () => {
+                    d.remove();
+                    document.body.style.overflow = "";
+                };
+                document.body.appendChild(d);
+            };
+        });
+    </script>
+    </body>
+
+</html>
