@@ -1,0 +1,23 @@
+{% extends "base.html" %} {% block content %}
+<article>
+    <header>
+        <h1>{{ page.title }}{% if page.draft %} (Draft){% endif %}</h1>
+        <div class="post-meta">
+            <time datetime="{{ page.date }}">{{ page.date | date(format='%d %b %Y')}}</time>
+            {% if page.description %}
+            <span>{{ page.description }}</span>
+            {% endif %} {% if page.taxonomies is containing ("tags") %}
+            <span class="post-tags">
+                <span class="post-tags-label">Tags: </span>
+                {% for tag in page.taxonomies["tags"] %}
+                <a href="{{ config.base_url | safe }}/tags/{{ tag | slugify }}">{{ tag }}</a>{% if not loop.last %}<span
+                    class="tag-comma">,</span> {% endif %}{% endfor %}
+            </span>
+            {% endif %}
+        </div>
+    </header>
+    {{ hooks::post_above_content(page=page) }} {{ page.content | safe }} {{
+    hooks::post_below_content(page=page) }} {{ hooks::post_below_tags(page=page)
+    }}
+</article>
+{% endblock content %}

@@ -1,0 +1,27 @@
+{% extends "base.html" %} {% block content %} {% if config.extra.profile_picture
+%}
+<img
+    src="{{ config.extra.profile_picture }}"
+    alt="Profile picture"
+    class="profile-pic"
+/>
+{% endif %}
+<article>{{ section.content | safe }}</article>
+
+{% set posts_section = get_section(path="posts/_index.md") %}
+{% if posts_section.pages %}
+<section class="recent-posts">
+    <h2>Recent Posts</h2>
+    <ul class="p">
+    {% for post in posts_section.pages | slice(end=5) %}
+        <li>
+            <time datetime="{{ post.date }}">{{ post.date | date(format='%Y-%m-%d') }}</time>
+            <a href="{{ post.permalink | safe }}">{{ post.title }}</a>
+        </li>
+    {% endfor %}
+    </ul>
+</section>
+{% endif %}
+
+{% endblock content %}
+

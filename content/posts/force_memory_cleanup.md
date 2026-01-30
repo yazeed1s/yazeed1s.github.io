@@ -1,164 +1,212 @@
----
-title: "Force Memory Cleanup on Crash in C Programs"
-date: 2023-12-17
-description: "Does the main function return on abnormal exit?"
-tags: ["C", "memory", "Linux"]
-showToc: false
-TocOpen: false
-draft: false
-hidemeta: false
-comments: true
-searchHidden: false
-ShowReadingTime: true
-ShowBreadCrumbs: false
-ShowPostNavLinks: false
-ShowWordCount: true
-UseHugoToc: true
----
-***
-As you might already know.. In C (and other compiled languages as well) the `main` function serves as the entry point for program execution. It controls program execution by directing the calls to whatever code lives inside its body sequentially. Typically, sane programmers craft cleanup code that gets executed at the end of the program to free any allocated resources and give it back to the OS. This is simply done by calling `free()` on heap allocated object(s) before the main routine returns and exits out.
-***
-## Why End-of-Main Cleanup Isn't Enough
-In most cases, placing cleanup code at the end of the main function achieves what we want. However, this approach is guaranteed to work **only** if the program exits **normally** (with EXIT_SUCCESS value).
++++
+title = "Signal Handlers for Cleanup in C Programs"
+date = 2023-12-17
+description = "When your program crashes, how do you run cleanup code?"
+[taxonomies]
+tags = ["C", "Signals", "Linux"]
++++
 
-But what happens when things go wrong? Let's say your program crashes because it tries to dereference a NULL pointer (classic C politics). In this case, the OS will raise a SIGSEGV signal faster than you can say 'segmentation fault'. Your carefully crafted cleanup code at the end of main? It's never going to run.
+---
 
-Lets look at this code for example:
-```C
+In C, you put cleanup code at the end of `main()` - free your allocations, close your files, done. But what if your program crashes before reaching that code?
+
+---
+
+## The Problem
+
+Standard cleanup at the end of main only works if your program exits normally. If it crashes - say, a null pointer dereference - the OS raises SIGSEGV and your program dies immediately. Your cleanup code never runs.
+
+```c
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 
 char *buffer = NULL;
 
 int main(void) {
-	// allocate 500 MB of memory
-	size_t size = 500 * 1024 * 1024; // ~500 MB
-	buffer = (char *)malloc(size);
-	if (buffer == NULL) {
-		printf("Failed to allocate memory");
-		return EXIT_FAILURE;
-	}
-	printf("Successfully allocated 500 MB of memory.\n");
-	// do some stuff with *buffer*
-	// ...
+    buffer = malloc(500 * 1024 * 1024); // 500 MB
+    if (buffer == NULL) {
+        return EXIT_FAILURE;
+    }
+    printf("Allocated 500 MB\n");
 
-	// access an invalid pointer
-	char *invalid_ptr = NULL;
-	printf("Accessing invalid pointer...\n");
-	*invalid_ptr = 'x'; // this will cause a segmentation fault
-	printf("about to cleanup and return...\n");
-	// clean up
-	free(buffer);
-	return 0;
+    // oops
+    char *invalid_ptr = NULL;
+    *invalid_ptr = 'x'; // SIGSEGV here
+
+    // never reached
+    printf("About to cleanup...\n");
+    free(buffer);
+    return 0;
 }
 ```
-Here's what's happening:
-- We allocate a large chunk of memory (500 MB) using `malloc()`.
-- We then attempt to dereference a NULL pointer, which will cause a segmentation fault.
-- The cleanup code (`free(buffer)`) and the `return 0` statement are placed at the end of `main()`.
 
-Now, if we run this code, you might expect to see all the printf statements, including "about to cleanup and return...", but you're wrong. Here's what actually gets printed when I run the program:
+Output:
+
 ```bash
-$ gcc signal_crash.c -o out && ./out
-Successfully allocated 500 MB of memory.
-Accessing invalid pointer...
-[1] 117619 segmentation fault (core dumped) ./out
+$ gcc crash.c -o crash && ./crash
+Allocated 500 MB
+Segmentation fault (core dumped)
 ```
-See? the program never reaches the line `printf("about to cleanup and return...\n");`. In fact, it never passes the `*invalid_ptr = 'x';` line. Our free statement, which was supposed to cleanup, is never getting called into action because the code crashes with a SIGSEGV signal.
-  
-## Okay I get it, now how can I force the cleanup code to execute?
-Some people think that the use of [atexit()](https://en.cppreference.com/w/c/program/atexit) function provided by `<stdlib.h>` will solve this issue. But the thing is, `atexit()` takes a pointer to a function and then execeute that function when the program exits **normally**. It clearly does not solve our issue.
-  
-To force memory cleanup when the program crashes, a simple signal handler is needed. Don't panic, It is as simple as adding the following lines to our example.
-```C
+
+The `free(buffer)` never runs.
+
+## First Thought: atexit()
+
+You might think `atexit()` solves this:
+
+```c
+void cleanup(void) {
+    free(buffer);
+}
+
+int main(void) {
+    atexit(cleanup);
+    // ...
+}
+```
+
+But `atexit()` handlers only run on **normal** exit - when main returns or when you call `exit()`. A signal like SIGSEGV bypasses atexit entirely.
+
+## The Solution: Signal Handlers
+
+To run cleanup code on crash, you register a signal handler:
+
+```c
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-// array of signals we want to handle
-int signals[] = {SIGINT, SIGTERM, SIGSEGV, SIGABRT};
 char *buffer = NULL;
 
-void cleanup(int sig) {
-	printf("Caught signal %d. Cleaning up...\n", sig);
-	if (sig == SIGINT) {
-		printf("SIGINT received. User interrupted the program.\n");
-	} else if (sig == SIGTERM) {
-		printf("SIGTERM received. Program is being terminated.\n");
-	} else if (sig == SIGSEGV) {
-		printf("SIGSEGV received. Segmentation fault occurred.\n");
-	} else if (sig == SIGABRT) {
-		printf("SIGABRT received. Program execution aborted.\n");
-	} else {
-		printf("Unexpected signal received.\n");
-	}
-	// free up buffer
-	if (buffer != NULL) {
-		free(buffer);
-		printf("Freed buffer.\n");
-		buffer = NULL;
-	}
-	printf("Cleanup complete. Exiting program.\n");
-	exit(1);
-}
+void cleanup_handler(int sig) {
+    // Note: using write() instead of printf() - see below
+    const char *msg = "Caught signal, cleaning up...\n";
+    write(STDERR_FILENO, msg, 31);
 
-void register_signals(void) {
-	int n = sizeof(signals) / sizeof(signals[0]);
-	for (int i = 0; i < n; i++) {
-		signal(signals[i], cleanup);
-	}
+    if (buffer != NULL) {
+        free(buffer);
+        buffer = NULL;
+    }
+
+    _exit(1); // use _exit, not exit()
 }
 
 int main(void) {
-	// register signal handler
-	register_signals();
+    // register handler for crash signals
+    signal(SIGSEGV, cleanup_handler);
+    signal(SIGABRT, cleanup_handler);
+    signal(SIGINT, cleanup_handler);  // Ctrl+C
+    signal(SIGTERM, cleanup_handler); // kill command
 
-	// allocate 500 MB of memory
-	size_t size = 500 * 1024 * 1024; // ~500 MB
-	buffer = (char *)malloc(size);
-	if (buffer == NULL) {
-	printf("Failed to allocate memory");
-	return EXIT_FAILURE;
-	}
+    buffer = malloc(500 * 1024 * 1024);
+    if (buffer == NULL) {
+        return EXIT_FAILURE;
+    }
+    printf("Allocated 500 MB\n");
 
-	printf("Successfully allocated 500 MB of memory.\n");
-	// do some stuff with *buffer*
-	// ...
+    char *invalid_ptr = NULL;
+    *invalid_ptr = 'x'; // triggers SIGSEGV -> cleanup_handler runs
 
-	// access an invalid pointer
-	char *invalid_ptr = NULL;
-	printf("Accessing invalid pointer...\n");
-	*invalid_ptr = 'x'; // this will cause a segmentation fault
+    return 0;
+}
+```
 
-	return 0;
+Now when the program crashes, the handler runs first.
+
+## Important: Async-Signal-Safety
+
+There's a catch. Signal handlers can interrupt your program at any point - even in the middle of malloc or printf. If your handler then calls malloc or printf, you can deadlock or corrupt memory.
+
+Only certain functions are safe to call from signal handlers. These are called "async-signal-safe" functions. The POSIX standard defines the list. Key ones:
+
+- `write()` - safe (printf is NOT safe)
+- `_exit()` - safe (exit is NOT safe, it runs atexit handlers)
+- `close()`, `unlink()`, `fsync()` - safe
+
+`free()` is technically **not** async-signal-safe. In practice, it usually works because you're about to exit anyway, and modern allocators handle it reasonably. But be aware of this.
+
+A safer pattern is to set a flag and let the main program handle cleanup:
+
+```c
+volatile sig_atomic_t got_signal = 0;
+
+void handler(int sig) {
+    got_signal = sig;
 }
 
+int main(void) {
+    signal(SIGINT, handler);
+
+    while (!got_signal) {
+        // do work
+    }
+
+    // cleanup here, in normal context
+    cleanup();
+    return 0;
+}
 ```
-Here is what changed:
-- I defined an array names `signals` that stores the signal we are interested in (SIGINT, SIGTERM, SIGSEGV, SIGABRT)
-- Then I implemented the `cleanup()` function to handle these signals, which prints messages and frees the buffer.
-- Then I iterated through the array in `register_signals()` and registered the cleanup function to handle each signal.
 
-When we run this updated code, we should see the cleanup messages printed after the segmentation fault occurs.
+But for crash signals (SIGSEGV, SIGABRT), you can't return to normal execution - the program is already broken. So you do what cleanup you can in the handler and exit.
 
-Here is the output:
-```bash
-$ gcc signal_crash.c -o out && ./out
-Successfully allocated 500 MB of memory.
-Accessing invalid pointer...
-Caught signal 11. Cleaning up...
-SIGSEGV received. Segmentation fault occurred.
-Freed buffer.
-Cleanup complete. Exiting program.
+## Wait, Doesn't the OS Clean Up Anyway?
+
+Yes. On any modern OS (Linux, macOS, Windows), when your process terminates - normally or not - the kernel reclaims all its resources:
+
+- Heap memory (malloc'd memory) - freed
+- File descriptors - closed
+- Memory mappings - unmapped
+
+So for plain `malloc()` and regular files, you don't actually need signal handlers for cleanup. The OS handles it.
+
+**Where signal handlers matter:**
+
+1. **Shared resources** - shared memory segments (`shm_open`), semaphores, message queues. These persist beyond process lifetime.
+2. **Temp files** - if you want to delete temp files on crash.
+3. **External state** - network connections you want to close gracefully, database transactions to rollback.
+4. **Custom cleanup** - resetting terminal modes, unlocking files, etc.
+
+For my window manager, I use signal handlers to:
+
+- Unmap windows gracefully
+- Restore X11 state
+- Close the connection to the X server properly
+
+Regular heap memory? I just let the OS clean it up. It's going to do it anyway.
+
+## Summary
+
+- Cleanup at end of main doesn't run if you crash
+- `atexit()` doesn't help - it's for normal exits only
+- Signal handlers let you run code on crash
+- Be careful about async-signal-safety in handlers
+- For regular malloc'd memory, the OS cleans up anyway
+- Signal handlers are useful for shared resources and external state
+
+The pattern I use in practice:
+
+```c
+volatile sig_atomic_t should_exit = 0;
+
+void signal_handler(int sig) {
+    should_exit = 1;
+    // minimal cleanup for shared resources only
+}
+
+int main(void) {
+    signal(SIGINT, signal_handler);
+    signal(SIGTERM, signal_handler);
+
+    // main loop checks should_exit
+    while (!should_exit) {
+        // work
+    }
+
+    // full cleanup runs here on graceful exit
+    cleanup();
+    return 0;
+}
 ```
-Now, by implementing this simple signal handling mechanism we are telling the operating system to associate the signal number with the function handler `cleanup()` so that when that signal number is raised (e.g., when the user presses Ctrl+C for SIGINT) our signal handler function will be called. Which also means, our cleanup code will be executed regardless of the program exit circumstances. Goal achieved!!  
-***
-## But hey doesn't the OS clean up after crashed programs?
-That's a great question! The answer isn't as straightforward as we might hope.
 
-In general, modern OSs are pretty good at cleaning up after crashed programs, but it's not 100% guaranteed in all cases. For most typical program crashes, yes, the OS will step in and free up the memory that was allocated to the program and reclaim other resources. But (there's always a but, right?), there are some scenarios where things can get messy due to extremely abnormal terminations.
-  
-To be honest: I don't care about relying on the OS for cleanup, and you shouldn't either. It's still our responsibility as developers to manage our resources properly and not rely on the OS to bail us out.
-***
+For SIGSEGV/SIGABRT, I mostly just let it crash and let the OS clean up. Unless there's shared state that needs explicit cleanup, adding a handler for crash signals just complicates things without much benefit.
