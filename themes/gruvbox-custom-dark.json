@@ -1,0 +1,262 @@
+{
+    "name": "Gruvbox Material Dark",
+    "type": "dark",
+    "colors": {
+        "editor.background": "#202020",
+        "editor.foreground": "#d3c6aa"
+    },
+    "tokenColors": [
+        {
+            "scope": [
+                "comment",
+                "punctuation.definition.comment"
+            ],
+            "settings": {
+                "foreground": "#7c6f64",
+                "fontStyle": "italic"
+            }
+        },
+        {
+            "scope": [
+                "keyword",
+                "storage.type",
+                "storage.modifier"
+            ],
+            "settings": {
+                "foreground": "#ea6962"
+            }
+        },
+        {
+            "scope": [
+                "keyword.operator",
+                "punctuation.accessor"
+            ],
+            "settings": {
+                "foreground": "#ea6962"
+            }
+        },
+        {
+            "scope": [
+                "string",
+                "string.quoted"
+            ],
+            "settings": {
+                "foreground": "#d8a657"
+            }
+        },
+        {
+            "scope": [
+                "string.regexp"
+            ],
+            "settings": {
+                "foreground": "#af3a03"
+            }
+        },
+        {
+            "scope": [
+                "constant.numeric",
+                "constant.language"
+            ],
+            "settings": {
+                "foreground": "#d3869b"
+            }
+        },
+        {
+            "scope": [
+                "constant",
+                "constant.other"
+            ],
+            "settings": {
+                "foreground": "#d3869b"
+            }
+        },
+        {
+            "scope": [
+                "entity.name.function",
+                "support.function"
+            ],
+            "settings": {
+                "foreground": "#a9b665"
+            }
+        },
+        {
+            "scope": [
+                "entity.name.type",
+                "entity.name.class",
+                "support.type",
+                "support.class"
+            ],
+            "settings": {
+                "foreground": "#83a598"
+            }
+        },
+        {
+            "scope": [
+                "variable",
+                "variable.other"
+            ],
+            "settings": {
+                "foreground": "#d3c6aa"
+            }
+        },
+        {
+            "scope": [
+                "variable.parameter",
+                "entity.name.variable.parameter",
+                "variable.other.member",
+                "variable.other.property",
+                "variable.other.field"
+            ],
+            "settings": {
+                "foreground": "#d3c6aa"
+            }
+        },
+        {
+            "scope": [
+                "entity.name.function.preprocessor",
+                "meta.preprocessor",
+                "keyword.control.directive"
+            ],
+            "settings": {
+                "foreground": "#e08f5a"
+            }
+        },
+        {
+            "scope": [
+                "entity.other.attribute-name"
+            ],
+            "settings": {
+                "foreground": "#d3c6aa"
+            }
+        },
+        {
+            "scope": [
+                "entity.name.tag"
+            ],
+            "settings": {
+                "foreground": "#e08f5a"
+            }
+        },
+        {
+            "scope": [
+                "punctuation.definition.tag"
+            ],
+            "settings": {
+                "foreground": "#9c8b7c"
+            }
+        },
+        {
+            "scope": [
+                "punctuation",
+                "punctuation.separator",
+                "punctuation.terminator"
+            ],
+            "settings": {
+                "foreground": "#9c8b7c"
+            }
+        },
+        {
+            "scope": [
+                "support.function.builtin"
+            ],
+            "settings": {
+                "foreground": "#af3a03"
+            }
+        },
+        {
+            "scope": [
+                "entity.name.namespace",
+                "entity.name.module"
+            ],
+            "settings": {
+                "foreground": "#e08f5a"
+            }
+        },
+        {
+            "scope": [
+                "entity.other.inherited-class",
+                "support.type.property-name"
+            ],
+            "settings": {
+                "foreground": "#d3c6aa"
+            }
+        },
+        {
+            "scope": [
+                "entity.name.label"
+            ],
+            "settings": {
+                "foreground": "#e08f5a"
+            }
+        },
+        {
+            "scope": [
+                "markup.heading"
+            ],
+            "settings": {
+                "foreground": "#a9b665"
+            }
+        },
+        {
+            "scope": [
+                "markup.bold"
+            ],
+            "settings": {
+                "foreground": "#ea6962",
+                "fontStyle": "bold"
+            }
+        },
+        {
+            "scope": [
+                "markup.italic"
+            ],
+            "settings": {
+                "foreground": "#d8a657",
+                "fontStyle": "italic"
+            }
+        },
+        {
+            "scope": [
+                "markup.inline.raw",
+                "markup.raw"
+            ],
+            "settings": {
+                "foreground": "#89b482"
+            }
+        },
+        {
+            "scope": [
+                "markup.underline.link",
+                "markup.link"
+            ],
+            "settings": {
+                "foreground": "#83a598"
+            }
+        },
+        {
+            "scope": [
+                "markup.quote"
+            ],
+            "settings": {
+                "foreground": "#9c8b7c",
+                "fontStyle": "italic"
+            }
+        },
+        {
+            "scope": [
+                "markup.list"
+            ],
+            "settings": {
+                "foreground": "#ea6962"
+            }
+        },
+        {
+            "scope": [
+                "markup.strikethrough"
+            ],
+            "settings": {
+                "foreground": "#7c6f64"
+            }
+        }
+    ]
+}

@@ -47,11 +47,13 @@ Each node can have zero or two children. Never one.
 ```
     Tree Node Types:
 
-         I         ROOT (root is INTERNAL unless it's a single leaf)
-       /   \
-      I     I      INTERNAL NODES (screen sections/partitions)
-     / \   / \
-    E   E E   E    EXTERNAL NODES (windows/leaves)
+           I           ROOT (root is INTERNAL unless it's a single leaf)
+          / \
+         /   \
+        I     I        INTERNAL NODES (screen sections/partitions)
+       / \   / \
+      /   \ /   \
+     E    E E    E     EXTERNAL NODES (windows/leaves)
 
     - Internal Nodes (I): represent screen partitions, no window
     - External Nodes (E): hold actual windows
@@ -178,13 +180,13 @@ split_rect(node_t *n, split_type_t s)
 ```
     Screen                          BSP-tree
     +-----------------------+
-    |           |           |        ROOT_NODE
-    |           |           |       (rectangle 1)
-    | window 1  | window 2  |         /     \
-    |   rect 2  |   rect 3  |   EXTERNAL  EXTERNAL
-    |           |           |   (win 1,   (win 2,
-    |           |           |   rect 2)   rect 3)
-    +-----------------------+
+    |           |           |          ROOT_NODE
+    |           |           |         (rectangle 1)
+    | window 1  | window 2  |           /     \
+    |   rect 2  |   rect 3  |          /       \
+    |           |           |     EXTERNAL  EXTERNAL
+    |           |           |     (win 1,   (win 2,
+    +-----------------------+     rect 2)   rect 3)
 
     - Screen divided into rectangle 1 (whole screen)
     - Window 1 -> rectangle 2, Window 2 -> rectangle 3
@@ -196,15 +198,17 @@ split_rect(node_t *n, split_type_t s)
 ```
     Screen                          BSP-tree
     +-----------------------+
-    |           |           |          ROOT_NODE
-    |           |  window 2 |         (rect 1)
-    |           |   rect 4  |          /     \
-    | window 1  |-----------|    EXTERNAL  INTERNAL
-    |   rect 2  |           |    (win 1,   (rect 3)
-    |           |  window 3 |    rect 2)    /    \
-    |           |   rect 5  |         EXTERNAL EXTERNAL
-    +-----------------------+         (win 2,  (win 3,
-                                      rect 4)  rect 5)
+    |           |           |            ROOT_NODE
+    |           |  window 2 |            (rect 1)
+    |           |   rect 4  |            /      \
+    | window 1  |-----------|           /        \
+    |   rect 2  |           |      EXTERNAL   INTERNAL
+    |           |  window 3 |      (win 1,    (rect 3)
+    |           |   rect 5  |      rect 2)     /    \
+    +-----------------------+                 /      \
+                                         EXTERNAL EXTERNAL
+                                         (win 2,  (win 3,
+                                         rect 4)  rect 5)
 
     - rectangle 3 (right half) splits into rect 4 and rect 5
     - Window 2 moves to rect 4, Window 3 takes rect 5
@@ -215,15 +219,17 @@ split_rect(node_t *n, split_type_t s)
 ```
     Screen                              BSP-tree
     +-----------------------+
-    |  window 1 |  window 2 |               ROOT_NODE
-    |   rect 6  |   rect 4  |               (rect 1)
-    |-----------|-----------|              /        \
-    |  window 4 |  window 3 |        INTERNAL      INTERNAL
-    |   rect 7  |   rect 5  |        (rect 2)      (rect 3)
-    +-----------------------+         /    \        /    \
-                                 EXT    EXT    EXT    EXT
-                                (w1,   (w4,   (w2,   (w3,
-                                r6)    r7)    r4)    r5)
+    |  window 1 |  window 2 |                ROOT_NODE
+    |   rect 6  |   rect 4  |                (rect 1)
+    |-----------|-----------|               /        \
+    |  window 4 |  window 3 |              /          \
+    |   rect 7  |   rect 5  |        INTERNAL       INTERNAL
+    +-----------------------+        (rect 2)       (rect 3)
+                                      /    \         /    \
+                                     /      \       /      \
+                                   EXT     EXT    EXT      EXT
+                                  (w1,    (w4,   (w2,     (w3,
+                                   r6)     r7)    r4)      r5)
 ```
 
 Each internal node's rectangle contains its children. The tree structure directly mirrors the screen layout.
@@ -249,10 +255,11 @@ The key insight: when you remove a leaf, its parent (an internal node) now has o
         ROOT_NODE                           ROOT_NODE
          Node A                              Node A
          /    \                            (window 1)
-    EXTERNAL  EXTERNAL
-     Node B    Node C
-    (win 1)   (win 2)
-              [DELETE]
+        /      \
+   EXTERNAL  EXTERNAL
+    Node B    Node C
+   (win 1)   (win 2)
+             [DELETE]
 
     - Node C is deleted
     - Node B's client moves up to Node A
@@ -276,13 +283,15 @@ The key insight: when you remove a leaf, its parent (an internal node) now has o
          ROOT_NODE                            ROOT_NODE
           Node PA                              Node PA
           /     \                              /     \
-     EXTERNAL  INTERNAL                   EXTERNAL  EXTERNAL
-      Node EA   Node A                     Node EA   Node A
-     (win 1)    /    \                    (win 1)   (win 2)
-           EXTERNAL EXTERNAL
-            Node B   Node C
-           (win 2)  (win 3)
-                    [DELETE]
+         /       \                            /       \
+    EXTERNAL  INTERNAL                   EXTERNAL  EXTERNAL
+     Node EA   Node A                     Node EA   Node A
+    (win 1)    /    \                    (win 1)   (win 2)
+              /      \
+         EXTERNAL EXTERNAL
+          Node B   Node C
+         (win 2)  (win 3)
+                  [DELETE]
 
     - Delete Node C (window 3)
     - Its sibling Node B takes Node A's place
@@ -308,12 +317,14 @@ The key insight: when you remove a leaf, its parent (an internal node) now has o
          ROOT_NODE                  ROOT_NODE                   ROOT_NODE
           Node PA                    Node PA                     Node PA
           /     \                        \                       /     \
-     EXTERNAL  INTERNAL               INTERNAL               EXTERNAL EXTERNAL
-      Node EA   Node A                 Node A                 Node B   Node C
-     (win 1)    /    \                 /    \                (win 2)  (win 3)
-     [DELETE] EXTERNAL EXTERNAL    EXTERNAL EXTERNAL
-              Node B   Node C      Node B   Node C
-             (win 2)  (win 3)     (win 2)  (win 3)
+         /       \                        \                     /       \
+    EXTERNAL  INTERNAL               INTERNAL               EXTERNAL EXTERNAL
+     Node EA   Node A                 Node A                 Node B   Node C
+    (win 1)    /    \                 /    \                (win 2)  (win 3)
+    [DELETE]  /      \               /      \
+         EXTERNAL EXTERNAL      EXTERNAL EXTERNAL
+          Node B   Node C        Node B   Node C
+         (win 2)  (win 3)       (win 2)  (win 3)
 
     - Delete Node EA (window 1)
     - Its sibling Node A is internal, has children B and C

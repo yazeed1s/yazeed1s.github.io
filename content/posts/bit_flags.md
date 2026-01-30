@@ -14,29 +14,30 @@ Sometimes you need to track multiple boolean conditions at once. You could use a
 
 ## The Idea
 
-Each bit in an integer represents one condition. Bit 0 is condition A, bit 1 is condition B, and so on. A 32-bit integer gives you 32 independent flags. You set, clear, and check them using bitwise operators.
+Each bit in an integer represents one condition. Bit 0 is condition A, bit 1 is condition B, and so on. A 32-bit integer gives you 32 independent flags. You set, clear, and check them using bitwise operators. I personally like to think of it as a list of `"light switches"` that can be either on or off. In a 32-bit integer, you have 32 light switches, each one represents a different condition and can be either on or off.
 
-```
-Bit position:   7  6  5  4  3  2  1  0
-                -------------------------
-                0  0  1  0  0  1  1  0
-                         ^     ^  ^
-                         |     |  |
-                     FLAG_C    |  FLAG_A
-                            FLAG_B
+```text
+Bit position:    7   6   5   4   3   2   1   0
+               +---+---+---+---+---+---+---+---+
+               | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0 |  = 0x0E (14)
+               +---+---+---+---+---+---+---+---+
+                                 ^   ^   ^
+                                 |   |   +-- FLAG_B (bit 1)
+                                 |   +------ FLAG_C (bit 2)
+                                 +---------- FLAG_D (bit 3)
 ```
 
-The value above is `0x26` (38 in decimal), meaning flags A, B, and C are set.
+The value `0x0E` (14 in decimal) means flags B, C, and D are set.
 
 ## Defining Flags
 
 Use powers of 2 so each flag occupies exactly one bit:
 
 ```c
-#define FLAG_A  (1 << 0)  // 0x01 = 00000001
-#define FLAG_B  (1 << 1)  // 0x02 = 00000010
-#define FLAG_C  (1 << 2)  // 0x04 = 00000100
-#define FLAG_D  (1 << 3)  // 0x08 = 00001000
+#define FLAG_A  (1 << 0)  /* 0x01 = 00000001 */
+#define FLAG_B  (1 << 1)  /* 0x02 = 00000010 */
+#define FLAG_C  (1 << 2)  /* 0x04 = 00000100 */
+#define FLAG_D  (1 << 3)  /* 0x08 = 00001000 */
 ```
 
 Or use an enum, which is cleaner:
@@ -44,10 +45,10 @@ Or use an enum, which is cleaner:
 ```c
 typedef enum {
     FLAG_NONE = 0,
-    FLAG_A    = (1 << 0),  // bit 0
-    FLAG_B    = (1 << 1),  // bit 1
-    FLAG_C    = (1 << 2),  // bit 2
-    FLAG_D    = (1 << 3),  // bit 3
+    FLAG_A    = (1 << 0),  /* bit 0 */
+    FLAG_B    = (1 << 1),  /* bit 1 */
+    FLAG_C    = (1 << 2),  /* bit 2 */
+    FLAG_D    = (1 << 3),  /* bit 3 */
 } flags_t;
 ```
 
@@ -56,37 +57,90 @@ typedef enum {
 **Set a flag:**
 
 ```c
-flags |= FLAG_A;  // turn on bit 0
+flags |= FLAG_A;  /* turn on bit 0 */
 ```
 
 **Clear a flag:**
 
 ```c
-flags &= ~FLAG_A;  // turn off bit 0
+flags &= ~FLAG_A;  /* turn off bit 0 */
 ```
 
 **Toggle a flag:**
 
 ```c
-flags ^= FLAG_A;  // flip bit 0
+flags ^= FLAG_A;  /* flip bit 0 */
 ```
 
 **Check if a flag is set:**
 
 ```c
 if (flags & FLAG_A) {
-    // FLAG_A is set
+    /* FLAG_A is set */
 }
 ```
 
 **Check multiple flags:**
 
 ```c
-// check if ANY of these are set
+/* check if ANY of these are set */
 if (flags & (FLAG_A | FLAG_B)) { ... }
 
-// check if ALL of these are set
+/* check if ALL of these are set */
 if ((flags & (FLAG_A | FLAG_B)) == (FLAG_A | FLAG_B)) { ... }
+```
+
+## Visualizing Multiple Flag Operations
+
+Step by step when you combine flags:
+
+```text
+Start with empty flags:
+flags = 0x00         00000000
+
+Set FLAG_A (bit 0):
+flags |= FLAG_A      00000000
+                   | 00000001  (FLAG_A)
+                   ----------
+                     00000001  = 0x01
+
+Set FLAG_C (bit 2):
+flags |= FLAG_C      00000001
+                   | 00000100  (FLAG_C)
+                   ----------
+                     00000101  = 0x05
+
+Set FLAG_D (bit 3):
+flags |= FLAG_D      00000101
+                   | 00001000  (FLAG_D)
+                   ----------
+                     00001101  = 0x0D
+
+Current state:
++---+---+---+---+---+---+---+---+
+| 0 | 0 | 0 | 0 | 1 | 1 | 0 | 1 |  = 0x0D (13)
++---+---+---+---+---+---+---+---+
+  7   6   5   4   3   2   1   0
+                  D   C       A   <- flags set
+```
+
+Now let's clear FLAG_C:
+
+```text
+Clear FLAG_C:
+~FLAG_C              11111011  (invert FLAG_C)
+
+flags &= ~FLAG_C     00001101
+                   & 11111011
+                   ----------
+                     00001001  = 0x09
+
+Result:
++---+---+---+---+---+---+---+---+
+| 0 | 0 | 0 | 0 | 1 | 0 | 0 | 1 |  = 0x09 (9)
++---+---+---+---+---+---+---+---+
+  7   6   5   4   3   2   1   0
+                  D           A   ← flags set (C is gone)
 ```
 
 ## Real Example: Monitor State Changes
@@ -96,10 +150,10 @@ In my window manager, I track what changed when monitors are plugged in or unplu
 ```c
 /* bit flags for monitor state changes */
 typedef enum {
-    _NONE        = (1 << 0),  // 00000001 - no change
-    CONNECTED    = (1 << 1),  // 00000010 - monitor connected
-    DISCONNECTED = (1 << 2),  // 00000100 - monitor disconnected
-    LAYOUT       = (1 << 3),  // 00001000 - resolution/position changed
+    _NONE        = (1 << 0),  /* 00000001 - no change */
+    CONNECTED    = (1 << 1),  /* 00000010 - monitor connected */
+    DISCONNECTED = (1 << 2),  /* 00000100 - monitor disconnected */
+    LAYOUT       = (1 << 3),  /* 00001000 - resolution/position changed */
 } monitor_state_t;
 ```
 
@@ -107,14 +161,14 @@ When I query the X server for monitor changes, I build up a bitmask:
 
 ```c
 void update_monitors(uint32_t *changes) {
-    // start with "no change" flag
+    /* start with "no change" flag */
     *changes = _NONE;
 
-    // ... query X server for outputs ...
+    /* ... query X server for outputs ... */
 
     if (new_monitor_added) {
-        *changes &= ~_NONE;       // clear the "no change" flag
-        *changes |= CONNECTED;    // set the "connected" flag
+        *changes &= ~_NONE;       /* clear the "no change" flag */
+        *changes |= CONNECTED;    /* set the "connected" flag */
     }
 
     if (monitor_removed) {
@@ -129,7 +183,34 @@ void update_monitors(uint32_t *changes) {
 }
 ```
 
-Then I handle the changes:
+Imagine a scenario: you plug in a new monitor AND that monitor has a different resolution than expected. Both events happen:
+
+```text
+Start:               00000001  (_NONE)
+
+New monitor detected:
+  clear _NONE        &= ~00000001  -> 00000000
+  set CONNECTED      |=  00000010  -> 00000010
+
+Resolution differs:
+  set LAYOUT         |=  00001000  -> 00001010
+
+Final value:
++---+---+---+---+---+---+---+---+
+| 0 | 0 | 0 | 0 | 1 | 0 | 1 | 0 |  = 0x0A (10)
++---+---+---+---+---+---+---+---+
+                  L       C
+                  A       O
+                  Y       N
+                  O       N
+                  U       E
+                  T       C
+                          T
+                          E
+                          D
+```
+
+Now I can handle both events:
 
 ```c
 void handle_monitor_changes(void) {
@@ -137,75 +218,26 @@ void handle_monitor_changes(void) {
     update_monitors(&m_change);
 
     if (m_change & _NONE) {
-        // nothing changed
+        /* nothing changed */
         return;
     }
 
     if (m_change & CONNECTED) {
-        // handle new monitor
-        setup_desktops();
+        /* handle new monitor */
     }
 
     if (m_change & DISCONNECTED) {
-        // handle removed monitor
-        merge_windows_to_primary();
+        /* handle removed monitor */
     }
 
     if (m_change & LAYOUT) {
-        // handle resolution change
-        rearrange_trees();
+        /* handle resolution change */
     }
+    /* ... handle other events ... */
 }
 ```
 
 With a single integer, I can track and respond to any combination of events.
-
-## Another Example: EWMH Window State
-
-X11 windows can have multiple states simultaneously - fullscreen AND above other windows AND sticky. I track this with a bitmask:
-
-```c
-typedef enum {
-    EWMH_STATE_NONE        = 0,
-    EWMH_STATE_ABOVE       = 1u << 0,  // stay above other windows
-    EWMH_STATE_BELOW       = 1u << 1,  // stay below other windows
-    EWMH_STATE_FULLSCREEN  = 1u << 2,  // fullscreen mode
-    EWMH_STATE_MODAL       = 1u << 3,  // modal dialog
-    EWMH_STATE_HIDDEN      = 1u << 4,  // hidden/minimized
-    EWMH_STATE_STICKY      = 1u << 5,  // visible on all desktops
-    EWMH_STATE_DEMANDS_ATTN= 1u << 6,  // wants attention
-} ewmh_state_t;
-```
-
-Each window's client struct has a single field:
-
-```c
-typedef struct {
-    xcb_window_t window;
-    ewmh_state_t ewmh_state;  // all states packed in one field
-    // ...
-} client_t;
-```
-
-Setting and clearing states:
-
-```c
-void update_client_ewmh_state(client_t *c, ewmh_state_t flag, bool set) {
-    if (set)
-        c->ewmh_state |= flag;
-    else
-        c->ewmh_state &= ~flag;
-}
-```
-
-Checking states:
-
-```c
-// is this window fullscreen OR above?
-if (c->ewmh_state & (EWMH_STATE_FULLSCREEN | EWMH_STATE_ABOVE)) {
-    raise_window(c->window);
-}
-```
 
 ## Validation Example: Red-Black Tree
 
@@ -221,12 +253,12 @@ A while back I implemented a red-black tree. To validate the tree invariants, I 
  */
 
 typedef enum {
-    RB_VALID               = 0x00,  // 00000000 - no violations
-    RB_INVALID_COLOR       = 0x01,  // 00000001 - rule 1 broken
-    RB_RED_ROOT            = 0x02,  // 00000010 - rule 2 broken
-    RB_NULL_NOT_BLACK      = 0x04,  // 00000100 - rule 3 broken
-    RB_RED_CHILD_OF_RED    = 0x08,  // 00001000 - rule 4 broken
-    RB_UNEQUAL_BLACK_PATHS = 0x10,  // 00010000 - rule 5 broken
+    RB_VALID               = 0x00,  /* 00000000 - no violations */
+    RB_INVALID_COLOR       = 0x01,  /* 00000001 - rule 1 broken */
+    RB_RED_ROOT            = 0x02,  /* 00000010 - rule 2 broken */
+    RB_NULL_NOT_BLACK      = 0x04,  /* 00000100 - rule 3 broken */
+    RB_RED_CHILD_OF_RED    = 0x08,  /* 00001000 - rule 4 broken */
+    RB_UNEQUAL_BLACK_PATHS = 0x10,  /* 00010000 - rule 5 broken */
 } rb_violation_t;
 
 typedef uint32_t rb_validation_t;
@@ -254,30 +286,38 @@ rb_validation_t validate_rbtree(node_t *root) {
 }
 ```
 
+Say the tree has a red root AND a red node with a red child. The result looks like:
+
+```text
+RB_RED_ROOT         = 0x02 = 00000010
+RB_RED_CHILD_OF_RED = 0x08 = 00001000
+                           ----------
+Combined (OR)       = 0x0A = 00001010
+
++---+---+---+---+---+---+---+---+
+| 0 | 0 | 0 | 0 | 1 | 0 | 1 | 0 |  = 0x0A (10)
++---+---+---+---+---+---+---+---+
+  7   6   5   4   3   2   1   0
+                  ^       ^
+                  |       +-- RB_RED_ROOT (rule 2)
+                  +---------- RB_RED_CHILD_OF_RED (rule 4)
+```
+
 Then you can check what's wrong:
 
 ```c
 rb_validation_t v = validate_rbtree(tree);
 
 if (v == RB_VALID) {
-    printf("Tree is valid\n");
+    printf("tree is valid\n");
 } else {
     if (v & RB_RED_ROOT)
-        printf("Violation: root is red\n");
+        printf("violation: root is red\n");
     if (v & RB_RED_CHILD_OF_RED)
-        printf("Violation: red node has red child\n");
+        printf("violation: red node has red child\n");
     if (v & RB_UNEQUAL_BLACK_PATHS)
         printf("Violation: unequal black paths\n");
 }
-```
-
-If `v` is `0x0A` (binary `00001010`), that means both `RB_RED_ROOT` and `RB_RED_CHILD_OF_RED` are set:
-
-```
-RB_RED_ROOT        = 0x02 = 00000010
-RB_RED_CHILD_OF_RED= 0x08 = 00001000
-                           --------
-Combined (OR)      = 0x0A = 00001010
 ```
 
 This is way cleaner than returning an array of error codes or having separate boolean fields for each violation.

@@ -3,11 +3,13 @@ html {
     font-size: 0.95rem;
     line-height: 1.5;
     margin: auto;
-    max-width: 85ch;
+    max-width: 90ch;
     padding-top: 0.5rem;
     padding-right: 1em;
     padding-bottom: 3em;
     padding-left: 1em;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
 }
 
 img {
@@ -77,6 +79,7 @@ pre code {
     background: 0 !important;
     padding: 0;
     font-size: inherit;
+    font-variant-ligatures: none;
 }
 
 code {
@@ -161,6 +164,36 @@ article > div {
     display: block;
     margin-bottom: 1.5rem;
     width: 100%;
+}
+
+article h1::before {
+    content: "# ";
+    color: var(--border);
+}
+
+article h2::before {
+    content: "## ";
+    color: var(--border);
+}
+
+article h3::before {
+    content: "### ";
+    color: var(--border);
+}
+
+article h4::before {
+    content: "#### ";
+    color: var(--border);
+}
+
+article h5::before {
+    content: "##### ";
+    color: var(--border);
+}
+
+article h6::before {
+    content: "###### ";
+    color: var(--border);
 }
 
 .yt {
@@ -436,6 +469,23 @@ nav svg {
     max-height: 95vh;
 }
 
+/* Giallo syntax highlighting */
+.giallo-l {
+    display: inline-block;
+    min-height: 1lh;
+    width: 100%;
+}
+
+.giallo-ln {
+    display: inline-block;
+    user-select: none;
+    margin-right: 0.4em;
+    padding: 0.4em;
+    min-width: 3ch;
+    text-align: right;
+    opacity: 0.8;
+}
+
 /* Syntax highlighting */
 html.light .z-comment {
     color: #6a737d;
@@ -552,9 +602,15 @@ html.dark article > p > img {
     color-scheme: dark !important;
 }
 
+/* Inline code only */
 html code {
     background: var(--code-bg);
-    color: var(--text);
+    /* color: var(--text); */
+}
+
+/* Code blocks: let theme handle foreground color */
+html pre code {
+    /* color: inherit; */
 }
 
 html hr {
@@ -605,6 +661,12 @@ a:focus-visible {
     outline: 2px solid currentColor;
     outline-offset: 2px;
     border-radius: 2px;
+}
+
+@media (max-width: 600px) {
+    html {
+        font-size: 0.8rem;
+    }
 }
 
 @media (max-width: 30em) {

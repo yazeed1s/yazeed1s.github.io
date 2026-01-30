@@ -1,15 +1,20 @@
 title = "Yazeed's Blog"
-description = "A minimal theme for Zola with a focus on writing."
-base_url = "https://example.com"
+description = "Notes on systems and low-level software."
+base_url = "https://yazeed1s.github.io"
 compile_sass = false
 build_search_index = false
 default_language = "en"
 taxonomies = [{ name = "tags", feed = true }]
+
 [markdown]
 [markdown.highlighting]
 highlight_code_in_css = true
-light_theme = "gruvbox-light-hard"
-dark_theme = "kanagawa-dragon"
+extra_themes = [
+  "themes/gruvbox-custom-dark.json",
+  "themes/gruvbox-custom-light.json",
+]
+light_theme = "Gruvbox Material Light"
+dark_theme = "Gruvbox Material Dark"
 
 [slugify]
 paths = "on"
@@ -17,54 +22,47 @@ taxonomies = "on"
 anchors = "on"
 
 [extra]
-# Keywords for SEO.
+# SEO
 keywords = "yazeed, blog, alharthi, yaz, yazeed1s"
-# Site icon in header (optional - comment out to hide).
 # site_icon = "quill.svg"
-# Header strapline (optional - comment out to hide).
-strapline = "#"
-# Footer text (optional - comment out to hide).
+# strapline = "#"
 # footer_text = "austere - made for <a href='https://getzola.org'>Zola</a>"
-# Favicon (optional - comment out to hide).
 favicon = "/favicon.ico"
-# Profile picture on home page (optional - comment out to hide).
-profile_picture = "/images/profile.svg"
+# profile_picture = "/images/profile.svg"
+recent_posts_count = 5
 
-# Enable inline SVG icons (uses sprite sheet).
 inline_icons = true
 icon_path = "static/icons/"
 icons = ["light", "asleep", "rss"]
 
-# Responsive images
 image_format = "auto"
-image_quality = 80
+image_quality = 100
 images_default_size = 1024
 images_sizes = [512, 1024, 2048]
 
-# Navigation menu.
+# menu.
 menu_links = [
   { url = "$BASE_URL/", name = "Home" },
   { url = "$BASE_URL/posts/", name = "Posts" },
-  { url = "$BASE_URL/about/", name = "About" },
+  # { url = "$BASE_URL/about/", name = "About" },
   { url = "$BASE_URL/projects/", name = "Projects" },
   { url = "$BASE_URL/tags/", name = "Tags" },
   # { url = "$BASE_URL/search/", name = "Search" },
 ]
 
-# Custom colour themes. Adjust here to apply own colour.
-# Light colours.
+
 [extra.colours.light]
-background = "#D4CEC0"
+background = "#eae6deff"
 text = "#1a1410"
 text_muted = "#1a1410"
 accent = "#9E4440"
 accent_hover = "#7A3533"
-code_bg = "#cac4b8ff"
+code_bg = "#e1ded6ff"
 border = "#abaaaaff"
-# Dark colours.
+
 [extra.colours.dark]
 background = "#303132"
-text = "#d5d2cf"
+text = "#bebbb9ff"
 text_muted = "#d5d2cf"
 accent = "#e57665"
 accent_hover = "#888885"

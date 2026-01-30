@@ -40,23 +40,67 @@ social -%} {% import "macros/hooks.html" as hooks -%} {% import
     config.extra.colours.dark.code_bg | default(value="#1e1e1d") %} {% set
     dark_border = config.extra.colours.dark.border |
     default(value="#2a2a29") %}
-<style>
+    <style>
         :root {
-            --nav-basis: {{ basis }}%;
-            --light-bg: {{ light_bg }};
-            --light-text: {{ light_text }};
-            --light-text-muted: {{ light_text_muted }};
-            --light-accent: {{ light_accent }};
-            --light-accent-hover: {{ light_accent_hover }};
-            --light-code-bg: {{ light_code_bg }};
-            --light-border: {{ light_border }};
-            --dark-bg: {{ dark_bg }};
-            --dark-text: {{ dark_text }};
-            --dark-text-muted: {{ dark_text_muted }};
-            --dark-accent: {{ dark_accent }};
-            --dark-accent-hover: {{ dark_accent_hover }};
-            --dark-code-bg: {{ dark_code_bg }};
-            --dark-border: {{ dark_border }};
+            --nav-basis: {{basis}}
+
+            %;
+
+            --light-bg: {{light_bg}}
+
+            ;
+
+            --light-text: {{light_text}}
+
+            ;
+
+            --light-text-muted: {{light_text_muted}}
+
+            ;
+
+            --light-accent: {{light_accent}}
+
+            ;
+
+            --light-accent-hover: {{light_accent_hover}}
+
+            ;
+
+            --light-code-bg: {{light_code_bg}}
+
+            ;
+
+            --light-border: {{light_border}}
+
+            ;
+
+            --dark-bg: {{dark_bg}}
+
+            ;
+
+            --dark-text: {{dark_text}}
+
+            ;
+
+            --dark-text-muted: {{dark_text_muted}}
+
+            ;
+
+            --dark-accent: {{dark_accent}}
+
+            ;
+
+            --dark-accent-hover: {{dark_accent_hover}}
+
+            ;
+
+            --dark-code-bg: {{dark_code_bg}}
+
+            ;
+
+            --dark-border: {{dark_border}}
+
+            ;
         }
     </style>
     <meta name="theme-color" id="tc" />
@@ -102,7 +146,8 @@ social -%} {% import "macros/hooks.html" as hooks -%} {% import
                     <rect x="-116.42" y="-116.42" width="596.66" height="596.66" rx="298.33" fill="currentColor"
                         mask="url(#m)" />
                 </svg>{% else %}<img src="{{ config.extra.site_icon }}" class="custom-icon" alt="" />{% endif %}{% endif
-                %}<a href="{{ config.base_url | safe }}"><strong>{{ config.title }}</strong></a>{% if
+                %}<a href="{{ config.base_url | safe }}"><strong><span style="color: var(--accent-hover);">~/</span>{{
+                        config.title }}</strong></a>{% if
                 config.extra.strapline %}<span class="desc">
                     · {{ config.extra.strapline }}</span>{% endif %}</span>
             <nav>
