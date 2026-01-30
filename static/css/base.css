@@ -269,7 +269,7 @@ header strong {
     display: inline-flex;
     flex-wrap: wrap;
     color: var(--accent);
-    font-size: 0.95rem;
+    font-size: 0.90rem;
 }
 
 .post-tags-label {
@@ -665,7 +665,7 @@ a:focus-visible {
 
 @media (max-width: 600px) {
     html {
-        font-size: 0.8rem;
+        font-size: 0.95rem;
     }
 }
 
