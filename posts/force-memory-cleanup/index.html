@@ -162,10 +162,10 @@
         </div>
     </header>
      <hr />
-<p>In C, you put cleanup code at the end of <code>main()</code> - free your allocations, close your files, done. But what if your program crashes before reaching that code?</p>
+<p>In C, you put cleanup code at the end of <code>main()</code> to free your allocations, close your files, etc. But what if your program crashes before reaching that code?</p>
 <hr />
 <h2 id="the-problem">The Problem</h2>
-<p>Standard cleanup at the end of main only works if your program exits normally. If it crashes - say, a null pointer dereference - the OS raises SIGSEGV and your program dies immediately. Your cleanup code never runs.</p>
+<p>Standard cleanup at the end of main only works if your program exits normally. If it crashes (e.g., a null pointer dereference), the OS raises SIGSEGV and your program dies immediately. Your cleanup code never runs.</p>
 <pre class="giallo" style="color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">#</span><span style="color: light-dark(#955F3C, #E08F5A);">include</span><span style="color: light-dark(#685C52, #9C8B7C);"> &lt;</span><span style="color: light-dark(#906E3A, #D8A657);">stdio.h</span><span style="color: light-dark(#685C52, #9C8B7C);">&gt;</span></span>
 <span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">#</span><span style="color: light-dark(#955F3C, #E08F5A);">include</span><span style="color: light-dark(#685C52, #9C8B7C);"> &lt;</span><span style="color: light-dark(#906E3A, #D8A657);">stdlib.h</span><span style="color: light-dark(#685C52, #9C8B7C);">&gt;</span></span>
 <span class="giallo-l"></span>
@@ -202,7 +202,7 @@
 <span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">    atexit</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span>cleanup</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
 <span class="giallo-l"><span style="color: light-dark(#928374, #7C6F64);font-style: italic;">    //</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> ...</span></span>
 <span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">}</span></span></code></pre>
-<p>But <code>atexit()</code> handlers only run on <strong>normal</strong> exit - when main returns or when you call <code>exit()</code>. A signal like SIGSEGV bypasses atexit entirely.</p>
+<p>But <code>atexit()</code> handlers only run on <strong>normal</strong> exit, when main returns or when you call <code>exit()</code>. A signal like SIGSEGV bypasses atexit entirely.</p>
 <h2 id="the-solution-signal-handlers">The Solution: Signal Handlers</h2>
 <p>To run cleanup code on crash, you register a signal handler:</p>
 <pre class="giallo" style="color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">#</span><span style="color: light-dark(#955F3C, #E08F5A);">include</span><span style="color: light-dark(#685C52, #9C8B7C);"> &lt;</span><span style="color: light-dark(#906E3A, #D8A657);">signal.h</span><span style="color: light-dark(#685C52, #9C8B7C);">&gt;</span></span>
@@ -213,15 +213,13 @@
 <span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">char</span><span style="color: light-dark(#9C4641, #EA6962);"> *</span><span>buffer </span><span style="color: light-dark(#9C4641, #EA6962);">=</span><span style="color: light-dark(#8C5967, #D3869B);"> NULL</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
 <span class="giallo-l"></span>
 <span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">void</span><span style="color: light-dark(#707943, #A9B665);"> cleanup_handler</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span style="color: light-dark(#9C4641, #EA6962);">int</span><span> sig</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">    (</span><span style="color: light-dark(#9C4641, #EA6962);">void</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span>sig</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
 <span class="giallo-l"><span style="color: light-dark(#928374, #7C6F64);font-style: italic;">    //</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> Note: using write() instead of printf() - see below</span></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">    const</span><span style="color: light-dark(#9C4641, #EA6962);"> char</span><span style="color: light-dark(#9C4641, #EA6962);"> *</span><span>msg </span><span style="color: light-dark(#9C4641, #EA6962);">=</span><span style="color: light-dark(#685C52, #9C8B7C);"> &quot;</span><span style="color: light-dark(#906E3A, #D8A657);">Caught signal, cleaning up...</span><span style="color: light-dark(#8C5967, #D3869B);">\n</span><span style="color: light-dark(#685C52, #9C8B7C);">&quot;</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">    write</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span>STDERR_FILENO</span><span style="color: light-dark(#685C52, #9C8B7C);">,</span><span> msg</span><span style="color: light-dark(#685C52, #9C8B7C);">,</span><span style="color: light-dark(#8C5967, #D3869B);"> 31</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">    const</span><span style="color: light-dark(#9C4641, #EA6962);"> char</span><span> msg</span><span style="color: light-dark(#9C4641, #EA6962);">[]</span><span style="color: light-dark(#9C4641, #EA6962);"> =</span><span style="color: light-dark(#685C52, #9C8B7C);"> &quot;</span><span style="color: light-dark(#906E3A, #D8A657);">Caught signal, exiting...</span><span style="color: light-dark(#8C5967, #D3869B);">\n</span><span style="color: light-dark(#685C52, #9C8B7C);">&quot;</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">    write</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span>STDERR_FILENO</span><span style="color: light-dark(#685C52, #9C8B7C);">,</span><span> msg</span><span style="color: light-dark(#685C52, #9C8B7C);">,</span><span style="color: light-dark(#9C4641, #EA6962);"> sizeof</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span>msg</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#9C4641, #EA6962);"> -</span><span style="color: light-dark(#8C5967, #D3869B);"> 1</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">    if</span><span style="color: light-dark(#685C52, #9C8B7C);"> (</span><span>buffer </span><span style="color: light-dark(#9C4641, #EA6962);">!=</span><span style="color: light-dark(#8C5967, #D3869B);"> NULL</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);"> {</span></span>
-<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">        free</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span>buffer</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
-<span class="giallo-l"><span>        buffer </span><span style="color: light-dark(#9C4641, #EA6962);">=</span><span style="color: light-dark(#8C5967, #D3869B);"> NULL</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">    }</span></span>
-<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#928374, #7C6F64);font-style: italic;">    //</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> For crash signals, keep the handler minimal. Most cleanup is not</span></span>
+<span class="giallo-l"><span style="color: light-dark(#928374, #7C6F64);font-style: italic;">    //</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> async-signal-safe, and the kernel will reclaim process memory anyway.</span></span>
 <span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">    _exit</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span style="color: light-dark(#8C5967, #D3869B);">1</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> //</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> use _exit, not exit()</span></span>
 <span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">}</span></span>
 <span class="giallo-l"></span>
@@ -245,14 +243,14 @@
 <span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">}</span></span></code></pre>
 <p>Now when the program crashes, the handler runs first.</p>
 <h2 id="important-async-signal-safety">Important: Async-Signal-Safety</h2>
-<p>There's a catch. Signal handlers can interrupt your program at any point - even in the middle of malloc or printf. If your handler then calls malloc or printf, you can deadlock or corrupt memory.</p>
+<p>There's a catch. Signal handlers can interrupt your program at any point, even in the middle of malloc or printf. If your handler then calls malloc or printf, you can deadlock or corrupt memory.</p>
 <p>Only certain functions are safe to call from signal handlers. These are called "async-signal-safe" functions. The POSIX standard defines the list. Key ones:</p>
 <ul>
 <li><code>write()</code> - safe (printf is NOT safe)</li>
 <li><code>_exit()</code> - safe (exit is NOT safe, it runs atexit handlers)</li>
 <li><code>close()</code>, <code>unlink()</code>, <code>fsync()</code> - safe</li>
 </ul>
-<p><code>free()</code> is technically <strong>not</strong> async-signal-safe. In practice, it usually works because you're about to exit anyway, and modern allocators handle it reasonably. But be aware of this.</p>
+<p><code>free()</code> is <strong>not</strong> async-signal-safe. It might "work" in a toy program, and then deadlock in production because the signal interrupted malloc/free internals. Don't rely on it.</p>
 <p>A safer pattern is to set a flag and let the main program handle cleanup:</p>
 <pre class="giallo" style="color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">volatile</span><span style="color: light-dark(#576E65, #83A598);"> sig_atomic_t</span><span> got_signal </span><span style="color: light-dark(#9C4641, #EA6962);">=</span><span style="color: light-dark(#8C5967, #D3869B);"> 0</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
 <span class="giallo-l"></span>
@@ -271,9 +269,9 @@
 <span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">    cleanup</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
 <span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">    return</span><span style="color: light-dark(#8C5967, #D3869B);"> 0</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
 <span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">}</span></span></code></pre>
-<p>But for crash signals (SIGSEGV, SIGABRT), you can't return to normal execution - the program is already broken. So you do what cleanup you can in the handler and exit.</p>
+<p>But for crash signals (SIGSEGV, SIGABRT), you can't return to normal execution, the program is already broken. So you do what cleanup you can in the handler and exit.</p>
 <h2 id="wait-doesn-t-the-os-clean-up-anyway">Wait, Doesn't the OS Clean Up Anyway?</h2>
-<p>Yes. On any modern OS (Linux, macOS, Windows), when your process terminates - normally or not - the kernel reclaims all its resources:</p>
+<p>Yes. On any modern OS (Linux, macOS, Windows), when your process terminates (normally or not), the kernel reclaims all its resources:</p>
 <ul>
 <li>Heap memory (malloc'd memory) - freed</li>
 <li>File descriptors - closed</li>

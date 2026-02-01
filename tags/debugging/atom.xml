@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <title>Yazeed&#x27;s Blog - debugging</title>
+    <subtitle>Notes on systems and low-level software.</subtitle>
+    <link rel="self" type="application/atom+xml" href="https://yazeed1s.github.io/tags/debugging/atom.xml"/>
+    <link rel="alternate" type="text/html" href="https://yazeed1s.github.io"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2026-02-01T00:00:00+00:00</updated>
+    <id>https://yazeed1s.github.io/tags/debugging/atom.xml</id>
+    <entry xml:lang="en">
+        <title>Debugged a Broken Monitor (It Was a Shadow)</title>
+        <published>2026-02-01T00:00:00+00:00</published>
+        <updated>2026-02-01T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/my-monitor-was-dying/"/>
+        <id>https://yazeed1s.github.io/posts/my-monitor-was-dying/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/my-monitor-was-dying/">&lt;p&gt;I bought a new dell monitor. A few days in, I noticed a dim shadow in the top-left corner. Sometimes it stretched briefly on power-on.&lt;&#x2F;p&gt;
+&lt;p&gt;It looked &lt;strong&gt;&lt;em&gt;physical&lt;&#x2F;em&gt;&lt;&#x2F;strong&gt;. Like panel uniformity issues. Like backlight bleed. Like I bought a defective monitor.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;hardware-spiral&quot;&gt;hardware spiral&lt;&#x2F;h2&gt;
+&lt;p&gt;when you see a corner darkening, you blame everything physical:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;monitor arm (did i twist the panel?)&lt;&#x2F;li&gt;
+&lt;li&gt;backlight &#x2F; diffuser&lt;&#x2F;li&gt;
+&lt;li&gt;cable &#x2F; port&lt;&#x2F;li&gt;
+&lt;li&gt;the monitor itself&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;I ran through the usual checks. built-in diagnostics were clean. different cables didn&#x27;t help. the shadow just sat there, stable, looking like it belonged to the panel.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;wrong-rabbit-hole&quot;&gt;wrong rabbit hole&lt;&#x2F;h2&gt;
+&lt;p&gt;Same day this started, I was messing with &lt;code&gt;tlp&lt;&#x2F;code&gt; and &lt;code&gt;auto-cpufreq&lt;&#x2F;code&gt;.&lt;&#x2F;p&gt;
+&lt;p&gt;So naturally: &quot;did I power-save my way into a broken display?&quot;. So I turned it all off. and the shadow stayed!!&lt;&#x2F;p&gt;
+&lt;p&gt;At least now I knew it wasn&#x27;t some weird power profile.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;software-suspects&quot;&gt;software suspects&lt;&#x2F;h2&gt;
+&lt;p&gt;My stack started looking suspicious:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;custom window manager&lt;&#x2F;li&gt;
+&lt;li&gt;x11&lt;&#x2F;li&gt;
+&lt;li&gt;picom (shadows, damage tracking, the usual &quot;maybe it&#x27;s stale buffers&quot;)&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;Nothing in that layer had changed recently though. No updates, no config changes. Not proof, but enough to stop me from rewriting compositor configs at 2am.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;isolation&quot;&gt;isolation&lt;&#x2F;h2&gt;
+&lt;p&gt;I logged into wayland. Shadow gone. same laptop. same cable. same monitor.&lt;&#x2F;p&gt;
+&lt;p&gt;That&#x27;s when I stopped worrying about RMA. wayland wasn&#x27;t &quot;better&quot; here, it was just a control group.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;bisect&quot;&gt;bisect&lt;&#x2F;h2&gt;
+&lt;p&gt;Once I knew it was x11 and not the monitor, I thought about what actually changed.&lt;&#x2F;p&gt;
+&lt;p&gt;I had recently updated my window manager.
+Laziest possible bisect:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;switch to x11 -&amp;gt; artifact returns&lt;&#x2F;li&gt;
+&lt;li&gt;roll back WM -&amp;gt; artifact gone&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;This was a regression I introduced.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;the-reveal&quot;&gt;the reveal&lt;&#x2F;h2&gt;
+&lt;p&gt;Turns out I didn&#x27;t mess up stacking order, I actually implemented it correctly. EWMH says window types stack in a specific order, and &lt;code&gt;polybar&lt;&#x2F;code&gt; (type &lt;code&gt;_NET_WM_TYPE_DOCK&lt;&#x2F;code&gt;) now sat above basically everything.&lt;&#x2F;p&gt;
+&lt;p&gt;I run picom with shadows. polybar now had a shadow that landed on top of other windows.&lt;&#x2F;p&gt;
+&lt;p&gt;On firefox or any bright window near that corner, it looked exactly like panel dimming.&lt;&#x2F;p&gt;
+&lt;p&gt;The funniest thing is that the bar wasn&#x27;t even on the external monitor. Only its shadow was.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;why-the-shadow-landed-on-the-other-monitor&quot;&gt;why the shadow landed on the other monitor&lt;&#x2F;h2&gt;
+&lt;p&gt;My laptop screen has polybar. External monitor doesn&#x27;t.&lt;&#x2F;p&gt;
+&lt;p&gt;But x11 treats the desktop as one big coordinate space. Monitors are just rectangles inside it:&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; xrandr&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt;-listmonitors&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;Monitors:&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; 2&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt; 0:&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; +&lt;&#x2F;span&gt;&lt;span&gt;*&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;eDP&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; 1920&#x2F;302x1200&#x2F;189+0+0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;  eDP&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt; 1:&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; +DisplayPort-0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; 2560&#x2F;597x1440&#x2F;336+1920+0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;  DisplayPort-0&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;external starts at &lt;code&gt;x = 1920&lt;&#x2F;code&gt;.&lt;&#x2F;p&gt;
+&lt;p&gt;shadows don&#x27;t care about monitor boundaries. just pixels in global space. if you blur something near the right edge of the laptop screen, that blur can spill into the left edge of the external monitor.&lt;&#x2F;p&gt;
+&lt;p&gt;which is exactly where i was seeing the &quot;hardware defect.&quot;&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;confirmation&quot;&gt;confirmation&lt;&#x2F;h2&gt;
+&lt;h2 id=&quot;killed-polybar-dimming-gone-instantly&quot;&gt;Killed polybar. dimming gone instantly.&lt;&#x2F;h2&gt;
+&lt;h2 id=&quot;the-fix&quot;&gt;the fix&lt;&#x2F;h2&gt;
+&lt;p&gt;Make sure polybar doesn&#x27;t cast shadows. Fake hardware defect never came back.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;this doesn&#x27;t generalize to &quot;it&#x27;s always software.&quot; panels do fail. but isolating layers beats spiraling.&lt;&#x2F;li&gt;
+&lt;li&gt;multi-monitor on x11 is one big canvas. effects don&#x27;t stop at the seam unless you make them.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+</feed>

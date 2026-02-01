@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="How Linux handles memory pressure (and why it sometimes kills your processes)." />
+<meta
+    name="keywords"
+    content="yazeed, blog, alharthi, yaz, yazeed1s"
+/>
+<link rel="canonical" href="https://yazeed1s.github.io/posts/linux-memory-pressure/" />
+
+<title>What Linux Does When Memory Runs Out | Yazeed&#x27;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
+<meta property="og:title" content="What Linux Does When Memory Runs Out | Yazeed&#x27;s Blog" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://yazeed1s.github.io/posts/linux-memory-pressure/" />
+<meta property="og:description" content="How Linux handles memory pressure (and why it sometimes kills your processes)." />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="What Linux Does When Memory Runs Out" />
+<meta name="twitter:description" content="How Linux handles memory pressure (and why it sometimes kills your processes)." />
+
+    <link rel="icon" href="&#x2F;favicon.ico" />
+    
+    <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
+    <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+
+                  
+    <style>
+        :root {
+            --nav-basis: 25
+
+            %;
+
+            --light-bg: #eae6deff
+
+            ;
+
+            --light-text: #1a1410
+
+            ;
+
+            --light-text-muted: #1a1410
+
+            ;
+
+            --light-accent: #9E4440
+
+            ;
+
+            --light-accent-hover: #7A3533
+
+            ;
+
+            --light-code-bg: #e1ded6ff
+
+            ;
+
+            --light-border: #abaaaaff
+
+            ;
+
+            --dark-bg: #303132
+
+            ;
+
+            --dark-text: #bebbb9ff
+
+            ;
+
+            --dark-text-muted: #d5d2cf
+
+            ;
+
+            --dark-accent: #e57665
+
+            ;
+
+            --dark-accent-hover: #888885
+
+            ;
+
+            --dark-code-bg: #282829
+
+            ;
+
+            --dark-border: #524f4c
+
+            ;
+        }
+    </style>
+    <meta name="theme-color" id="tc" />
+    <script>
+        (function () {
+            var m = matchMedia("(prefers-color-scheme:dark)"),
+                t = localStorage.theme || (m.matches ? "dark" : "light"),
+                h = document.documentElement,
+                c = document.getElementById("tc");
+            h.className = t;
+            function u() {
+                c.content = getComputedStyle(h).getPropertyValue("--tc");
+            }
+            u();
+            window.T = function () {
+                t = t === "dark" ? "light" : "dark";
+                localStorage.theme = t;
+                h.className = t;
+                u();
+            };
+        })();
+    </script>
+    
+</head>
+
+<body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><symbol id="light" viewBox="0 0 32 32"><rect x="15" y="2" width="2" height="5"/><rect x="21.6675" y="6.8536" width="4.958" height="1.9998" transform="translate(1.5191 19.3744) rotate(-45)"/><rect x="25" y="15" width="5" height="2"/><rect x="23.1466" y="21.6675" width="1.9998" height="4.958" transform="translate(-10.0018 24.1465) rotate(-45)"/><rect x="15" y="25" width="2" height="5"/><rect x="5.3745" y="23.1466" width="4.958" height="1.9998" transform="translate(-14.7739 12.6256) rotate(-45)"/><rect x="2" y="15" width="5" height="2"/><rect x="6.8536" y="5.3745" width="1.9998" height="4.958" transform="translate(-3.253 7.8535) rotate(-45)"/><path d="M16,12a4,4,0,1,1-4,4,4.0045,4.0045,0,0,1,4-4m0-2a6,6,0,1,0,6,6,6,6,0,0,0-6-6Z"/></symbol>
+<symbol id="asleep" viewBox="0 0 32 32"><path d="M13.5025,5.4136A15.0755,15.0755,0,0,0,25.096,23.6082a11.1134,11.1134,0,0,1-7.9749,3.3893c-.1385,0-.2782.0051-.4178,0A11.0944,11.0944,0,0,1,13.5025,5.4136M14.98,3a1.0024,1.0024,0,0,0-.1746.0156A13.0959,13.0959,0,0,0,16.63,28.9973c.1641.006.3282,0,.4909,0a13.0724,13.0724,0,0,0,10.702-5.5556,1.0094,1.0094,0,0,0-.7833-1.5644A13.08,13.08,0,0,1,15.8892,4.38,1.0149,1.0149,0,0,0,14.98,3Z"/></symbol>
+<symbol id="rss" viewBox="0 0 32 32"><path d="M8,18c-3.3,0-6,2.7-6,6s2.7,6,6,6s6-2.7,6-6C14,20.7,11.3,18,8,18z M8,28c-2.2,0-4-1.8-4-4s1.8-4,4-4s4,1.8,4,4C12,26.2,10.2,28,8,28z"/><path d="M30,24h-2C28,13,19,4,8,4V2C20.1,2,30,11.9,30,24z"/><path d="M22,24h-2c0-6.6-5.4-12-12-12v-2C15.7,10,22,16.3,22,24z"/></symbol>
+</svg>
+
+    <header id="site-header">
+        <div>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <nav>
+                <a href="https://yazeed1s.github.io/" >Home</a>
+                <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
+                <a href="https://yazeed1s.github.io/projects/" >Projects</a>
+                <a href="https://yazeed1s.github.io/tags/" >Tags</a>
+                </nav>
+            <a href="#" onclick="
+                        T();
+                        return false;
+                    " class="theme" aria-label="Toggle theme" title="Toggle theme">
+<svg><use href="#light"/></svg>
+<svg><use href="#asleep"/></svg></a>
+        </div>
+    </header>
+    <hr class="site-sep" />
+    <main id="main">
+<article>
+    <header>
+        <h1>What Linux Does When Memory Runs Out</h1>
+        <div class="post-meta">
+            <time datetime="2025-12-15">15 Dec 2025</time>
+            
+            <span>How Linux handles memory pressure (and why it sometimes kills your processes).</span>
+             
+            <span class="post-tags">
+                <span class="post-tags-label">Tags: </span>
+                
+                <a href="https://yazeed1s.github.io/tags/linux">Linux</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/operating-systems">Operating Systems</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/memory">Memory</a>
+            </span>
+            
+        </div>
+    </header>
+     <hr />
+<p>When you're out of RAM and swap is filling up, Linux has to make hard choices. This post is about what those choices are and why they sometimes end with your process getting killed.</p>
+<hr />
+<h2 id="page-replacement">page replacement</h2>
+<p>When RAM is full and something new needs to come in, something else has to go out. Linux uses LRU lists (active/inactive), split for anonymous memory (heap/stack) and file-backed pages (page cache). The mental model is the same:</p>
+<p><strong>Active list.</strong> Pages that have been accessed recently. These are "hot" (probably still in use).</p>
+<p><strong>Inactive list.</strong> Pages that haven't been touched in a while. These are candidates for eviction.</p>
+<p>New pages usually start inactive. If they get accessed again, they get promoted to active. Reclaim prefers victims from inactive.</p>
+<p>This is a rough approximation of LRU (Least Recently Used). True LRU would track exact access times for every page, which is too expensive. Linux settles for "recently used" versus "not recently used."</p>
+<p>When memory pressure rises, the kernel scans pages on the inactive list, looking for victims. Clean pages (unchanged since loaded) can be dropped immediately. Dirty pages have to be written to disk first.</p>
+<hr />
+<h2 id="swap-behavior">swap behavior</h2>
+<p>Swap is the overflow area (disk space where evicted pages go).</p>
+<p>Linux doesn't wait until RAM is completely full to start swapping. It swaps based on a tunable called <strong>swappiness</strong> (0-200). Roughly, it's a knob for how willing the kernel is to swap anonymous memory versus reclaim file cache.</p>
+<ul>
+<li><strong>0</strong> = Avoid swapping anonymous memory unless you have to</li>
+<li><strong>60</strong> = Default-ish, balanced</li>
+<li><strong>100+</strong> = Swap more aggressively to keep RAM free for file cache</li>
+</ul>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);"><code data-lang="shellscript"><span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">$</span><span style="color: light-dark(#906E3A, #D8A657);"> cat</span><span style="color: light-dark(#906E3A, #D8A657);"> /proc/sys/vm/swappiness</span></span>
+<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">60</span></span></code></pre>
+<p>Higher swappiness means Linux will push application pages to swap earlier to keep more room for file system cache. Lower swappiness keeps your applications in RAM longer but may hurt cache performance.</p>
+<p>There's no universally right answer. It depends on whether your workload benefits more from cached file data or from keeping application memory resident.</p>
+<hr />
+<h2 id="what-can-t-be-swapped">what can't be swapped</h2>
+<p>Not all memory can go to disk.</p>
+<p><strong>Kernel memory can't be swapped.</strong> The kernel's own data structures (page tables, process descriptors, driver state) must stay in RAM. If the kernel itself got paged out, who would page it back in?</p>
+<p>Specifically, a lot of kernel allocations live in the direct map (the linear mapping of physical memory into kernel virtual addresses). It's still mapped via page tables, but it's not pageable like user memory.</p>
+<p>This is why memory leaks in kernel code are especially dangerous. That memory is gone until reboot.</p>
+<hr />
+<h2 id="the-oom-killer">the oom killer</h2>
+<p>When both RAM and swap are full and the kernel can't reclaim any more memory, Linux invokes the <strong>OOM Killer</strong> (Out Of Memory Killer).</p>
+<p>It picks a process and terminates it. No negotiation. Just dead.</p>
+<p>How it chooses:</p>
+<ul>
+<li><strong>Memory usage.</strong> Bigger hogs are more likely targets.</li>
+<li><strong>OOM score.</strong> Each process has a computed score, plus a tunable adjustment, that influences selection.</li>
+</ul>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);"><code data-lang="shellscript"><span class="giallo-l"><span style="color: light-dark(#928374, #7C6F64);font-style: italic;">#</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> Check a process&#39;s OOM score</span></span>
+<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">$</span><span style="color: light-dark(#906E3A, #D8A657);"> cat</span><span style="color: light-dark(#906E3A, #D8A657);"> /proc/1234/oom_score</span></span>
+<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">582</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#928374, #7C6F64);font-style: italic;">#</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> Protect important processes</span></span>
+<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">$</span><span style="color: light-dark(#906E3A, #D8A657);"> echo</span><span style="color: light-dark(#8C5967, #D3869B);"> -</span><span style="color: light-dark(#8C5967, #D3869B);">1000</span><span style="color: light-dark(#9C4641, #EA6962);"> &gt;</span><span style="color: light-dark(#906E3A, #D8A657);"> /proc/1234/oom_score_adj</span></span></code></pre>
+<p>Setting <code>oom_score_adj</code> to -1000 makes a process essentially unkillable by the global OOM killer. Set it to +1000 and it becomes a preferred target.</p>
+<p>The OOM killer exists because the alternative is worse. Without it, the system would deadlock (no memory to allocate, no way to free any). At least killing one process gives everything else a chance to survive.</p>
+<hr />
+<h2 id="why-linux-overcommits">why linux overcommits</h2>
+<p>By default, Linux allows you to allocate more memory than exists. <code>malloc(1GB)</code> succeeds even if you only have 512MB free.</p>
+<p>This is <strong>overcommit</strong>, and it's intentional. Most programs allocate way more memory than they use. Sparse arrays, buffers "just in case," forked processes before exec. If Linux refused these allocations, lots of software would break.</p>
+<p>The downside: if you actually try to use all that memory you allocated, you trigger the OOM killer. The allocation succeeded, but using it didn't.</p>
+<p>You can tune this behavior:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);"><code data-lang="shellscript"><span class="giallo-l"><span style="color: light-dark(#928374, #7C6F64);font-style: italic;">#</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> Check current mode</span></span>
+<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">$</span><span style="color: light-dark(#906E3A, #D8A657);"> cat</span><span style="color: light-dark(#906E3A, #D8A657);"> /proc/sys/vm/overcommit_memory</span></span>
+<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">0</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;">  #</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> heuristic (default)</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#928374, #7C6F64);font-style: italic;">#</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> Options:</span></span>
+<span class="giallo-l"><span style="color: light-dark(#928374, #7C6F64);font-style: italic;">#</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> 0 = heuristic overcommit (kernel guesses what&#39;s safe)</span></span>
+<span class="giallo-l"><span style="color: light-dark(#928374, #7C6F64);font-style: italic;">#</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> 1 = always overcommit (never refuse malloc)</span></span>
+<span class="giallo-l"><span style="color: light-dark(#928374, #7C6F64);font-style: italic;">#</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> 2 = strict (refuse if total committed memory would exceed a commit limit derived from RAM, swap, and vm.overcommit_ratio / vm.overcommit_kbytes)</span></span></code></pre>
+<p>Mode 2 is safer but breaks more software. Mode 0 is a compromise. Mode 1 is living dangerously.</p>
+<hr />
+<h2 id="what-this-means-practically">what this means practically</h2>
+<p><strong>Mysterious crashes.</strong> If your process dies with no explanation, check <code>dmesg</code> for OOM killer messages. It might not be your bug (Linux might have killed you to save the system).</p>
+<p><strong>Server planning.</strong> On production servers, monitor swap usage. If you're consistently in swap, you're consistently slow. If swap fills up, the OOM killer is coming.</p>
+<p><strong>Memory limits.</strong> Use cgroups to limit how much memory a process can use. Better to have one application fail cleanly than to have the OOM killer pick arbitrarily.</p>
+<p><strong>Kernel memory matters.</strong> If kernel memory grows unbounded (driver bug, leak in a module), you can't swap it out. Eventually, OOM. Unlike user-space leaks, you can't just kill the offending process.</p>
+<hr />
+<h2 id="the-reality">the reality</h2>
+<p>Linux's memory management is a set of tradeoffs, not solutions.</p>
+<p>Swappiness lets you trade application responsiveness for cache performance. Overcommit lets you trade guaranteed allocation for flexibility. The OOM killer trades one process's life for system stability.</p>
+<p>None of these are free. The system is designed to keep running as long as possible, even when resources are exhausted. But "running" under memory pressure doesn't mean "running well."</p>
+<p>When you see the OOM killer fire, it's not a bug. It's the kernel doing exactly what it's designed to do: making a hard choice so you don't have to reboot.</p>
+  
+</article>
+</main>
+    <hr class="site-sep bottom-sep" />
+    <footer class="s">
+        
+    </footer>
+    
+    <script>
+        document.querySelectorAll("article img[srcset]").forEach((i) => {
+            if (i.closest("a")) return;
+            i.style.cursor = "pointer";
+            i.onclick = () => {
+                let d = document.createElement("div"),
+                    s = i.srcset.split(",").pop().trim().split(" ")[0];
+                d.className = "lb";
+                d.innerHTML = '<img src="' + s + '">';
+                document.body.style.overflow = "hidden";
+                d.onclick = () => {
+                    d.remove();
+                    document.body.style.overflow = "";
+                };
+                document.body.appendChild(d);
+            };
+        });
+    </script>
+    </body>
+
+</html>

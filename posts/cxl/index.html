@@ -5,7 +5,7 @@
 <meta charset="UTF-8" />
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="description" content="The new interconnect standard for memory expansion and disaggregation." />
+<meta name="description" content="CXL turns PCIe into a coherent memory link, enabling memory expansion and (eventually) pooling." />
 <meta
     name="keywords"
     content="yazeed, blog, alharthi, yaz, yazeed1s"
@@ -17,11 +17,11 @@
 <meta property="og:title" content="CXL: Compute Express Link | Yazeed&#x27;s Blog" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://yazeed1s.github.io/posts/cxl/" />
-<meta property="og:description" content="The new interconnect standard for memory expansion and disaggregation." />
+<meta property="og:description" content="CXL turns PCIe into a coherent memory link, enabling memory expansion and (eventually) pooling." />
 
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="CXL: Compute Express Link" />
-<meta name="twitter:description" content="The new interconnect standard for memory expansion and disaggregation." />
+<meta name="twitter:description" content="CXL turns PCIe into a coherent memory link, enabling memory expansion and (eventually) pooling." />
 
     <link rel="icon" href="&#x2F;favicon.ico" />
     
@@ -145,9 +145,9 @@
     <header>
         <h1>CXL: Compute Express Link</h1>
         <div class="post-meta">
-            <time datetime="2025-03-23">23 Mar 2025</time>
+            <time datetime="2026-01-12">12 Jan 2026</time>
             
-            <span>The new interconnect standard for memory expansion and disaggregation.</span>
+            <span>CXL turns PCIe into a coherent memory link, enabling memory expansion and (eventually) pooling.</span>
              
             <span class="post-tags">
                 <span class="post-tags-label">Tags: </span>
@@ -166,75 +166,78 @@
         </div>
     </header>
      <hr />
-<h2 id="introduction">Introduction</h2>
+<p>CXL is the thing I keep seeing in memory disaggregation discussions that <em>isn't</em> RDMA.</p>
+<p>The core idea is simple:</p>
+<p><strong>CXL lets a CPU talk to devices over PCIe as if some of that device memory is just "more memory" (with cache coherence), not just DMA behind a driver.</strong></p>
+<p>That sounds like magic until you remember the trade-off: it's still farther than local DRAM. You're buying capacity (and sometimes sharing/pooling) by paying extra latency and giving the OS a harder placement problem.</p>
+<hr />
+<h2 id="what-cxl-actually-adds">what cxl actually adds</h2>
+<p>PCIe already lets devices do DMA. That's not the interesting part.</p>
+<p>The interesting part is <strong>coherence + memory semantics</strong>:</p>
 <ul>
-<li>What is CXL?</li>
-<li>Why a new interconnect? (PCIe limitations for memory)</li>
-<li>Industry adoption (Intel, AMD, ARM, etc.)</li>
+<li>With plain PCIe, the host talks to devices via MMIO, and devices talk to host memory via DMA. You can move bytes around, but it doesn't look like "shared memory" (and devices don't get to participate as coherent caching agents).</li>
+<li>With CXL, the link can carry transactions that participate in the host's coherency domain (depending on mode/device), so "who sees which bytes when" becomes something hardware can help enforce.</li>
+</ul>
+<p>This is why CXL is pitched as a <em>memory</em> interconnect, not just an I/O bus.</p>
+<hr />
+<h2 id="the-three-protocols-the-only-ones-worth-remembering">the three protocols (the only ones worth remembering)</h2>
+<p>CXL isn't one protocol, it's three riding on top of PCIe:</p>
+<ul>
+<li><strong>CXL.io</strong>: the boring compatibility layer (enumeration, config space, interrupts). Basically "PCIe-like."</li>
+<li><strong>CXL.cache</strong>: lets a device cache host memory coherently (device acts like a coherent agent).</li>
+<li><strong>CXL.mem</strong>: lets the host access device-attached memory with load/store semantics (device memory looks like memory, not an I/O buffer).</li>
+</ul>
+<p>If you only care about memory expansion, <strong>CXL.mem</strong> is the star.</p>
+<hr />
+<h2 id="device-types-why-type-3-shows-up-everywhere">device types (why "type 3" shows up everywhere)</h2>
+<p>The spec groups devices into types. You don't need the full taxonomy, just the mental model:</p>
+<ul>
+<li><strong>Type 1/2</strong>: accelerators that want coherency (think "devices that want to touch host memory without fighting the cache hierarchy").</li>
+<li><strong>Type 3</strong>: <strong>memory expanders</strong>. This is the disaggregation-adjacent one: plug more capacity behind the link and make it usable by the host.</li>
+</ul>
+<p>Type 3 is where the "add memory without adding sockets" story comes from.</p>
+<hr />
+<h2 id="what-this-looks-like-to-software">what this looks like to software</h2>
+<p>If CXL is doing its job, <em>applications don't change</em>, but the OS has new headaches.</p>
+<p>In a typical "memory expansion" setup, CXL memory shows up as:</p>
+<ul>
+<li>a new pool of capacity the kernel can allocate from</li>
+<li>often with NUMA-like properties (different latency/bandwidth than local DRAM)</li>
+<li>sometimes managed as a lower tier (hot things stay local, colder things spill)</li>
+</ul>
+<p>So the system-level question becomes:</p>
+<blockquote>
+<p>"Which bytes should live in local DRAM, and which bytes can tolerate being slower?"</p>
+</blockquote>
+<p>If you let the OS guess, you get "it works, but sometimes it hurts." If you want predictable performance, you usually need policies: NUMA placement, tiering, explicit pinning, or application-level caching.</p>
+<hr />
+<h2 id="cxl-vs-rdma-why-they-feel-similar-and-why-they-re-not">cxl vs rdma (why they feel similar and why they're not)</h2>
+<p>Both get used to talk about "remote memory." The similarity ends there.</p>
+<ul>
+<li><strong>RDMA</strong>: you explicitly issue operations over the network (READ/WRITE/SEND). It's fast (microseconds), but it's still a network, and you still build protocols on top.</li>
+<li><strong>CXL</strong>: the CPU can issue load/stores into device memory, and hardware can help keep things coherent. It's closer to "NUMA, but farther."</li>
+</ul>
+<p>Also: CXL is a PCIe link/fabric. It's built for short-reach inside a server (and maybe rack-scale switching), not "put it on Ethernet and forget about it."</p>
+<p>RDMA is a way to move bytes fast. CXL is a way to make <em>some</em> bytes look like memory.</p>
+<hr />
+<h2 id="where-cxl-wins">where cxl wins</h2>
+<ul>
+<li><strong>Capacity expansion without a bigger server.</strong> You want more memory, but you don't want another socket just to get more DIMM slots.</li>
+<li><strong>Tiered memory.</strong> You have hot working sets and cold-but-still-useful data. CXL can be the "bigger, slower tier" that beats going to SSD.</li>
+<li><strong>Disaggregation building block.</strong> If you ever want pooled memory, you need something like CXL on the inside before you can make the outside story real.</li>
+</ul>
+<h2 id="where-it-hurts">where it hurts</h2>
+<ul>
+<li><strong>Latency-sensitive hot paths.</strong> If your workload is dominated by pointer-chasing and cache misses, adding a slower tier can destroy tail latency.</li>
+<li><strong>Bandwidth and congestion.</strong> It's easy to sell "more capacity." It's harder to deliver "more bandwidth" when many cores start leaning on the same link/switch.</li>
+<li><strong>Software maturity and policy.</strong> You can make it work without app changes, but getting good performance is a placement problem, and placement is where systems go to die.</li>
 </ul>
 <hr />
-<h2 id="cxl-vs-existing-technologies">CXL vs Existing Technologies</h2>
+<h2 id="notes">notes</h2>
 <ul>
-<li>CXL vs PCIe</li>
-<li>CXL vs RDMA (link to rdma.md)</li>
-<li>CXL vs NUMA</li>
-<li>Latency and bandwidth comparison</li>
-</ul>
-<hr />
-<h2 id="cxl-protocol-types">CXL Protocol Types</h2>
-<ul>
-<li>CXL.io (PCIe compatibility)</li>
-<li>CXL.cache (cache coherent access)</li>
-<li>CXL.mem (memory access)</li>
-</ul>
-<hr />
-<h2 id="cxl-device-types">CXL Device Types</h2>
-<ul>
-<li>Type 1: Accelerators (cache coherent)</li>
-<li>Type 2: Accelerators with memory</li>
-<li>Type 3: Memory expanders</li>
-</ul>
-<hr />
-<h2 id="memory-expansion-use-cases">Memory Expansion Use Cases</h2>
-<ul>
-<li>Adding memory to existing servers</li>
-<li>Memory pooling</li>
-<li>Tiered memory (fast local + slower CXL)</li>
-</ul>
-<hr />
-<h2 id="software-support">Software Support</h2>
-<ul>
-<li>Linux kernel support</li>
-<li>Memory hotplug</li>
-<li>NUMA integration</li>
-<li>Application transparency</li>
-</ul>
-<hr />
-<h2 id="cxl-2-0-and-3-0">CXL 2.0 and 3.0</h2>
-<ul>
-<li>Switching and pooling</li>
-<li>Memory sharing</li>
-<li>What's new in each version</li>
-</ul>
-<hr />
-<h2 id="challenges">Challenges</h2>
-<ul>
-<li>Latency overhead vs local DRAM</li>
-<li>Software ecosystem maturity</li>
-<li>Cost</li>
-</ul>
-<hr />
-<h2 id="conclusion">Conclusion</h2>
-<ul>
-<li>CXL's role in memory disaggregation</li>
-<li>Future of data center memory</li>
-</ul>
-<hr />
-<h2 id="references">References</h2>
-<ul>
-<li>CXL specification</li>
-<li>Industry whitepapers</li>
-<li>Research papers</li>
+<li>If you remember one sentence: CXL is "PCIe, but with coherence and memory semantics."</li>
+<li>CXL doesn't eliminate NUMA; it gives you a new kind of NUMA-shaped problem.</li>
+<li>The exciting part (pooling/sharing across a fabric) is also the part with the most sharp edges: security, isolation, failure handling, and who gets to be coherent with whom.</li>
 </ul>
   
 </article>

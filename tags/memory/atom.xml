@@ -5,102 +5,12 @@
     <link rel="self" type="application/atom+xml" href="https://yazeed1s.github.io/tags/memory/atom.xml"/>
     <link rel="alternate" type="text/html" href="https://yazeed1s.github.io"/>
     <generator uri="https://www.getzola.org/">Zola</generator>
-    <updated>2025-03-23T00:00:00+00:00</updated>
+    <updated>2026-01-18T00:00:00+00:00</updated>
     <id>https://yazeed1s.github.io/tags/memory/atom.xml</id>
     <entry xml:lang="en">
-        <title>CXL: Compute Express Link</title>
-        <published>2025-03-23T00:00:00+00:00</published>
-        <updated>2025-03-23T00:00:00+00:00</updated>
-        
-        <author>
-          <name>
-            
-              Unknown
-            
-          </name>
-        </author>
-        
-        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/cxl/"/>
-        <id>https://yazeed1s.github.io/posts/cxl/</id>
-        
-        <content type="html" xml:base="https://yazeed1s.github.io/posts/cxl/">&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;introduction&quot;&gt;Introduction&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;What is CXL?&lt;&#x2F;li&gt;
-&lt;li&gt;Why a new interconnect? (PCIe limitations for memory)&lt;&#x2F;li&gt;
-&lt;li&gt;Industry adoption (Intel, AMD, ARM, etc.)&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;cxl-vs-existing-technologies&quot;&gt;CXL vs Existing Technologies&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;CXL vs PCIe&lt;&#x2F;li&gt;
-&lt;li&gt;CXL vs RDMA (link to rdma.md)&lt;&#x2F;li&gt;
-&lt;li&gt;CXL vs NUMA&lt;&#x2F;li&gt;
-&lt;li&gt;Latency and bandwidth comparison&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;cxl-protocol-types&quot;&gt;CXL Protocol Types&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;CXL.io (PCIe compatibility)&lt;&#x2F;li&gt;
-&lt;li&gt;CXL.cache (cache coherent access)&lt;&#x2F;li&gt;
-&lt;li&gt;CXL.mem (memory access)&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;cxl-device-types&quot;&gt;CXL Device Types&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Type 1: Accelerators (cache coherent)&lt;&#x2F;li&gt;
-&lt;li&gt;Type 2: Accelerators with memory&lt;&#x2F;li&gt;
-&lt;li&gt;Type 3: Memory expanders&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;memory-expansion-use-cases&quot;&gt;Memory Expansion Use Cases&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Adding memory to existing servers&lt;&#x2F;li&gt;
-&lt;li&gt;Memory pooling&lt;&#x2F;li&gt;
-&lt;li&gt;Tiered memory (fast local + slower CXL)&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;software-support&quot;&gt;Software Support&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Linux kernel support&lt;&#x2F;li&gt;
-&lt;li&gt;Memory hotplug&lt;&#x2F;li&gt;
-&lt;li&gt;NUMA integration&lt;&#x2F;li&gt;
-&lt;li&gt;Application transparency&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;cxl-2-0-and-3-0&quot;&gt;CXL 2.0 and 3.0&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Switching and pooling&lt;&#x2F;li&gt;
-&lt;li&gt;Memory sharing&lt;&#x2F;li&gt;
-&lt;li&gt;What&#x27;s new in each version&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;challenges&quot;&gt;Challenges&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Latency overhead vs local DRAM&lt;&#x2F;li&gt;
-&lt;li&gt;Software ecosystem maturity&lt;&#x2F;li&gt;
-&lt;li&gt;Cost&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;CXL&#x27;s role in memory disaggregation&lt;&#x2F;li&gt;
-&lt;li&gt;Future of data center memory&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;references&quot;&gt;References&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;CXL specification&lt;&#x2F;li&gt;
-&lt;li&gt;Industry whitepapers&lt;&#x2F;li&gt;
-&lt;li&gt;Research papers&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-</content>
-        
-    </entry>
-    <entry xml:lang="en">
         <title>Infiniswap: Remote Memory Paging Over RDMA</title>
-        <published>2025-03-23T00:00:00+00:00</published>
-        <updated>2025-03-23T00:00:00+00:00</updated>
+        <published>2026-01-18T00:00:00+00:00</published>
+        <updated>2026-01-18T00:00:00+00:00</updated>
         
         <author>
           <name>
@@ -114,73 +24,142 @@
         <id>https://yazeed1s.github.io/posts/infiniswap/</id>
         
         <content type="html" xml:base="https://yazeed1s.github.io/posts/infiniswap/">&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;introduction&quot;&gt;Introduction&lt;&#x2F;h2&gt;
+&lt;p&gt;I came across this paper while looking into memory disaggregation. The idea is deceptively simple: when a machine runs out of RAM, instead of paging to disk, page to another machine&#x27;s unused memory over the network.&lt;&#x2F;p&gt;
+&lt;p&gt;What caught my attention is &lt;em&gt;how&lt;&#x2F;em&gt; they pulled it off; no application changes, no core kernel patching. It&#x27;s a kernel module that hooks into Linux&#x27;s swap path and uses remote RAM as the fast tier, with disk as fallback.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;the-core-idea&quot;&gt;the core idea&lt;&#x2F;h2&gt;
+&lt;p&gt;Production clusters waste a lot of memory. Some machines are memory-starved while others sit idle. The 99th percentile machine often uses 2-3× more memory than the median. Meanwhile, over half the cluster&#x27;s aggregate memory goes unused.&lt;&#x2F;p&gt;
+&lt;p&gt;When applications can&#x27;t fit their working set in RAM, performance falls off a cliff. VoltDB drops from 95K TPS to 4K TPS. Memcached&#x27;s tail latency shoots up 21×. Disk is too slow to help (1000× slower than memory).&lt;&#x2F;p&gt;
+&lt;p&gt;Infiniswap&#x27;s insight: RDMA networks give you single-digit microsecond latencies. That&#x27;s fast enough to make remote memory a viable swap target. Instead of page -&amp;gt; disk, you do page -&amp;gt; remote RAM over RDMA. The remote CPU stays out of the data movement; the RNIC does the DMA.&lt;&#x2F;p&gt;
+&lt;p&gt;The result: swap that looks normal to Linux, but is backed by slabs of remote memory scattered across the cluster.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;what-s-clever&quot;&gt;what&#x27;s clever&lt;&#x2F;h2&gt;
+&lt;p&gt;A few design choices stood out:&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Using swap as the integration point.&lt;&#x2F;strong&gt; Instead of modifying the kernel&#x27;s page fault handler or remapping virtual memory, Infiniswap plugs into Linux&#x27;s existing swap subsystem. The kernel already knows how to page out and page back in. Infiniswap just changes where those swapped pages live. The trade-off is you&#x27;re still going through the swap path (page faults, context switches, the whole thing) but you get deployment simplicity.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;One-sided RDMA.&lt;&#x2F;strong&gt; Traditional network block devices (like Mellanox&#x27;s nbdX) use send&#x2F;recv semantics. The remote CPU has to wake up, copy data, respond. Infiniswap uses RDMA_READ and RDMA_WRITE (the RNIC directly accesses remote memory without running remote code on the critical path). The paper shows nbdX burns multiple vCPUs on the remote side; Infiniswap largely avoids that.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Slab-based design.&lt;&#x2F;strong&gt; Pages are grouped into 1GB slabs. Each slab maps to one remote machine. This keeps the metadata manageable (tracking millions of individual 4KB pages across the cluster would be expensive). When a slab gets &quot;hot&quot; (&amp;gt;20 page I&#x2F;O ops&#x2F;sec), it gets mapped to remote memory. Cold slabs stay on disk.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;where-it-works&quot;&gt;where it works&lt;&#x2F;h2&gt;
+&lt;p&gt;Memory-bound workloads see big wins. Memcached stays nearly flat even when only 50% of the working set fits in memory. PowerGraph runs 6.5× faster. VoltDB, while CPU-heavy, still sees 15× throughput improvement over disk.&lt;&#x2F;p&gt;
+&lt;p&gt;The cluster memory utilization goes from 40% to 60% (that&#x27;s 47% more effective use of RAM, with minimal network overhead (&amp;lt;1% of capacity)).&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;where-it-doesn-t&quot;&gt;where it doesn&#x27;t&lt;&#x2F;h2&gt;
+&lt;p&gt;CPU-bound workloads don&#x27;t benefit as much. VoltDB and Spark already run at high CPU utilization. Adding paging overhead (context switches, TLB flushes, page table walks) eats into that. Spark at 50% memory thrashes so badly it doesn&#x27;t complete.&lt;&#x2F;p&gt;
+&lt;p&gt;The fundamental limit: this isn&#x27;t local memory. Page faults still happen. You&#x27;re masking latency, not eliminating it. For workloads where microseconds matter deterministically, that&#x27;s a problem.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
 &lt;ul&gt;
-&lt;li&gt;What is Infiniswap?&lt;&#x2F;li&gt;
-&lt;li&gt;The paper: &quot;Infiniswap: Efficient Memory Disaggregation&quot; (NSDI 2017)&lt;&#x2F;li&gt;
-&lt;li&gt;Core idea: swap to remote memory, not disk&lt;&#x2F;li&gt;
+&lt;li&gt;Paper: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;www.usenix.org&#x2F;system&#x2F;files&#x2F;conference&#x2F;nsdi17&#x2F;nsdi17-gu.pdf&quot;&gt;Gu et al., &quot;Efficient Memory Disaggregation with Infiniswap&quot;, NSDI 2017&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
+&lt;li&gt;Tested on 32 machines, 56 Gbps Infiniband, 64GB RAM each&lt;&#x2F;li&gt;
+&lt;li&gt;Slab placement uses &quot;power of two choices&quot; (pick two random machines, query free memory, map to the one with more headroom)&lt;&#x2F;li&gt;
+&lt;li&gt;Slab eviction queries E+5 machines, evicts the coldest from that set (~363μs median)&lt;&#x2F;li&gt;
+&lt;li&gt;Page-out: synchronous RDMA_WRITE + async disk write (disk is fallback if remote crashes)&lt;&#x2F;li&gt;
+&lt;li&gt;Page-in: check bitmap -&amp;gt; RDMA_READ if remote, else read from disk&lt;&#x2F;li&gt;
+&lt;li&gt;Slab remapping after failure takes ~54ms (Infiniband memory registration)&lt;&#x2F;li&gt;
+&lt;li&gt;Default headroom threshold: 8GB per machine&lt;&#x2F;li&gt;
+&lt;li&gt;Hot slab threshold: 20 page I&#x2F;O ops&#x2F;sec (EWMA, α=0.2)&lt;&#x2F;li&gt;
+&lt;li&gt;Compared to: nbdX (Mellanox), Fastswap (kernel modification), LegoOS (full OS redesign)&lt;&#x2F;li&gt;
+&lt;li&gt;Code available on GitHub &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;SymbioticLab&#x2F;Infiniswap&quot;&gt;SymbioticLab&#x2F;infiniswap&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>CXL: Compute Express Link</title>
+        <published>2026-01-12T00:00:00+00:00</published>
+        <updated>2026-01-12T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/cxl/"/>
+        <id>https://yazeed1s.github.io/posts/cxl/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/cxl/">&lt;hr &#x2F;&gt;
+&lt;p&gt;CXL is the thing I keep seeing in memory disaggregation discussions that &lt;em&gt;isn&#x27;t&lt;&#x2F;em&gt; RDMA.&lt;&#x2F;p&gt;
+&lt;p&gt;The core idea is simple:&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;CXL lets a CPU talk to devices over PCIe as if some of that device memory is just &quot;more memory&quot; (with cache coherence), not just DMA behind a driver.&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;That sounds like magic until you remember the trade-off: it&#x27;s still farther than local DRAM. You&#x27;re buying capacity (and sometimes sharing&#x2F;pooling) by paying extra latency and giving the OS a harder placement problem.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;what-cxl-actually-adds&quot;&gt;what cxl actually adds&lt;&#x2F;h2&gt;
+&lt;p&gt;PCIe already lets devices do DMA. That&#x27;s not the interesting part.&lt;&#x2F;p&gt;
+&lt;p&gt;The interesting part is &lt;strong&gt;coherence + memory semantics&lt;&#x2F;strong&gt;:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;With plain PCIe, the host talks to devices via MMIO, and devices talk to host memory via DMA. You can move bytes around, but it doesn&#x27;t look like &quot;shared memory&quot; (and devices don&#x27;t get to participate as coherent caching agents).&lt;&#x2F;li&gt;
+&lt;li&gt;With CXL, the link can carry transactions that participate in the host&#x27;s coherency domain (depending on mode&#x2F;device), so &quot;who sees which bytes when&quot; becomes something hardware can help enforce.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;This is why CXL is pitched as a &lt;em&gt;memory&lt;&#x2F;em&gt; interconnect, not just an I&#x2F;O bus.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;the-three-protocols-the-only-ones-worth-remembering&quot;&gt;the three protocols (the only ones worth remembering)&lt;&#x2F;h2&gt;
+&lt;p&gt;CXL isn&#x27;t one protocol, it&#x27;s three riding on top of PCIe:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;CXL.io&lt;&#x2F;strong&gt;: the boring compatibility layer (enumeration, config space, interrupts). Basically &quot;PCIe-like.&quot;&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;CXL.cache&lt;&#x2F;strong&gt;: lets a device cache host memory coherently (device acts like a coherent agent).&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;CXL.mem&lt;&#x2F;strong&gt;: lets the host access device-attached memory with load&#x2F;store semantics (device memory looks like memory, not an I&#x2F;O buffer).&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;If you only care about memory expansion, &lt;strong&gt;CXL.mem&lt;&#x2F;strong&gt; is the star.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;device-types-why-type-3-shows-up-everywhere&quot;&gt;device types (why &quot;type 3&quot; shows up everywhere)&lt;&#x2F;h2&gt;
+&lt;p&gt;The spec groups devices into types. You don&#x27;t need the full taxonomy, just the mental model:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Type 1&#x2F;2&lt;&#x2F;strong&gt;: accelerators that want coherency (think &quot;devices that want to touch host memory without fighting the cache hierarchy&quot;).&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Type 3&lt;&#x2F;strong&gt;: &lt;strong&gt;memory expanders&lt;&#x2F;strong&gt;. This is the disaggregation-adjacent one: plug more capacity behind the link and make it usable by the host.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;Type 3 is where the &quot;add memory without adding sockets&quot; story comes from.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;what-this-looks-like-to-software&quot;&gt;what this looks like to software&lt;&#x2F;h2&gt;
+&lt;p&gt;If CXL is doing its job, &lt;em&gt;applications don&#x27;t change&lt;&#x2F;em&gt;, but the OS has new headaches.&lt;&#x2F;p&gt;
+&lt;p&gt;In a typical &quot;memory expansion&quot; setup, CXL memory shows up as:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;a new pool of capacity the kernel can allocate from&lt;&#x2F;li&gt;
+&lt;li&gt;often with NUMA-like properties (different latency&#x2F;bandwidth than local DRAM)&lt;&#x2F;li&gt;
+&lt;li&gt;sometimes managed as a lower tier (hot things stay local, colder things spill)&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;So the system-level question becomes:&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&quot;Which bytes should live in local DRAM, and which bytes can tolerate being slower?&quot;&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;p&gt;If you let the OS guess, you get &quot;it works, but sometimes it hurts.&quot; If you want predictable performance, you usually need policies: NUMA placement, tiering, explicit pinning, or application-level caching.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;cxl-vs-rdma-why-they-feel-similar-and-why-they-re-not&quot;&gt;cxl vs rdma (why they feel similar and why they&#x27;re not)&lt;&#x2F;h2&gt;
+&lt;p&gt;Both get used to talk about &quot;remote memory.&quot; The similarity ends there.&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;RDMA&lt;&#x2F;strong&gt;: you explicitly issue operations over the network (READ&#x2F;WRITE&#x2F;SEND). It&#x27;s fast (microseconds), but it&#x27;s still a network, and you still build protocols on top.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;CXL&lt;&#x2F;strong&gt;: the CPU can issue load&#x2F;stores into device memory, and hardware can help keep things coherent. It&#x27;s closer to &quot;NUMA, but farther.&quot;&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;Also: CXL is a PCIe link&#x2F;fabric. It&#x27;s built for short-reach inside a server (and maybe rack-scale switching), not &quot;put it on Ethernet and forget about it.&quot;&lt;&#x2F;p&gt;
+&lt;p&gt;RDMA is a way to move bytes fast. CXL is a way to make &lt;em&gt;some&lt;&#x2F;em&gt; bytes look like memory.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;where-cxl-wins&quot;&gt;where cxl wins&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Capacity expansion without a bigger server.&lt;&#x2F;strong&gt; You want more memory, but you don&#x27;t want another socket just to get more DIMM slots.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Tiered memory.&lt;&#x2F;strong&gt; You have hot working sets and cold-but-still-useful data. CXL can be the &quot;bigger, slower tier&quot; that beats going to SSD.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Disaggregation building block.&lt;&#x2F;strong&gt; If you ever want pooled memory, you need something like CXL on the inside before you can make the outside story real.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;h2 id=&quot;where-it-hurts&quot;&gt;where it hurts&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Latency-sensitive hot paths.&lt;&#x2F;strong&gt; If your workload is dominated by pointer-chasing and cache misses, adding a slower tier can destroy tail latency.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Bandwidth and congestion.&lt;&#x2F;strong&gt; It&#x27;s easy to sell &quot;more capacity.&quot; It&#x27;s harder to deliver &quot;more bandwidth&quot; when many cores start leaning on the same link&#x2F;switch.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Software maturity and policy.&lt;&#x2F;strong&gt; You can make it work without app changes, but getting good performance is a placement problem, and placement is where systems go to die.&lt;&#x2F;li&gt;
 &lt;&#x2F;ul&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;background&quot;&gt;Background&lt;&#x2F;h2&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
 &lt;ul&gt;
-&lt;li&gt;Traditional swapping (link to swap-paging.md)&lt;&#x2F;li&gt;
-&lt;li&gt;Why disk swap is slow&lt;&#x2F;li&gt;
-&lt;li&gt;RDMA basics (link to rdma.md)&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;how-infiniswap-works&quot;&gt;How Infiniswap Works&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Architecture overview&lt;&#x2F;li&gt;
-&lt;li&gt;Page fault handling&lt;&#x2F;li&gt;
-&lt;li&gt;Remote memory servers (daemons)&lt;&#x2F;li&gt;
-&lt;li&gt;Block device interface&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;key-design-decisions&quot;&gt;Key Design Decisions&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Transparency (works with unmodified applications)&lt;&#x2F;li&gt;
-&lt;li&gt;Integration with Linux swap subsystem&lt;&#x2F;li&gt;
-&lt;li&gt;Load balancing across remote memory servers&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;performance&quot;&gt;Performance&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Latency comparison: disk vs remote memory&lt;&#x2F;li&gt;
-&lt;li&gt;Throughput numbers from the paper&lt;&#x2F;li&gt;
-&lt;li&gt;Real workload results&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;limitations&quot;&gt;Limitations&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Network dependency&lt;&#x2F;li&gt;
-&lt;li&gt;Memory server failures&lt;&#x2F;li&gt;
-&lt;li&gt;Not a replacement for local memory&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;related-work&quot;&gt;Related Work&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Other remote paging systems&lt;&#x2F;li&gt;
-&lt;li&gt;Comparison with Fastswap, LegoOS, etc.&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;When to use Infiniswap&lt;&#x2F;li&gt;
-&lt;li&gt;Impact on memory disaggregation research&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;references&quot;&gt;References&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Infiniswap paper&lt;&#x2F;li&gt;
-&lt;li&gt;Source code repository&lt;&#x2F;li&gt;
+&lt;li&gt;If you remember one sentence: CXL is &quot;PCIe, but with coherence and memory semantics.&quot;&lt;&#x2F;li&gt;
+&lt;li&gt;CXL doesn&#x27;t eliminate NUMA; it gives you a new kind of NUMA-shaped problem.&lt;&#x2F;li&gt;
+&lt;li&gt;The exciting part (pooling&#x2F;sharing across a fabric) is also the part with the most sharp edges: security, isolation, failure handling, and who gets to be coherent with whom.&lt;&#x2F;li&gt;
 &lt;&#x2F;ul&gt;
 </content>
         
     </entry>
     <entry xml:lang="en">
         <title>Memory Disaggregation: Decoupling Memory from Compute</title>
-        <published>2025-03-23T00:00:00+00:00</published>
-        <updated>2025-03-23T00:00:00+00:00</updated>
+        <published>2026-01-05T00:00:00+00:00</published>
+        <updated>2026-01-05T00:00:00+00:00</updated>
         
         <author>
           <name>
@@ -194,59 +173,61 @@
         <id>https://yazeed1s.github.io/posts/memory-disaggregation/</id>
         
         <content type="html" xml:base="https://yazeed1s.github.io/posts/memory-disaggregation/">&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;introduction&quot;&gt;Introduction&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;What is memory disaggregation?&lt;&#x2F;li&gt;
-&lt;li&gt;Why do we need it? (memory stranding, resource utilization)&lt;&#x2F;li&gt;
-&lt;li&gt;The shift from monolithic servers to disaggregated architectures&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
+&lt;p&gt;This paper from VMware Research caught my attention because it asks a question I&#x27;d been circling around: why hasn&#x27;t memory disaggregation happened already?&lt;&#x2F;p&gt;
+&lt;p&gt;The idea has been around since the 90s. Intel pushed Rack Scale Architecture in 2013. But it never took off. The authors argue that two things finally align now: a burning economic problem and feasible technology to solve it.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;the-problem-with-traditional-memory&quot;&gt;The Problem with Traditional Memory&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Memory tied to individual servers&lt;&#x2F;li&gt;
-&lt;li&gt;Stranded memory (unused but unavailable to other nodes)&lt;&#x2F;li&gt;
-&lt;li&gt;Over-provisioning vs under-utilization&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
+&lt;h2 id=&quot;the-core-idea&quot;&gt;the core idea&lt;&#x2F;h2&gt;
+&lt;p&gt;Traditional servers bundle everything (CPU, memory, storage) into one box. If you need more RAM, you buy a bigger box or add DIMMs (if you haven&#x27;t hit the motherboard limit). If you don&#x27;t use all your RAM, it sits idle.&lt;&#x2F;p&gt;
+&lt;p&gt;Memory disaggregation pulls memory out into separate pools that multiple servers can access. Think of it like the shift from local storage to SAN&#x2F;NAS, but for memory, or better yet, like a GPU rack but for memory.&lt;&#x2F;p&gt;
+&lt;p&gt;This gives you two things:&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Capacity expansion.&lt;&#x2F;strong&gt; A server can use more memory than it physically contains by accessing the pool. Similar to Infiniswap, but with hardware support instead of software paging.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Data sharing.&lt;&#x2F;strong&gt; In the limit, pool memory can be mapped into multiple hosts so they can load&#x2F;store into the same bytes without explicit send&#x2F;recv. You still need software protocols (ownership, synchronization, failure), but the access looks like memory instead of messages.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;how-disaggregation-works&quot;&gt;How Disaggregation Works&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Separating memory pools from compute pools&lt;&#x2F;li&gt;
-&lt;li&gt;Remote memory access mechanisms&lt;&#x2F;li&gt;
-&lt;li&gt;Latency considerations&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
+&lt;h2 id=&quot;why-now&quot;&gt;why now&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;strong&gt;The economics are painful.&lt;&#x2F;strong&gt; Memory makes up 50% of server cost and 37% of total cost of ownership in cloud environments. Three companies control DRAM production. Demand explodes from data centers, ML training, and in-memory databases. Meanwhile, clusters waste memory (the paper shows over 70% of the time, more than half of aggregate cluster memory sits unused while some machines page to disk).&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;The technology finally exists.&lt;&#x2F;strong&gt; RDMA gives you single-digit microsecond latencies. But the bigger enabler is CXL (Compute eXpress Link): cache-coherent load&#x2F;store access to devices over PCIe, plus a roadmap toward switching, pooling, and (eventually) shared memory fabrics.&lt;&#x2F;p&gt;
+&lt;p&gt;Neat detail: the pool can use cheaper, denser (and potentially slower) DRAM, because it&#x27;s already the &quot;slow tier&quot; compared to local DIMMs.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;key-technologies&quot;&gt;Key Technologies&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;RDMA (link to rdma.md)&lt;&#x2F;li&gt;
-&lt;li&gt;CXL (link to cxl.md)&lt;&#x2F;li&gt;
-&lt;li&gt;Network fabrics&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
+&lt;h2 id=&quot;what-s-interesting&quot;&gt;what&#x27;s interesting&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;strong&gt;It&#x27;s not just about capacity.&lt;&#x2F;strong&gt; Most remote memory systems (Infiniswap, Fastswap) focus on page-to-remote-RAM-instead-of-disk. Useful, but limited. The promise of CXL is memory that looks like memory: load&#x2F;store access to a larger pool, and (with the right fabric features) the possibility of mapping the same bytes into multiple hosts. That&#x27;s qualitatively different from &quot;remote paging.&quot;&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;The OS problems are hard.&lt;&#x2F;strong&gt; The paper is mostly about what&#x27;s &lt;em&gt;unsolved&lt;&#x2F;em&gt;: memory allocation at scale, scheduling with memory locality, pointer sharing across servers, failure handling for &quot;optional&quot; memory, security for hot-swappable memory pools. These aren&#x27;t incremental fixes; they require rethinking fundamental abstractions.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;The timeline matches storage disaggregation.&lt;&#x2F;strong&gt; Start small (a few hosts per pool), add switches for rack-scale, and eventually push the fabric boundary outward. Whether that ends up looking like &quot;CXL over X&quot; or something else is still an open question, but the trajectory rhymes with how storage disaggregation played out.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;trade-offs&quot;&gt;Trade-offs&lt;&#x2F;h2&gt;
+&lt;h2 id=&quot;where-it-works-where-it-doesn-t&quot;&gt;where it works &#x2F; where it doesn&#x27;t&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;strong&gt;Good fit:&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
 &lt;ul&gt;
-&lt;li&gt;Latency vs utilization&lt;&#x2F;li&gt;
-&lt;li&gt;Complexity vs flexibility&lt;&#x2F;li&gt;
-&lt;li&gt;When disaggregation makes sense&lt;&#x2F;li&gt;
+&lt;li&gt;Data-intensive workloads (Spark, Ray, distributed DBs) that spend cycles serializing and copying&lt;&#x2F;li&gt;
+&lt;li&gt;Workloads with working sets that barely fit in local memory&lt;&#x2F;li&gt;
+&lt;li&gt;Clusters with significant memory imbalance&lt;&#x2F;li&gt;
+&lt;li&gt;Environments where memory is 50%+ of server cost&lt;&#x2F;li&gt;
 &lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;strong&gt;Bad fit:&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
 &lt;ul&gt;
-&lt;li&gt;Current state of adoption&lt;&#x2F;li&gt;
-&lt;li&gt;Future directions&lt;&#x2F;li&gt;
+&lt;li&gt;Workloads that fit comfortably in local memory (you&#x27;d be adding latency for no benefit)&lt;&#x2F;li&gt;
+&lt;li&gt;Latency-sensitive applications that can&#x27;t tolerate hundreds of extra nanoseconds in their hot path&lt;&#x2F;li&gt;
+&lt;li&gt;Traditional applications that don&#x27;t share data across processes&lt;&#x2F;li&gt;
 &lt;&#x2F;ul&gt;
+&lt;p&gt;The performance trade-off: pool memory is slower than local (hundreds of ns versus ~100ns), but still orders of magnitude faster than SSD&#x2F;HDD. For workloads that currently page to disk, this can be transformative. For workloads that don&#x27;t, adding a slower tier may just hurt.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;references&quot;&gt;References&lt;&#x2F;h2&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
 &lt;ul&gt;
-&lt;li&gt;Papers to cite&lt;&#x2F;li&gt;
-&lt;li&gt;Further reading&lt;&#x2F;li&gt;
+&lt;li&gt;Paper: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;dl.acm.org&#x2F;doi&#x2F;10.1145&#x2F;3606557.3606563&quot;&gt;Aguilera et al., &quot;Memory disaggregation: why now and what are the challenges&quot;, ACM SIGOPS Operating Systems Review, 2023&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
+&lt;li&gt;This is a position paper (no benchmarks, but clear analysis of the problem space)&lt;&#x2F;li&gt;
+&lt;li&gt;CXL 1.0: local memory expansion cards (shipping now)&lt;&#x2F;li&gt;
+&lt;li&gt;CXL 2.0&#x2F;3.0: fabric switches for pool memory (3-5 years out)&lt;&#x2F;li&gt;
+&lt;li&gt;Latency estimates: local ~100ns, CXL local ~200-300ns, CXL pool ~500-1000ns, RDMA ~1-5μs, SSD ~100μs&lt;&#x2F;li&gt;
+&lt;li&gt;Memory population rules (balanced channels, identical DIMMs) make incremental upgrades nearly impossible (another driver for disaggregation)&lt;&#x2F;li&gt;
+&lt;li&gt;Distributed shared memory systems from the 90s taught us: cache coherence doesn&#x27;t scale beyond rack-scale&lt;&#x2F;li&gt;
+&lt;li&gt;Security concern: DRAM retains data residue after power-down, and pool memory is hot-swappable (encryption matters more than for local memory)&lt;&#x2F;li&gt;
+&lt;li&gt;Related systems: Infiniswap (software paging over RDMA), LegoOS (full hardware disaggregation), The Machine (HPE, discontinued)&lt;&#x2F;li&gt;
 &lt;&#x2F;ul&gt;
 </content>
         
     </entry>
     <entry xml:lang="en">
-        <title>OS Swap and Paging: How Virtual Memory Works</title>
-        <published>2025-01-30T00:00:00+00:00</published>
-        <updated>2025-01-30T00:00:00+00:00</updated>
+        <title>What Linux Does When Memory Runs Out</title>
+        <published>2025-12-15T00:00:00+00:00</published>
+        <updated>2025-12-15T00:00:00+00:00</updated>
         
         <author>
           <name>
@@ -256,212 +237,323 @@
           </name>
         </author>
         
-        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/swap-paging/"/>
-        <id>https://yazeed1s.github.io/posts/swap-paging/</id>
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/linux-memory-pressure/"/>
+        <id>https://yazeed1s.github.io/posts/linux-memory-pressure/</id>
         
-        <content type="html" xml:base="https://yazeed1s.github.io/posts/swap-paging/">&lt;hr &#x2F;&gt;
-&lt;p&gt;Operating systems provide applications with the illusion of having more memory than physically available. They do this through virtual memory - a layer of abstraction between what applications see and what actually exists in RAM. When physical memory runs out, the OS pages data out to disk. Here&#x27;s how it works.&lt;&#x2F;p&gt;
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/linux-memory-pressure/">&lt;hr &#x2F;&gt;
+&lt;p&gt;When you&#x27;re out of RAM and swap is filling up, Linux has to make hard choices. This post is about what those choices are and why they sometimes end with your process getting killed.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;virtual-memory-basics&quot;&gt;Virtual Memory Basics&lt;&#x2F;h2&gt;
-&lt;p&gt;Every process gets its own virtual address space. When your program allocates memory or accesses a variable, it uses virtual addresses - not physical RAM addresses. The OS and CPU translate these virtual addresses to physical ones transparently.&lt;&#x2F;p&gt;
-&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    Application View              Physical Reality&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    +------------------+          +------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    |                  |          |                  |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    | Virtual Address  |          |   Physical RAM   |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    |  Space (large)   |   ---&amp;gt;   |    (limited)     |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    |                  |          |                  |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    +------------------+          +------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                          +&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                          |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                          v&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                  +------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                  |    Swap Space    |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                  |     (disk)       |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                  +------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;This abstraction gives you:&lt;&#x2F;p&gt;
-&lt;ol&gt;
-&lt;li&gt;&lt;strong&gt;Isolation&lt;&#x2F;strong&gt; - Process A can&#x27;t access Process B&#x27;s memory&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;Simplicity&lt;&#x2F;strong&gt; - Every process thinks it has the whole address space to itself&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;Overcommit&lt;&#x2F;strong&gt; - You can allocate more memory than physically exists&lt;&#x2F;li&gt;
-&lt;&#x2F;ol&gt;
-&lt;h2 id=&quot;pages-and-frames&quot;&gt;Pages and Frames&lt;&#x2F;h2&gt;
-&lt;p&gt;Memory is divided into fixed-size chunks:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Virtual pages&lt;&#x2F;strong&gt; - chunks of the virtual address space (typically 4KB)&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;Physical frames&lt;&#x2F;strong&gt; - chunks of actual RAM (same size as pages)&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;The page table maps virtual pages to physical frames. Not all virtual pages need a physical frame at any given time - that&#x27;s the key insight.&lt;&#x2F;p&gt;
-&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    Virtual Address Space              Physical RAM&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    +-------------------+              +-------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    | Page 0            | -----------&amp;gt; | Frame 2           |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    +-------------------+              +-------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    | Page 1            | -----------&amp;gt; | Frame 0           |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    +-------------------+              +-------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    | Page 2            | --+          | Frame 1           |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    +-------------------+   |          +-------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    | Page 3            |   |          | Frame 3           |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    +-------------------+   |          +-------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    | ...               |   |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    +-------------------+   |          Swap Space (Disk)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    | Page N            |   |          +-------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    +-------------------+   +--------&amp;gt; | Swap Slot 0       |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                       +-------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                       | Swap Slot 1       |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                       +-------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    Page 2 is &amp;quot;swapped out&amp;quot; - it exists on disk, not in RAM&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;&lt;h2 id=&quot;page-faults&quot;&gt;Page Faults&lt;&#x2F;h2&gt;
-&lt;p&gt;A page fault occurs when a process tries to access a virtual address whose page isn&#x27;t currently in physical memory. This isn&#x27;t an error - it&#x27;s a normal part of how virtual memory works.&lt;&#x2F;p&gt;
-&lt;p&gt;When a page fault happens:&lt;&#x2F;p&gt;
-&lt;ol&gt;
-&lt;li&gt;CPU traps to the kernel&lt;&#x2F;li&gt;
-&lt;li&gt;The Virtual Memory Manager (VMM) looks up where the page lives&lt;&#x2F;li&gt;
-&lt;li&gt;If it&#x27;s on disk (in swap), the VMM reads it back into a free frame&lt;&#x2F;li&gt;
-&lt;li&gt;The page table is updated to point to the new frame&lt;&#x2F;li&gt;
-&lt;li&gt;The process resumes, unaware anything happened&lt;&#x2F;li&gt;
-&lt;&#x2F;ol&gt;
-&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    Process accesses virtual address 0x7fff1234&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                    |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                    v&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    +----------------------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    | CPU checks page table            |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    | Page not present? PAGE FAULT     |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    +----------------------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                    |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                    v&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    +----------------------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    | Kernel takes over                |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    | Where is this page?              |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    +----------------------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;           &#x2F;                \&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;          &#x2F;                  \&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    In swap space         Never allocated&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;         |                    |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;         v                    v&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    Read from disk      Zero-fill or&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    into free frame     allocate new frame&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;         |                    |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;         +---------+----------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                   |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                   v&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    +----------------------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    | Update page table                |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    | Resume process                   |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    +----------------------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;There are two types of page faults:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Minor fault&lt;&#x2F;strong&gt; - The page is already in memory (shared library, buffer cache). Just update the page table.&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;Major fault&lt;&#x2F;strong&gt; - The page must be read from disk. This is slow.&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;h2 id=&quot;paging-out-swapping&quot;&gt;Paging Out (Swapping)&lt;&#x2F;h2&gt;
-&lt;p&gt;When physical memory fills up and the OS needs to make room for new pages, it has to evict existing ones. This is called paging out or swapping.&lt;&#x2F;p&gt;
-&lt;p&gt;The OS picks a victim page (usually one that hasn&#x27;t been accessed recently), writes it to swap space, and marks it as &quot;not present&quot; in the page table. The physical frame is now free.&lt;&#x2F;p&gt;
-&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    Before:                             After:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    +-------------+                     +-------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    | Frame 0: A  |                     | Frame 0: A  |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    +-------------+                     +-------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    | Frame 1: B  | &amp;lt;-- victim          | Frame 1: D  | &amp;lt;-- new page&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    +-------------+                     +-------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    | Frame 2: C  |                     | Frame 2: C  |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    +-------------+                     +-------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    Swap Space:                         Swap Space:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    +-------------+                     +-------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    | (empty)     |                     | B           | &amp;lt;-- evicted&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    +-------------+                     +-------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;&lt;h2 id=&quot;page-replacement-algorithms&quot;&gt;Page Replacement Algorithms&lt;&#x2F;h2&gt;
-&lt;p&gt;How does the OS choose which page to evict? Common strategies:&lt;&#x2F;p&gt;
-&lt;ol&gt;
-&lt;li&gt;
-&lt;p&gt;&lt;strong&gt;LRU (Least Recently Used)&lt;&#x2F;strong&gt; - Evict the page that hasn&#x27;t been accessed for the longest time. Good in theory, expensive to track perfectly.&lt;&#x2F;p&gt;
-&lt;&#x2F;li&gt;
-&lt;li&gt;
-&lt;p&gt;&lt;strong&gt;Clock (Second Chance)&lt;&#x2F;strong&gt; - Approximate LRU. Each page has an &quot;accessed&quot; bit. The algorithm sweeps through pages like a clock hand, clearing the bit. Pages with the bit already cleared get evicted.&lt;&#x2F;p&gt;
-&lt;&#x2F;li&gt;
-&lt;li&gt;
-&lt;p&gt;&lt;strong&gt;LRU-K&lt;&#x2F;strong&gt; - Consider the last K accesses, not just the most recent one.&lt;&#x2F;p&gt;
-&lt;&#x2F;li&gt;
-&lt;&#x2F;ol&gt;
-&lt;p&gt;Linux uses a variant with two lists: active and inactive. Pages start on the inactive list and get promoted to active if accessed again. Eviction happens from the inactive list.&lt;&#x2F;p&gt;
-&lt;h2 id=&quot;swap-space&quot;&gt;Swap Space&lt;&#x2F;h2&gt;
-&lt;p&gt;Swap space is where paged-out data lives on disk. It can be:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;A dedicated partition (&lt;code&gt;&#x2F;dev&#x2F;sda2&lt;&#x2F;code&gt;)&lt;&#x2F;li&gt;
-&lt;li&gt;A regular file (&lt;code&gt;&#x2F;swapfile&lt;&#x2F;code&gt;)&lt;&#x2F;li&gt;
-&lt;li&gt;Multiple swap areas with priorities&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; Check swap status&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; swapon&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt;-show&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;NAME&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;      TYPE&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; SIZE&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; USED&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; PRIO&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;&#x2F;swapfile&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; file&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;  8G&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; 1.2G&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt;   -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt;2&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; View memory and swap usage&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; free&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt;h&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;              total&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;   used&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;   free&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;  shared&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;  buff&#x2F;cache&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;  available&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;Mem:&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;           16G&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;    8G&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;     2G&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;    500M&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;        6G&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;         7G&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;Swap:&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;           8G&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;   1.2G&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;   6.8G&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;Any block device that implements the expected interface can serve as swap. The kernel doesn&#x27;t care if it&#x27;s an SSD, HDD, or something more exotic (like remote memory - but that&#x27;s another post).&lt;&#x2F;p&gt;
-&lt;h2 id=&quot;thrashing&quot;&gt;Thrashing&lt;&#x2F;h2&gt;
-&lt;p&gt;Thrashing happens when the system spends more time paging than doing actual work. The working set of active processes exceeds physical RAM, so pages constantly get evicted and immediately faulted back in.&lt;&#x2F;p&gt;
-&lt;p&gt;Signs of thrashing:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;High swap I&#x2F;O (&lt;code&gt;vmstat&lt;&#x2F;code&gt;, &lt;code&gt;iostat&lt;&#x2F;code&gt;)&lt;&#x2F;li&gt;
-&lt;li&gt;System becomes unresponsive&lt;&#x2F;li&gt;
-&lt;li&gt;Load average spikes&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;Fixes:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;Add more RAM&lt;&#x2F;li&gt;
-&lt;li&gt;Kill memory-hungry processes&lt;&#x2F;li&gt;
-&lt;li&gt;Reduce the number of running processes&lt;&#x2F;li&gt;
-&lt;li&gt;Use faster storage for swap (SSD &amp;gt; HDD)&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;h2 id=&quot;swappiness&quot;&gt;Swappiness&lt;&#x2F;h2&gt;
-&lt;p&gt;Linux has a tunable called &lt;code&gt;swappiness&lt;&#x2F;code&gt; (0-100) that controls how aggressively the kernel swaps:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;swappiness = 0&lt;&#x2F;strong&gt; - Only swap to avoid OOM&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;swappiness = 100&lt;&#x2F;strong&gt; - Swap aggressively&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;Default = 60&lt;&#x2F;strong&gt; - Balanced&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; Check current value&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; cat&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; &#x2F;proc&#x2F;sys&#x2F;vm&#x2F;swappiness&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;60&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; Change temporarily&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; sudo&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; sysctl&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; vm.swappiness=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt;10&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; Change permanently (add to &#x2F;etc&#x2F;sysctl.conf)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;vm.swappiness&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;0&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;Lower values keep more application data in RAM at the expense of file system cache. Higher values reclaim application memory earlier to keep more file cache.&lt;&#x2F;p&gt;
-&lt;h2 id=&quot;the-oom-killer&quot;&gt;The OOM Killer&lt;&#x2F;h2&gt;
-&lt;p&gt;When both RAM and swap are exhausted and the system can&#x27;t free any more memory, Linux invokes the OOM (Out of Memory) killer. It picks a process to kill based on:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;How much memory it&#x27;s using&lt;&#x2F;li&gt;
-&lt;li&gt;How long it&#x27;s been running&lt;&#x2F;li&gt;
-&lt;li&gt;Its &lt;code&gt;oom_score_adj&lt;&#x2F;code&gt; value (can be tuned per-process)&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;The goal is to free enough memory to keep the system alive. It&#x27;s a last resort.&lt;&#x2F;p&gt;
-&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; Check a process&amp;#39;s OOM score (higher = more likely to be killed)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; cat&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; &#x2F;proc&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;&amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;pi&lt;&#x2F;span&gt;&lt;span&gt;d&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;&#x2F;oom_score&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; Protect a process from OOM killer (-1000 to 1000)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; echo&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt;500&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt; &amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; &#x2F;proc&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;&amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;pi&lt;&#x2F;span&gt;&lt;span&gt;d&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;&#x2F;oom_score_adj&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;&lt;h2 id=&quot;why-this-matters&quot;&gt;Why This Matters&lt;&#x2F;h2&gt;
-&lt;p&gt;Understanding swap and paging helps you:&lt;&#x2F;p&gt;
-&lt;ol&gt;
-&lt;li&gt;&lt;strong&gt;Size your systems correctly&lt;&#x2F;strong&gt; - Know when you&#x27;re overcommitting&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;Debug performance issues&lt;&#x2F;strong&gt; - Recognize when swapping is the bottleneck&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;Tune appropriately&lt;&#x2F;strong&gt; - swappiness, OOM scores, swap size&lt;&#x2F;li&gt;
-&lt;&#x2F;ol&gt;
-&lt;p&gt;Modern systems have a lot of RAM, but swap still matters. It&#x27;s the safety net that keeps your system from crashing when memory pressure spikes.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;page-replacement&quot;&gt;page replacement&lt;&#x2F;h2&gt;
+&lt;p&gt;When RAM is full and something new needs to come in, something else has to go out. Linux uses LRU lists (active&#x2F;inactive), split for anonymous memory (heap&#x2F;stack) and file-backed pages (page cache). The mental model is the same:&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Active list.&lt;&#x2F;strong&gt; Pages that have been accessed recently. These are &quot;hot&quot; (probably still in use).&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Inactive list.&lt;&#x2F;strong&gt; Pages that haven&#x27;t been touched in a while. These are candidates for eviction.&lt;&#x2F;p&gt;
+&lt;p&gt;New pages usually start inactive. If they get accessed again, they get promoted to active. Reclaim prefers victims from inactive.&lt;&#x2F;p&gt;
+&lt;p&gt;This is a rough approximation of LRU (Least Recently Used). True LRU would track exact access times for every page, which is too expensive. Linux settles for &quot;recently used&quot; versus &quot;not recently used.&quot;&lt;&#x2F;p&gt;
+&lt;p&gt;When memory pressure rises, the kernel scans pages on the inactive list, looking for victims. Clean pages (unchanged since loaded) can be dropped immediately. Dirty pages have to be written to disk first.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;summary&quot;&gt;Summary&lt;&#x2F;h2&gt;
+&lt;h2 id=&quot;swap-behavior&quot;&gt;swap behavior&lt;&#x2F;h2&gt;
+&lt;p&gt;Swap is the overflow area (disk space where evicted pages go).&lt;&#x2F;p&gt;
+&lt;p&gt;Linux doesn&#x27;t wait until RAM is completely full to start swapping. It swaps based on a tunable called &lt;strong&gt;swappiness&lt;&#x2F;strong&gt; (0-200). Roughly, it&#x27;s a knob for how willing the kernel is to swap anonymous memory versus reclaim file cache.&lt;&#x2F;p&gt;
 &lt;ul&gt;
-&lt;li&gt;Virtual memory gives processes the illusion of large, isolated address spaces&lt;&#x2F;li&gt;
-&lt;li&gt;Pages (4KB chunks) map virtual addresses to physical frames&lt;&#x2F;li&gt;
-&lt;li&gt;Page faults bring pages into RAM on demand&lt;&#x2F;li&gt;
-&lt;li&gt;When RAM fills up, the OS pages out to swap space&lt;&#x2F;li&gt;
-&lt;li&gt;Thrashing occurs when working set exceeds available RAM&lt;&#x2F;li&gt;
-&lt;li&gt;Linux provides tuning knobs: swappiness, OOM scores, swap priority&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;0&lt;&#x2F;strong&gt; = Avoid swapping anonymous memory unless you have to&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;60&lt;&#x2F;strong&gt; = Default-ish, balanced&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;100+&lt;&#x2F;strong&gt; = Swap more aggressively to keep RAM free for file cache&lt;&#x2F;li&gt;
 &lt;&#x2F;ul&gt;
-&lt;p&gt;Understanding this foundation is essential before diving into more advanced topics like memory disaggregation and remote paging.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; cat&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; &#x2F;proc&#x2F;sys&#x2F;vm&#x2F;swappiness&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;60&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Higher swappiness means Linux will push application pages to swap earlier to keep more room for file system cache. Lower swappiness keeps your applications in RAM longer but may hurt cache performance.&lt;&#x2F;p&gt;
+&lt;p&gt;There&#x27;s no universally right answer. It depends on whether your workload benefits more from cached file data or from keeping application memory resident.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;what-can-t-be-swapped&quot;&gt;what can&#x27;t be swapped&lt;&#x2F;h2&gt;
+&lt;p&gt;Not all memory can go to disk.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Kernel memory can&#x27;t be swapped.&lt;&#x2F;strong&gt; The kernel&#x27;s own data structures (page tables, process descriptors, driver state) must stay in RAM. If the kernel itself got paged out, who would page it back in?&lt;&#x2F;p&gt;
+&lt;p&gt;Specifically, a lot of kernel allocations live in the direct map (the linear mapping of physical memory into kernel virtual addresses). It&#x27;s still mapped via page tables, but it&#x27;s not pageable like user memory.&lt;&#x2F;p&gt;
+&lt;p&gt;This is why memory leaks in kernel code are especially dangerous. That memory is gone until reboot.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;the-oom-killer&quot;&gt;the oom killer&lt;&#x2F;h2&gt;
+&lt;p&gt;When both RAM and swap are full and the kernel can&#x27;t reclaim any more memory, Linux invokes the &lt;strong&gt;OOM Killer&lt;&#x2F;strong&gt; (Out Of Memory Killer).&lt;&#x2F;p&gt;
+&lt;p&gt;It picks a process and terminates it. No negotiation. Just dead.&lt;&#x2F;p&gt;
+&lt;p&gt;How it chooses:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Memory usage.&lt;&#x2F;strong&gt; Bigger hogs are more likely targets.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;OOM score.&lt;&#x2F;strong&gt; Each process has a computed score, plus a tunable adjustment, that influences selection.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; Check a process&amp;#39;s OOM score&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; cat&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; &#x2F;proc&#x2F;1234&#x2F;oom_score&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;582&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; Protect important processes&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; echo&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt;1000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt; &amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; &#x2F;proc&#x2F;1234&#x2F;oom_score_adj&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Setting &lt;code&gt;oom_score_adj&lt;&#x2F;code&gt; to -1000 makes a process essentially unkillable by the global OOM killer. Set it to +1000 and it becomes a preferred target.&lt;&#x2F;p&gt;
+&lt;p&gt;The OOM killer exists because the alternative is worse. Without it, the system would deadlock (no memory to allocate, no way to free any). At least killing one process gives everything else a chance to survive.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;why-linux-overcommits&quot;&gt;why linux overcommits&lt;&#x2F;h2&gt;
+&lt;p&gt;By default, Linux allows you to allocate more memory than exists. &lt;code&gt;malloc(1GB)&lt;&#x2F;code&gt; succeeds even if you only have 512MB free.&lt;&#x2F;p&gt;
+&lt;p&gt;This is &lt;strong&gt;overcommit&lt;&#x2F;strong&gt;, and it&#x27;s intentional. Most programs allocate way more memory than they use. Sparse arrays, buffers &quot;just in case,&quot; forked processes before exec. If Linux refused these allocations, lots of software would break.&lt;&#x2F;p&gt;
+&lt;p&gt;The downside: if you actually try to use all that memory you allocated, you trigger the OOM killer. The allocation succeeded, but using it didn&#x27;t.&lt;&#x2F;p&gt;
+&lt;p&gt;You can tune this behavior:&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; Check current mode&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; cat&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; &#x2F;proc&#x2F;sys&#x2F;vm&#x2F;overcommit_memory&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;  #&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; heuristic (default)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; Options:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; 0 = heuristic overcommit (kernel guesses what&amp;#39;s safe)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; 1 = always overcommit (never refuse malloc)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; 2 = strict (refuse if total committed memory would exceed a commit limit derived from RAM, swap, and vm.overcommit_ratio &#x2F; vm.overcommit_kbytes)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Mode 2 is safer but breaks more software. Mode 0 is a compromise. Mode 1 is living dangerously.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;what-this-means-practically&quot;&gt;what this means practically&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;strong&gt;Mysterious crashes.&lt;&#x2F;strong&gt; If your process dies with no explanation, check &lt;code&gt;dmesg&lt;&#x2F;code&gt; for OOM killer messages. It might not be your bug (Linux might have killed you to save the system).&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Server planning.&lt;&#x2F;strong&gt; On production servers, monitor swap usage. If you&#x27;re consistently in swap, you&#x27;re consistently slow. If swap fills up, the OOM killer is coming.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Memory limits.&lt;&#x2F;strong&gt; Use cgroups to limit how much memory a process can use. Better to have one application fail cleanly than to have the OOM killer pick arbitrarily.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Kernel memory matters.&lt;&#x2F;strong&gt; If kernel memory grows unbounded (driver bug, leak in a module), you can&#x27;t swap it out. Eventually, OOM. Unlike user-space leaks, you can&#x27;t just kill the offending process.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;the-reality&quot;&gt;the reality&lt;&#x2F;h2&gt;
+&lt;p&gt;Linux&#x27;s memory management is a set of tradeoffs, not solutions.&lt;&#x2F;p&gt;
+&lt;p&gt;Swappiness lets you trade application responsiveness for cache performance. Overcommit lets you trade guaranteed allocation for flexibility. The OOM killer trades one process&#x27;s life for system stability.&lt;&#x2F;p&gt;
+&lt;p&gt;None of these are free. The system is designed to keep running as long as possible, even when resources are exhausted. But &quot;running&quot; under memory pressure doesn&#x27;t mean &quot;running well.&quot;&lt;&#x2F;p&gt;
+&lt;p&gt;When you see the OOM killer fire, it&#x27;s not a bug. It&#x27;s the kernel doing exactly what it&#x27;s designed to do: making a hard choice so you don&#x27;t have to reboot.&lt;&#x2F;p&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>Paging to Disk and the Performance Cliff</title>
+        <published>2025-12-10T00:00:00+00:00</published>
+        <updated>2025-12-10T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/paging-performance/"/>
+        <id>https://yazeed1s.github.io/posts/paging-performance/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/paging-performance/">&lt;hr &#x2F;&gt;
+&lt;p&gt;Virtual memory gives you the illusion of a big address space. Paging is the trick: shuffle pages between RAM and disk as needed. When it works, you barely notice. When it doesn&#x27;t, your system grinds to a halt.&lt;&#x2F;p&gt;
+&lt;p&gt;This post is about why that cliff exists.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;page-faults&quot;&gt;page faults&lt;&#x2F;h2&gt;
+&lt;p&gt;When a program accesses a virtual address, the MMU looks up the translation. If the page isn&#x27;t in RAM right now, you get a &lt;strong&gt;page fault&lt;&#x2F;strong&gt;.&lt;&#x2F;p&gt;
+&lt;p&gt;Despite the name, this isn&#x27;t an error. It&#x27;s the OS saying &quot;hold on, let me go get that.&quot;&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;Program accesses memory&lt;&#x2F;li&gt;
+&lt;li&gt;MMU checks: is this page in RAM?&lt;&#x2F;li&gt;
+&lt;li&gt;No → triggers a page fault&lt;&#x2F;li&gt;
+&lt;li&gt;CPU traps to kernel&lt;&#x2F;li&gt;
+&lt;li&gt;Kernel figures out where the page actually is&lt;&#x2F;li&gt;
+&lt;li&gt;Kernel loads it into RAM (if needed)&lt;&#x2F;li&gt;
+&lt;li&gt;Kernel updates page tables&lt;&#x2F;li&gt;
+&lt;li&gt;Program continues, unaware anything happened&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;p&gt;There are two kinds:&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Minor faults.&lt;&#x2F;strong&gt; The page is already in RAM (page cache, shared mapping, or a freshly allocated zero page). The kernel just fixes up page tables. Fast (microseconds-ish).&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Major faults.&lt;&#x2F;strong&gt; The page has to be read from storage (swap or a file). Slow (tens of microseconds on SSDs, up to milliseconds on HDDs).&lt;&#x2F;p&gt;
+&lt;p&gt;That&#x27;s a 100–100,000× difference depending on what you&#x27;re paging to. Minor faults are usually noise. Major faults are the problem.&lt;&#x2F;p&gt;
+&lt;p&gt;Not all page faults are equal though. Some are expected:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Lazy allocation.&lt;&#x2F;strong&gt; The OS doesn&#x27;t actually allocate memory until you use it. First touch = minor fault.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Copy-on-write.&lt;&#x2F;strong&gt; Shared pages aren&#x27;t copied until someone writes to them.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Swapping.&lt;&#x2F;strong&gt; Pages evicted to disk due to memory pressure. These hurt, but the system keeps working.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;Others are bugs:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Accessing invalid addresses → kernel sends SIGSEGV, process dies.&lt;&#x2F;li&gt;
+&lt;li&gt;Dereferencing null or garbage pointers → same result.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;paging-in-and-out&quot;&gt;paging in and out&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;strong&gt;Paging in&lt;&#x2F;strong&gt; = loading a page from disk into RAM when the program needs it.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Paging out&lt;&#x2F;strong&gt; = evicting a page from RAM to disk to make room for something else.&lt;&#x2F;p&gt;
+&lt;p&gt;When RAM is full and you need to load a new page, something has to go. The OS picks a &lt;strong&gt;victim page&lt;&#x2F;strong&gt; (usually one that hasn&#x27;t been accessed in a while). If it&#x27;s anonymous or dirty, it has to be written somewhere first (swap or its backing file). If it&#x27;s a clean file-backed page, it can often be dropped and reloaded later. Either way, you free up a frame for the new page.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Before:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;RAM:  [A][B][C][D] ← full&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Swap: [empty]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;OS needs to load page E but RAM is full&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;OS picks B as victim (hasn&amp;#39;t been used recently)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;After:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;RAM:  [A][E][C][D]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Swap: [B]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;If B gets accessed again later, it&#x27;s a page fault. The OS loads B back in, evicts something else. This is happening constantly in the background.&lt;&#x2F;p&gt;
+&lt;p&gt;Each page has a &lt;strong&gt;dirty bit&lt;&#x2F;strong&gt;. If the page has been written to since it was loaded, it&#x27;s dirty. The OS can&#x27;t just drop a dirty page (it has to write it to disk first). Clean pages can be discarded and reloaded from their original source.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;why-disk-hurts&quot;&gt;why disk hurts&lt;&#x2F;h2&gt;
+&lt;p&gt;Here&#x27;s the thing about disk:&lt;&#x2F;p&gt;
+&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Access type&lt;&#x2F;th&gt;&lt;th&gt;Latency&lt;&#x2F;th&gt;&lt;&#x2F;tr&gt;&lt;&#x2F;thead&gt;&lt;tbody&gt;
+&lt;tr&gt;&lt;td&gt;RAM&lt;&#x2F;td&gt;&lt;td&gt;~100 nanoseconds&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;SSD&lt;&#x2F;td&gt;&lt;td&gt;~100 microseconds&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;HDD&lt;&#x2F;td&gt;&lt;td&gt;~10 milliseconds&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;&#x2F;tbody&gt;&lt;&#x2F;table&gt;
+&lt;p&gt;SSD is 1,000× slower than RAM. HDD is 100,000× slower. When a page fault hits disk, your program stalls for an eternity in CPU terms.&lt;&#x2F;p&gt;
+&lt;p&gt;One major page fault isn&#x27;t a problem. A hundred per second and your application feels sluggish. A thousand, and your system is unusable.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;thrashing&quot;&gt;thrashing&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;strong&gt;Thrashing&lt;&#x2F;strong&gt; is what happens when your working set doesn&#x27;t fit in RAM.&lt;&#x2F;p&gt;
+&lt;p&gt;The working set is the memory your programs are actively using right now. If it exceeds available RAM, the OS has to constantly swap pages in and out. Every page you load evicts something you&#x27;ll need again soon.&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;Program needs page A → page fault, load A, evict B&lt;&#x2F;li&gt;
+&lt;li&gt;Program needs page B → page fault, load B, evict A&lt;&#x2F;li&gt;
+&lt;li&gt;Program needs page A → page fault, load A, evict B&lt;&#x2F;li&gt;
+&lt;li&gt;Repeat forever&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;p&gt;Your computer spends 99% of its time moving data between RAM and disk, and 1% doing actual work. Disk light stuck on. Everything frozen. Mouse barely moves.&lt;&#x2F;p&gt;
+&lt;p&gt;This is the performance cliff. You&#x27;re not just slow (you&#x27;re in a death spiral).&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;example-video-editing&quot;&gt;example: video editing&lt;&#x2F;h2&gt;
+&lt;p&gt;You&#x27;re editing a video project. The editor loads 20GB of project data but you only have 16GB of RAM.&lt;&#x2F;p&gt;
+&lt;p&gt;The OS keeps the current timeline section in RAM (you&#x27;re actively accessing it). Clips you haven&#x27;t touched in 10 minutes get paged out.&lt;&#x2F;p&gt;
+&lt;p&gt;When you scroll back to an old section:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Page fault&lt;&#x2F;li&gt;
+&lt;li&gt;Disk read (you see the loading spinner)&lt;&#x2F;li&gt;
+&lt;li&gt;Some other clip gets evicted to make room&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;If you keep jumping around, constant paging. Everything is slow. But at least the editor works (without virtual memory, it wouldn&#x27;t open at all).&lt;&#x2F;p&gt;
+&lt;p&gt;This is the tradeoff. Virtual memory masks the problem, but it doesn&#x27;t make it go away. You&#x27;re borrowing capacity from disk, and disk is slow.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;this-is-why-remote-memory-matters&quot;&gt;this is why remote memory matters&lt;&#x2F;h2&gt;
+&lt;p&gt;Disk is 1,000-100,000× slower than RAM. That&#x27;s the fundamental limit.&lt;&#x2F;p&gt;
+&lt;p&gt;But what if you could page to someone else&#x27;s unused RAM over the network instead of to disk? RDMA networks give you single-digit microsecond latencies (still slower than local RAM, but often 10–1000× faster than disk depending on whether your baseline is SSD or HDD).&lt;&#x2F;p&gt;
+&lt;p&gt;That&#x27;s the premise behind systems like Infiniswap: keep the paging model but replace the slow part. The cliff becomes a slope.&lt;&#x2F;p&gt;
+&lt;p&gt;But that&#x27;s a different post.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;the-takeaway&quot;&gt;the takeaway&lt;&#x2F;h2&gt;
+&lt;p&gt;Paging exists because disk is big and cheap. It lets you run programs that need more memory than you have.&lt;&#x2F;p&gt;
+&lt;p&gt;But disk is also slow. When your working set exceeds RAM, every page fault is a disk access, and performance falls off a cliff.&lt;&#x2F;p&gt;
+&lt;p&gt;The cliff isn&#x27;t a bug. It&#x27;s physics. RAM is fast, disk is slow, and no amount of clever software changes that. You can smooth the transition, but you can&#x27;t eliminate it.&lt;&#x2F;p&gt;
+&lt;p&gt;If you&#x27;re constantly in swap, you need more RAM. Or you accept the slowdown. There&#x27;s no third option (just ways to make the second option less painful).&lt;&#x2F;p&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>Virtual Memory Is a Lie (And That&#x27;s the Point)</title>
+        <published>2025-12-05T00:00:00+00:00</published>
+        <updated>2025-12-05T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/virtual-memory/"/>
+        <id>https://yazeed1s.github.io/posts/virtual-memory/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/virtual-memory/">&lt;hr &#x2F;&gt;
+&lt;p&gt;Operating systems lie to programs about how much memory exists.&lt;&#x2F;p&gt;
+&lt;p&gt;Every running program thinks it has gigabytes of RAM to itself. Chrome thinks it owns addresses 0x1000000 through 0x1C00000. So does your terminal. So does the video editor. But there&#x27;s only one physical RAM chip, and everyone&#x27;s fighting over it.&lt;&#x2F;p&gt;
+&lt;p&gt;This is virtual memory. Not a bug (a feature).&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;the-illusion&quot;&gt;the illusion&lt;&#x2F;h2&gt;
+&lt;p&gt;When a program allocates memory, the OS doesn&#x27;t hand it physical RAM addresses. It gives the program &lt;strong&gt;virtual addresses&lt;&#x2F;strong&gt; (numbers that only make sense inside that process).&lt;&#x2F;p&gt;
+&lt;p&gt;The program reads and writes using these virtual addresses, mostly unaware of what&#x27;s happening behind the scenes. Sometimes the data is resident in RAM. Sometimes it isn&#x27;t, and the OS has to fault it in from its backing store (a file mapping or swap). The program doesn&#x27;t &quot;see&quot; any of this directly.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Chrome thinks:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;&amp;quot;I have memory from address 0x1000000 to 0x1C00000&amp;quot;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Reality:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;- Some of that is in actual RAM&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;- Some isn&amp;#39;t resident right now (and will be faulted in from disk if needed)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;- Chrome doesn&amp;#39;t know the difference&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;This abstraction gives you three things:&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Isolation.&lt;&#x2F;strong&gt; Process A can&#x27;t access Process B&#x27;s memory. Even if they use the same virtual address, they&#x27;re mapped to completely different physical locations.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Simplicity.&lt;&#x2F;strong&gt; Every process thinks it has the whole address space to itself. No coordination needed. No worrying about stepping on another program&#x27;s memory.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Overcommit.&lt;&#x2F;strong&gt; You can allocate more memory than physically exists. The OS figures out where to actually put it (or whether to put it anywhere at all until you use it).&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;pages-memory-in-chunks&quot;&gt;pages: memory in chunks&lt;&#x2F;h2&gt;
+&lt;p&gt;The OS doesn&#x27;t manage memory byte-by-byte. Too much bookkeeping. Instead, it divides everything into fixed-size chunks called &lt;strong&gt;pages&lt;&#x2F;strong&gt;. On most systems, each page is 4KB.&lt;&#x2F;p&gt;
+&lt;p&gt;So 8GB of RAM is about 2 million pages. Your program might think it has access to 4 million pages (16GB of virtual space), but only 2 million can be in physical RAM at once.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Virtual Address Space              Physical RAM&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;+-------------------+              +-------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;| Page 0            | ───────────&amp;gt; | Frame 2           |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;+-------------------+              +-------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;| Page 1            | ───────────&amp;gt; | Frame 0           |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;+-------------------+              +-------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;| Page 2            | ──┐          | Frame 1           |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;+-------------------+   │          +-------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;| Page 3            |   │          | Frame 3           |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;+-------------------+   │          +-------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                       │&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                       │          Disk (Swap)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                       │          +-------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                       └────────&amp;gt; | Swap Slot         |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                  +-------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Page 2 is &amp;quot;swapped out&amp;quot; (it exists on disk, not in RAM)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;When referring to physical RAM, the chunks are called &lt;strong&gt;frames&lt;&#x2F;strong&gt;. Same size as pages, different name. This distinction matters when you&#x27;re tracking what&#x27;s virtual versus what&#x27;s real.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;translation-the-mmu&quot;&gt;translation: the mmu&lt;&#x2F;h2&gt;
+&lt;p&gt;The &lt;strong&gt;Memory Management Unit (MMU)&lt;&#x2F;strong&gt; is hardware that does the virtual-to-physical address translation. When the CPU accesses memory, it asks the MMU: &quot;what&#x27;s the physical address for virtual address 0x5000?&quot;&lt;&#x2F;p&gt;
+&lt;p&gt;The OS maintains &lt;strong&gt;page tables&lt;&#x2F;strong&gt; (data structures that map virtual page numbers to physical frame numbers). The MMU walks these tables to find the answer.&lt;&#x2F;p&gt;
+&lt;p&gt;But walking tables on every memory access would be slow. So the MMU uses a small cache called the &lt;strong&gt;Translation Lookaside Buffer (TLB)&lt;&#x2F;strong&gt;. Recent translations are cached here. Hit the TLB, and translation is essentially free. Miss it, and you pay for a page table walk.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;CPU wants address 0x5000&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    ↓&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;MMU checks TLB&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    ↓&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Hit? → Return physical address (fast)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    ↓&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Miss? → Walk page tables (slower)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;        → Cache result in TLB&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;        → Return physical address&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Most memory accesses hit the TLB. That&#x27;s what makes virtual memory practical (the common case is fast).&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;page-tables-the-mapping-structure&quot;&gt;page tables: the mapping structure&lt;&#x2F;h2&gt;
+&lt;p&gt;The OS maintains &lt;strong&gt;page tables&lt;&#x2F;strong&gt; (data structures that map virtual page numbers to physical frame numbers). Linux uses a hierarchical structure. On x86-64 it&#x27;s usually 4 levels, and can be 5 levels if 5-level paging is enabled. The names you see in Linux look like this:&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;+-----+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;| PGD | ← Page Global Directory (top level)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;+-----+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   |   +-----+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   +──&amp;gt;| P4D | ← Page Level 4 Directory&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;       +-----+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;          |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;          |   +-----+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;          +──&amp;gt;| PUD | ← Page Upper Directory&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;              +-----+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                 |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                 |   +-----+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                 +──&amp;gt;| PMD | ← Page Middle Directory&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                     +-----+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                        |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                        |   +-----+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                        +──&amp;gt;| PTE | ← Page Table Entry (bottom level)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                            +-----+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;On many x86-64 systems, the P4D level is &quot;folded&quot; away (so you effectively have 4 levels even though the macros still exist).&lt;&#x2F;p&gt;
+&lt;p&gt;Each level is an array of pointers to the next level. Why hierarchical? Two reasons:&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Saves memory.&lt;&#x2F;strong&gt; A flat page table mapping all of virtual memory would be huge and mostly empty. With a hierarchy, you only allocate entries for memory that&#x27;s actually in use.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Enables large pages.&lt;&#x2F;strong&gt; Higher level entries can directly map large chunks (2MB or 1GB) without going all the way to the bottom. Fewer levels = faster translation.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;huge-pages&quot;&gt;huge pages&lt;&#x2F;h2&gt;
+&lt;p&gt;Linux supports &lt;strong&gt;huge pages&lt;&#x2F;strong&gt; (larger page sizes than the usual 4KB). Typically 2MB or 1GB.&lt;&#x2F;p&gt;
+&lt;p&gt;Why bother? Benefits:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Less TLB pressure.&lt;&#x2F;strong&gt; Fewer entries needed to cover the same memory.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Less page table overhead.&lt;&#x2F;strong&gt; Higher level entries map directly, skipping levels.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Better performance.&lt;&#x2F;strong&gt; For workloads with large contiguous memory access.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;The tradeoff: if you only need 100KB, you still use a 2MB page. Wasted space. And finding large contiguous chunks of physical memory is harder than finding small ones.&lt;&#x2F;p&gt;
+&lt;p&gt;When using huge pages, the page table walk can end early (a PMD entry can directly map a 2MB page, or a PUD entry can map 1GB). No need to go all the way down to PTE level.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;why-overcommit-works&quot;&gt;why overcommit works&lt;&#x2F;h2&gt;
+&lt;p&gt;Here&#x27;s something counterintuitive: a program can allocate more memory than exists, and nothing breaks.&lt;&#x2F;p&gt;
+&lt;p&gt;You have 8GB of RAM. You open Chrome (3GB), a video editor (4GB), Photoshop (3GB), plus the OS (1GB). That&#x27;s 11GB for 8GB of physical RAM.&lt;&#x2F;p&gt;
+&lt;p&gt;Why doesn&#x27;t Photoshop refuse to open?&lt;&#x2F;p&gt;
+&lt;p&gt;Because allocation isn&#x27;t the same as use. When a program calls &lt;code&gt;malloc(1GB)&lt;&#x2F;code&gt;, the OS says &quot;sure&quot; and hands back virtual addresses. But it doesn&#x27;t actually reserve 1GB of physical RAM (not until the program writes to those addresses).&lt;&#x2F;p&gt;
+&lt;p&gt;This is &lt;strong&gt;lazy allocation&lt;&#x2F;strong&gt;. Pages exist on paper but aren&#x27;t backed by real memory until touched. If the program never uses all the memory it asked for (common), the OS never has to find physical frames for it.&lt;&#x2F;p&gt;
+&lt;p&gt;And if memory pressure gets high, the OS can evict cold pages and later fault them back in. The program doesn&#x27;t have to know where the bytes live, but it will absolutely notice the latency when a page fault hits disk.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;the-mental-model&quot;&gt;the mental model&lt;&#x2F;h2&gt;
+&lt;p&gt;Think of virtual memory as a layer of indirection between programs and physical reality.&lt;&#x2F;p&gt;
+&lt;p&gt;Programs see: a contiguous address space that belongs to them alone.&lt;&#x2F;p&gt;
+&lt;p&gt;Reality: fragmented physical frames, shared by everyone, with some data on disk.&lt;&#x2F;p&gt;
+&lt;p&gt;The OS maintains the illusion. Programs stay simple. Memory stays isolated. And you can run more stuff than your RAM should theoretically allow (at least until you actually try to use it all at once).&lt;&#x2F;p&gt;
+&lt;p&gt;That&#x27;s when things get interesting. But that&#x27;s a different post.&lt;&#x2F;p&gt;
 </content>
         
     </entry>

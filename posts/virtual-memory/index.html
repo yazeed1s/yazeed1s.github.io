@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="How operating systems create the illusion of infinite memory." />
+<meta
+    name="keywords"
+    content="yazeed, blog, alharthi, yaz, yazeed1s"
+/>
+<link rel="canonical" href="https://yazeed1s.github.io/posts/virtual-memory/" />
+
+<title>Virtual Memory Is a Lie (And That&#x27;s the Point) | Yazeed&#x27;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
+<meta property="og:title" content="Virtual Memory Is a Lie (And That&#x27;s the Point) | Yazeed&#x27;s Blog" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://yazeed1s.github.io/posts/virtual-memory/" />
+<meta property="og:description" content="How operating systems create the illusion of infinite memory." />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Virtual Memory Is a Lie (And That&#x27;s the Point)" />
+<meta name="twitter:description" content="How operating systems create the illusion of infinite memory." />
+
+    <link rel="icon" href="&#x2F;favicon.ico" />
+    
+    <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
+    <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+
+                  
+    <style>
+        :root {
+            --nav-basis: 25
+
+            %;
+
+            --light-bg: #eae6deff
+
+            ;
+
+            --light-text: #1a1410
+
+            ;
+
+            --light-text-muted: #1a1410
+
+            ;
+
+            --light-accent: #9E4440
+
+            ;
+
+            --light-accent-hover: #7A3533
+
+            ;
+
+            --light-code-bg: #e1ded6ff
+
+            ;
+
+            --light-border: #abaaaaff
+
+            ;
+
+            --dark-bg: #303132
+
+            ;
+
+            --dark-text: #bebbb9ff
+
+            ;
+
+            --dark-text-muted: #d5d2cf
+
+            ;
+
+            --dark-accent: #e57665
+
+            ;
+
+            --dark-accent-hover: #888885
+
+            ;
+
+            --dark-code-bg: #282829
+
+            ;
+
+            --dark-border: #524f4c
+
+            ;
+        }
+    </style>
+    <meta name="theme-color" id="tc" />
+    <script>
+        (function () {
+            var m = matchMedia("(prefers-color-scheme:dark)"),
+                t = localStorage.theme || (m.matches ? "dark" : "light"),
+                h = document.documentElement,
+                c = document.getElementById("tc");
+            h.className = t;
+            function u() {
+                c.content = getComputedStyle(h).getPropertyValue("--tc");
+            }
+            u();
+            window.T = function () {
+                t = t === "dark" ? "light" : "dark";
+                localStorage.theme = t;
+                h.className = t;
+                u();
+            };
+        })();
+    </script>
+    
+</head>
+
+<body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><symbol id="light" viewBox="0 0 32 32"><rect x="15" y="2" width="2" height="5"/><rect x="21.6675" y="6.8536" width="4.958" height="1.9998" transform="translate(1.5191 19.3744) rotate(-45)"/><rect x="25" y="15" width="5" height="2"/><rect x="23.1466" y="21.6675" width="1.9998" height="4.958" transform="translate(-10.0018 24.1465) rotate(-45)"/><rect x="15" y="25" width="2" height="5"/><rect x="5.3745" y="23.1466" width="4.958" height="1.9998" transform="translate(-14.7739 12.6256) rotate(-45)"/><rect x="2" y="15" width="5" height="2"/><rect x="6.8536" y="5.3745" width="1.9998" height="4.958" transform="translate(-3.253 7.8535) rotate(-45)"/><path d="M16,12a4,4,0,1,1-4,4,4.0045,4.0045,0,0,1,4-4m0-2a6,6,0,1,0,6,6,6,6,0,0,0-6-6Z"/></symbol>
+<symbol id="asleep" viewBox="0 0 32 32"><path d="M13.5025,5.4136A15.0755,15.0755,0,0,0,25.096,23.6082a11.1134,11.1134,0,0,1-7.9749,3.3893c-.1385,0-.2782.0051-.4178,0A11.0944,11.0944,0,0,1,13.5025,5.4136M14.98,3a1.0024,1.0024,0,0,0-.1746.0156A13.0959,13.0959,0,0,0,16.63,28.9973c.1641.006.3282,0,.4909,0a13.0724,13.0724,0,0,0,10.702-5.5556,1.0094,1.0094,0,0,0-.7833-1.5644A13.08,13.08,0,0,1,15.8892,4.38,1.0149,1.0149,0,0,0,14.98,3Z"/></symbol>
+<symbol id="rss" viewBox="0 0 32 32"><path d="M8,18c-3.3,0-6,2.7-6,6s2.7,6,6,6s6-2.7,6-6C14,20.7,11.3,18,8,18z M8,28c-2.2,0-4-1.8-4-4s1.8-4,4-4s4,1.8,4,4C12,26.2,10.2,28,8,28z"/><path d="M30,24h-2C28,13,19,4,8,4V2C20.1,2,30,11.9,30,24z"/><path d="M22,24h-2c0-6.6-5.4-12-12-12v-2C15.7,10,22,16.3,22,24z"/></symbol>
+</svg>
+
+    <header id="site-header">
+        <div>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <nav>
+                <a href="https://yazeed1s.github.io/" >Home</a>
+                <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
+                <a href="https://yazeed1s.github.io/projects/" >Projects</a>
+                <a href="https://yazeed1s.github.io/tags/" >Tags</a>
+                </nav>
+            <a href="#" onclick="
+                        T();
+                        return false;
+                    " class="theme" aria-label="Toggle theme" title="Toggle theme">
+<svg><use href="#light"/></svg>
+<svg><use href="#asleep"/></svg></a>
+        </div>
+    </header>
+    <hr class="site-sep" />
+    <main id="main">
+<article>
+    <header>
+        <h1>Virtual Memory Is a Lie (And That&#x27;s the Point)</h1>
+        <div class="post-meta">
+            <time datetime="2025-12-05">05 Dec 2025</time>
+            
+            <span>How operating systems create the illusion of infinite memory.</span>
+             
+            <span class="post-tags">
+                <span class="post-tags-label">Tags: </span>
+                
+                <a href="https://yazeed1s.github.io/tags/operating-systems">Operating Systems</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/memory">Memory</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/virtual-memory">Virtual Memory</a>
+            </span>
+            
+        </div>
+    </header>
+     <hr />
+<p>Operating systems lie to programs about how much memory exists.</p>
+<p>Every running program thinks it has gigabytes of RAM to itself. Chrome thinks it owns addresses 0x1000000 through 0x1C00000. So does your terminal. So does the video editor. But there's only one physical RAM chip, and everyone's fighting over it.</p>
+<p>This is virtual memory. Not a bug (a feature).</p>
+<hr />
+<h2 id="the-illusion">the illusion</h2>
+<p>When a program allocates memory, the OS doesn't hand it physical RAM addresses. It gives the program <strong>virtual addresses</strong> (numbers that only make sense inside that process).</p>
+<p>The program reads and writes using these virtual addresses, mostly unaware of what's happening behind the scenes. Sometimes the data is resident in RAM. Sometimes it isn't, and the OS has to fault it in from its backing store (a file mapping or swap). The program doesn't "see" any of this directly.</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);"><code data-lang="plain"><span class="giallo-l"><span>Chrome thinks:</span></span>
+<span class="giallo-l"><span>&quot;I have memory from address 0x1000000 to 0x1C00000&quot;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>Reality:</span></span>
+<span class="giallo-l"><span>- Some of that is in actual RAM</span></span>
+<span class="giallo-l"><span>- Some isn&#39;t resident right now (and will be faulted in from disk if needed)</span></span>
+<span class="giallo-l"><span>- Chrome doesn&#39;t know the difference</span></span></code></pre>
+<p>This abstraction gives you three things:</p>
+<p><strong>Isolation.</strong> Process A can't access Process B's memory. Even if they use the same virtual address, they're mapped to completely different physical locations.</p>
+<p><strong>Simplicity.</strong> Every process thinks it has the whole address space to itself. No coordination needed. No worrying about stepping on another program's memory.</p>
+<p><strong>Overcommit.</strong> You can allocate more memory than physically exists. The OS figures out where to actually put it (or whether to put it anywhere at all until you use it).</p>
+<hr />
+<h2 id="pages-memory-in-chunks">pages: memory in chunks</h2>
+<p>The OS doesn't manage memory byte-by-byte. Too much bookkeeping. Instead, it divides everything into fixed-size chunks called <strong>pages</strong>. On most systems, each page is 4KB.</p>
+<p>So 8GB of RAM is about 2 million pages. Your program might think it has access to 4 million pages (16GB of virtual space), but only 2 million can be in physical RAM at once.</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);"><code data-lang="plain"><span class="giallo-l"><span>Virtual Address Space              Physical RAM</span></span>
+<span class="giallo-l"><span>+-------------------+              +-------------------+</span></span>
+<span class="giallo-l"><span>| Page 0            | ───────────&gt; | Frame 2           |</span></span>
+<span class="giallo-l"><span>+-------------------+              +-------------------+</span></span>
+<span class="giallo-l"><span>| Page 1            | ───────────&gt; | Frame 0           |</span></span>
+<span class="giallo-l"><span>+-------------------+              +-------------------+</span></span>
+<span class="giallo-l"><span>| Page 2            | ──┐          | Frame 1           |</span></span>
+<span class="giallo-l"><span>+-------------------+   │          +-------------------+</span></span>
+<span class="giallo-l"><span>| Page 3            |   │          | Frame 3           |</span></span>
+<span class="giallo-l"><span>+-------------------+   │          +-------------------+</span></span>
+<span class="giallo-l"><span>                       │</span></span>
+<span class="giallo-l"><span>                       │          Disk (Swap)</span></span>
+<span class="giallo-l"><span>                       │          +-------------------+</span></span>
+<span class="giallo-l"><span>                       └────────&gt; | Swap Slot         |</span></span>
+<span class="giallo-l"><span>                                  +-------------------+</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>Page 2 is &quot;swapped out&quot; (it exists on disk, not in RAM)</span></span></code></pre>
+<p>When referring to physical RAM, the chunks are called <strong>frames</strong>. Same size as pages, different name. This distinction matters when you're tracking what's virtual versus what's real.</p>
+<hr />
+<h2 id="translation-the-mmu">translation: the mmu</h2>
+<p>The <strong>Memory Management Unit (MMU)</strong> is hardware that does the virtual-to-physical address translation. When the CPU accesses memory, it asks the MMU: "what's the physical address for virtual address 0x5000?"</p>
+<p>The OS maintains <strong>page tables</strong> (data structures that map virtual page numbers to physical frame numbers). The MMU walks these tables to find the answer.</p>
+<p>But walking tables on every memory access would be slow. So the MMU uses a small cache called the <strong>Translation Lookaside Buffer (TLB)</strong>. Recent translations are cached here. Hit the TLB, and translation is essentially free. Miss it, and you pay for a page table walk.</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);"><code data-lang="plain"><span class="giallo-l"><span>CPU wants address 0x5000</span></span>
+<span class="giallo-l"><span>    ↓</span></span>
+<span class="giallo-l"><span>MMU checks TLB</span></span>
+<span class="giallo-l"><span>    ↓</span></span>
+<span class="giallo-l"><span>Hit? → Return physical address (fast)</span></span>
+<span class="giallo-l"><span>    ↓</span></span>
+<span class="giallo-l"><span>Miss? → Walk page tables (slower)</span></span>
+<span class="giallo-l"><span>        → Cache result in TLB</span></span>
+<span class="giallo-l"><span>        → Return physical address</span></span></code></pre>
+<p>Most memory accesses hit the TLB. That's what makes virtual memory practical (the common case is fast).</p>
+<hr />
+<h2 id="page-tables-the-mapping-structure">page tables: the mapping structure</h2>
+<p>The OS maintains <strong>page tables</strong> (data structures that map virtual page numbers to physical frame numbers). Linux uses a hierarchical structure. On x86-64 it's usually 4 levels, and can be 5 levels if 5-level paging is enabled. The names you see in Linux look like this:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);"><code data-lang="plain"><span class="giallo-l"><span>+-----+</span></span>
+<span class="giallo-l"><span>| PGD | ← Page Global Directory (top level)</span></span>
+<span class="giallo-l"><span>+-----+</span></span>
+<span class="giallo-l"><span>   |</span></span>
+<span class="giallo-l"><span>   |   +-----+</span></span>
+<span class="giallo-l"><span>   +──&gt;| P4D | ← Page Level 4 Directory</span></span>
+<span class="giallo-l"><span>       +-----+</span></span>
+<span class="giallo-l"><span>          |</span></span>
+<span class="giallo-l"><span>          |   +-----+</span></span>
+<span class="giallo-l"><span>          +──&gt;| PUD | ← Page Upper Directory</span></span>
+<span class="giallo-l"><span>              +-----+</span></span>
+<span class="giallo-l"><span>                 |</span></span>
+<span class="giallo-l"><span>                 |   +-----+</span></span>
+<span class="giallo-l"><span>                 +──&gt;| PMD | ← Page Middle Directory</span></span>
+<span class="giallo-l"><span>                     +-----+</span></span>
+<span class="giallo-l"><span>                        |</span></span>
+<span class="giallo-l"><span>                        |   +-----+</span></span>
+<span class="giallo-l"><span>                        +──&gt;| PTE | ← Page Table Entry (bottom level)</span></span>
+<span class="giallo-l"><span>                            +-----+</span></span></code></pre>
+<p>On many x86-64 systems, the P4D level is "folded" away (so you effectively have 4 levels even though the macros still exist).</p>
+<p>Each level is an array of pointers to the next level. Why hierarchical? Two reasons:</p>
+<p><strong>Saves memory.</strong> A flat page table mapping all of virtual memory would be huge and mostly empty. With a hierarchy, you only allocate entries for memory that's actually in use.</p>
+<p><strong>Enables large pages.</strong> Higher level entries can directly map large chunks (2MB or 1GB) without going all the way to the bottom. Fewer levels = faster translation.</p>
+<hr />
+<h2 id="huge-pages">huge pages</h2>
+<p>Linux supports <strong>huge pages</strong> (larger page sizes than the usual 4KB). Typically 2MB or 1GB.</p>
+<p>Why bother? Benefits:</p>
+<ul>
+<li><strong>Less TLB pressure.</strong> Fewer entries needed to cover the same memory.</li>
+<li><strong>Less page table overhead.</strong> Higher level entries map directly, skipping levels.</li>
+<li><strong>Better performance.</strong> For workloads with large contiguous memory access.</li>
+</ul>
+<p>The tradeoff: if you only need 100KB, you still use a 2MB page. Wasted space. And finding large contiguous chunks of physical memory is harder than finding small ones.</p>
+<p>When using huge pages, the page table walk can end early (a PMD entry can directly map a 2MB page, or a PUD entry can map 1GB). No need to go all the way down to PTE level.</p>
+<hr />
+<h2 id="why-overcommit-works">why overcommit works</h2>
+<p>Here's something counterintuitive: a program can allocate more memory than exists, and nothing breaks.</p>
+<p>You have 8GB of RAM. You open Chrome (3GB), a video editor (4GB), Photoshop (3GB), plus the OS (1GB). That's 11GB for 8GB of physical RAM.</p>
+<p>Why doesn't Photoshop refuse to open?</p>
+<p>Because allocation isn't the same as use. When a program calls <code>malloc(1GB)</code>, the OS says "sure" and hands back virtual addresses. But it doesn't actually reserve 1GB of physical RAM (not until the program writes to those addresses).</p>
+<p>This is <strong>lazy allocation</strong>. Pages exist on paper but aren't backed by real memory until touched. If the program never uses all the memory it asked for (common), the OS never has to find physical frames for it.</p>
+<p>And if memory pressure gets high, the OS can evict cold pages and later fault them back in. The program doesn't have to know where the bytes live, but it will absolutely notice the latency when a page fault hits disk.</p>
+<hr />
+<h2 id="the-mental-model">the mental model</h2>
+<p>Think of virtual memory as a layer of indirection between programs and physical reality.</p>
+<p>Programs see: a contiguous address space that belongs to them alone.</p>
+<p>Reality: fragmented physical frames, shared by everyone, with some data on disk.</p>
+<p>The OS maintains the illusion. Programs stay simple. Memory stays isolated. And you can run more stuff than your RAM should theoretically allow (at least until you actually try to use it all at once).</p>
+<p>That's when things get interesting. But that's a different post.</p>
+  
+</article>
+</main>
+    <hr class="site-sep bottom-sep" />
+    <footer class="s">
+        
+    </footer>
+    
+    <script>
+        document.querySelectorAll("article img[srcset]").forEach((i) => {
+            if (i.closest("a")) return;
+            i.style.cursor = "pointer";
+            i.onclick = () => {
+                let d = document.createElement("div"),
+                    s = i.srcset.split(",").pop().trim().split(" ")[0];
+                d.className = "lb";
+                d.innerHTML = '<img src="' + s + '">';
+                document.body.style.overflow = "hidden";
+                d.onclick = () => {
+                    d.remove();
+                    document.body.style.overflow = "";
+                };
+                document.body.appendChild(d);
+            };
+        });
+    </script>
+    </body>
+
+</html>

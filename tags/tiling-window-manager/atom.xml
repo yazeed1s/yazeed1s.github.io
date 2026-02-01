@@ -24,20 +24,33 @@
         <id>https://yazeed1s.github.io/posts/bsp/</id>
         
         <content type="html" xml:base="https://yazeed1s.github.io/posts/bsp/">&lt;hr &#x2F;&gt;
-&lt;p&gt;I was tired of writing work code all day, so I started a side project - building my own tiling window manager from scratch. Been working with spatial data structures at work, and BSP trees seemed like a good fit for this. Here&#x27;s how it works.&lt;&#x2F;p&gt;
+&lt;p&gt;Some time ago, I decided to build my own tiling window manager from scratch. I was working with spatial data structures at work, and BSP trees seemed like a good fit for this kind of problem. And It all sounded like a fun challenge.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;what-s-a-tiling-window-manager&quot;&gt;What&#x27;s a Tiling Window Manager?&lt;&#x2F;h2&gt;
 &lt;p&gt;A tiling window manager arranges windows so they don&#x27;t overlap. Instead of floating windows on top of each other like macOS or Windows, it splits the screen into sections. You open a window, it goes into a tile. Open another, the screen splits. You don&#x27;t manually position anything.&lt;&#x2F;p&gt;
 &lt;p&gt;Linux has a bunch of these (dwm, i3, bspwm). On Mac there&#x27;s Yabai. They&#x27;re not mainstream, but if you&#x27;re into keyboard-driven workflows, they&#x27;re nice.&lt;&#x2F;p&gt;
 &lt;p&gt;The question is: how do you represent this layout in memory?&lt;&#x2F;p&gt;
-&lt;h2 id=&quot;why-not-linked-lists&quot;&gt;Why Not Linked Lists?&lt;&#x2F;h2&gt;
-&lt;p&gt;You could use a linked list to track windows. Simple enough. But there&#x27;s a mismatch: linked lists are linear, window layouts are 2D.&lt;&#x2F;p&gt;
-&lt;p&gt;When windows tile, they form a hierarchy - this half of the screen, that quarter, and so on. A list doesn&#x27;t capture this naturally. Every time you add or remove a window, you&#x27;d have to recalculate all the rectangles from scratch. It works, but it&#x27;s more math than I want to deal with.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-the-layout-data-structure-needs-to-do&quot;&gt;What the Layout Data Structure Needs to Do&lt;&#x2F;h2&gt;
+&lt;p&gt;Before picking a data structure, it helps to think about what operations matter.&lt;&#x2F;p&gt;
+&lt;p&gt;A tiling window manager, at minimum, needs to:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Insert&lt;&#x2F;strong&gt; a new window when one opens, splitting the focused region&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Delete&lt;&#x2F;strong&gt; a window when it closes, reclaiming the space&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Resize&lt;&#x2F;strong&gt; regions by adjusting split ratios&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Traverse&lt;&#x2F;strong&gt; the layout to find the next&#x2F;previous window&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Render&lt;&#x2F;strong&gt; by walking the structure and applying positions to X11&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;The shape of the data matters too. Window layouts are inherently hierarchical and spatial. The screen splits into halves, those halves split again. It&#x27;s not a flat sequence at all.&lt;&#x2F;p&gt;
+&lt;p&gt;Whatever structure we pick, it should make the common operations cheap and match this hierarchical shape. Otherwise we&#x27;re fighting the data.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;why-a-linear-structure-falls-apart&quot;&gt;Why a Linear Structure Falls Apart&lt;&#x2F;h2&gt;
+&lt;p&gt;Given those constraints, the obvious first thought is a linked list. Simple, well understood. But there&#x27;s a mismatch: linked lists are linear, window layouts are 2D.&lt;&#x2F;p&gt;
+&lt;p&gt;When windows tile, they form a hierarchy; this half of the screen, that quarter, and so on. A list doesn&#x27;t capture this naturally. Every time you add or remove a window, you&#x27;d have to recalculate all the rectangles from scratch. It works, but it&#x27;s more math than I want to deal with.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;trees-handle-it-better&quot;&gt;Trees Handle It Better&lt;&#x2F;h2&gt;
-&lt;p&gt;Trees are hierarchical. The screen is the root, each split creates two children. Windows live in the leaves. The structure maps directly to what you see on screen.&lt;&#x2F;p&gt;
+&lt;p&gt;So if the problem is hierarchical, the structure should be too.&lt;&#x2F;p&gt;
+&lt;p&gt;Trees fit naturally. The screen is the root, each split creates two children. Windows live in the leaves. The structure maps directly to what you see on screen&lt;&#x2F;p&gt;
 &lt;p&gt;That&#x27;s where BSP trees come in.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;binary-space-partitioning&quot;&gt;Binary Space Partitioning&lt;&#x2F;h2&gt;
-&lt;p&gt;The idea is simple: start with the full screen, split it in half (horizontal or vertical), keep splitting as needed. Each split point becomes an internal node, each final region becomes a leaf.&lt;&#x2F;p&gt;
+&lt;p&gt;BSP trees are a specific kind of tree designed for recursive spatial division. The idea is simple: start with the full screen, split it in half (horizontal or vertical), keep splitting as needed. Each split point becomes an internal node, each final region becomes a leaf.&lt;&#x2F;p&gt;
 &lt;p&gt;In my implementation:&lt;&#x2F;p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;Root node&lt;&#x2F;strong&gt; = the entire screen&#x2F;monitor rectangle&lt;&#x2F;li&gt;
@@ -73,6 +86,7 @@
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;    bool&lt;&#x2F;span&gt;&lt;span&gt;        is_master&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;}&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
 &lt;p&gt;I include a parent pointer. Some implementations skip it to save memory, but having it makes traversal and sibling access trivial. Worth the extra 8 bytes per node.&lt;&#x2F;p&gt;
+&lt;p&gt;With the structure in place, let&#x27;s look at the core operations: insertion and deletion.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;insertion&quot;&gt;Insertion&lt;&#x2F;h2&gt;
 &lt;p&gt;When you open a new window, here&#x27;s what happens:&lt;&#x2F;p&gt;
 &lt;ol&gt;
@@ -83,7 +97,7 @@
 &lt;li&gt;Put the new window into the second child&lt;&#x2F;li&gt;
 &lt;li&gt;Split the parent&#x27;s rectangle between them&lt;&#x2F;li&gt;
 &lt;&#x2F;ol&gt;
-&lt;p&gt;The split direction depends on the rectangle shape - if it&#x27;s wider than tall, split vertically (side by side). Otherwise, split horizontally (top and bottom).&lt;&#x2F;p&gt;
+&lt;p&gt;The split direction depends on the rectangle shape; if it&#x27;s wider than tall, split vertically (side by side). Otherwise, split horizontally (top and bottom).&lt;&#x2F;p&gt;
 &lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;c&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;void&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;insert_node&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#576E65, #83A598);&quot;&gt;node_t&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt; *&lt;&#x2F;span&gt;&lt;span&gt;node&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#576E65, #83A598);&quot;&gt; node_t&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt; *&lt;&#x2F;span&gt;&lt;span&gt;new_node&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#576E65, #83A598);&quot;&gt; layout_t&lt;&#x2F;span&gt;&lt;span&gt; layout&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;{&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
@@ -194,7 +208,8 @@
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                   r6)     r7)    r4)      r5)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
 &lt;p&gt;Each internal node&#x27;s rectangle contains its children. The tree structure directly mirrors the screen layout.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;deletion&quot;&gt;Deletion&lt;&#x2F;h2&gt;
-&lt;p&gt;When you close a window, the node gets removed. But you can&#x27;t just delete it - the tree needs to stay valid.&lt;&#x2F;p&gt;
+&lt;p&gt;Insertion is the easy part. Deletion is where tree operations get interesting.&lt;&#x2F;p&gt;
+&lt;p&gt;When you close a window, the node gets removed. But you can&#x27;t just delete it as the tree needs to stay valid.&lt;&#x2F;p&gt;
 &lt;p&gt;The key insight: when you remove a leaf, its parent (an internal node) now has only one child. That&#x27;s not valid. So the sibling &quot;takes over&quot; the parent&#x27;s position.&lt;&#x2F;p&gt;
 &lt;h3 id=&quot;case-1-simple-deletion-sibling-is-external-parent-is-root&quot;&gt;Case 1: Simple deletion (sibling is external, parent is root)&lt;&#x2F;h3&gt;
 &lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    Before:                             After:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;

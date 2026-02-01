@@ -5,12 +5,12 @@
     <link rel="self" type="application/atom+xml" href="https://yazeed1s.github.io/tags/distributed-systems/atom.xml"/>
     <link rel="alternate" type="text/html" href="https://yazeed1s.github.io"/>
     <generator uri="https://www.getzola.org/">Zola</generator>
-    <updated>2025-03-23T00:00:00+00:00</updated>
+    <updated>2026-01-18T00:00:00+00:00</updated>
     <id>https://yazeed1s.github.io/tags/distributed-systems/atom.xml</id>
     <entry xml:lang="en">
         <title>Infiniswap: Remote Memory Paging Over RDMA</title>
-        <published>2025-03-23T00:00:00+00:00</published>
-        <updated>2025-03-23T00:00:00+00:00</updated>
+        <published>2026-01-18T00:00:00+00:00</published>
+        <updated>2026-01-18T00:00:00+00:00</updated>
         
         <author>
           <name>
@@ -24,73 +24,49 @@
         <id>https://yazeed1s.github.io/posts/infiniswap/</id>
         
         <content type="html" xml:base="https://yazeed1s.github.io/posts/infiniswap/">&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;introduction&quot;&gt;Introduction&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;What is Infiniswap?&lt;&#x2F;li&gt;
-&lt;li&gt;The paper: &quot;Infiniswap: Efficient Memory Disaggregation&quot; (NSDI 2017)&lt;&#x2F;li&gt;
-&lt;li&gt;Core idea: swap to remote memory, not disk&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
+&lt;p&gt;I came across this paper while looking into memory disaggregation. The idea is deceptively simple: when a machine runs out of RAM, instead of paging to disk, page to another machine&#x27;s unused memory over the network.&lt;&#x2F;p&gt;
+&lt;p&gt;What caught my attention is &lt;em&gt;how&lt;&#x2F;em&gt; they pulled it off; no application changes, no core kernel patching. It&#x27;s a kernel module that hooks into Linux&#x27;s swap path and uses remote RAM as the fast tier, with disk as fallback.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;background&quot;&gt;Background&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Traditional swapping (link to swap-paging.md)&lt;&#x2F;li&gt;
-&lt;li&gt;Why disk swap is slow&lt;&#x2F;li&gt;
-&lt;li&gt;RDMA basics (link to rdma.md)&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
+&lt;h2 id=&quot;the-core-idea&quot;&gt;the core idea&lt;&#x2F;h2&gt;
+&lt;p&gt;Production clusters waste a lot of memory. Some machines are memory-starved while others sit idle. The 99th percentile machine often uses 2-3× more memory than the median. Meanwhile, over half the cluster&#x27;s aggregate memory goes unused.&lt;&#x2F;p&gt;
+&lt;p&gt;When applications can&#x27;t fit their working set in RAM, performance falls off a cliff. VoltDB drops from 95K TPS to 4K TPS. Memcached&#x27;s tail latency shoots up 21×. Disk is too slow to help (1000× slower than memory).&lt;&#x2F;p&gt;
+&lt;p&gt;Infiniswap&#x27;s insight: RDMA networks give you single-digit microsecond latencies. That&#x27;s fast enough to make remote memory a viable swap target. Instead of page -&amp;gt; disk, you do page -&amp;gt; remote RAM over RDMA. The remote CPU stays out of the data movement; the RNIC does the DMA.&lt;&#x2F;p&gt;
+&lt;p&gt;The result: swap that looks normal to Linux, but is backed by slabs of remote memory scattered across the cluster.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;how-infiniswap-works&quot;&gt;How Infiniswap Works&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Architecture overview&lt;&#x2F;li&gt;
-&lt;li&gt;Page fault handling&lt;&#x2F;li&gt;
-&lt;li&gt;Remote memory servers (daemons)&lt;&#x2F;li&gt;
-&lt;li&gt;Block device interface&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
+&lt;h2 id=&quot;what-s-clever&quot;&gt;what&#x27;s clever&lt;&#x2F;h2&gt;
+&lt;p&gt;A few design choices stood out:&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Using swap as the integration point.&lt;&#x2F;strong&gt; Instead of modifying the kernel&#x27;s page fault handler or remapping virtual memory, Infiniswap plugs into Linux&#x27;s existing swap subsystem. The kernel already knows how to page out and page back in. Infiniswap just changes where those swapped pages live. The trade-off is you&#x27;re still going through the swap path (page faults, context switches, the whole thing) but you get deployment simplicity.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;One-sided RDMA.&lt;&#x2F;strong&gt; Traditional network block devices (like Mellanox&#x27;s nbdX) use send&#x2F;recv semantics. The remote CPU has to wake up, copy data, respond. Infiniswap uses RDMA_READ and RDMA_WRITE (the RNIC directly accesses remote memory without running remote code on the critical path). The paper shows nbdX burns multiple vCPUs on the remote side; Infiniswap largely avoids that.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Slab-based design.&lt;&#x2F;strong&gt; Pages are grouped into 1GB slabs. Each slab maps to one remote machine. This keeps the metadata manageable (tracking millions of individual 4KB pages across the cluster would be expensive). When a slab gets &quot;hot&quot; (&amp;gt;20 page I&#x2F;O ops&#x2F;sec), it gets mapped to remote memory. Cold slabs stay on disk.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;key-design-decisions&quot;&gt;Key Design Decisions&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Transparency (works with unmodified applications)&lt;&#x2F;li&gt;
-&lt;li&gt;Integration with Linux swap subsystem&lt;&#x2F;li&gt;
-&lt;li&gt;Load balancing across remote memory servers&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
+&lt;h2 id=&quot;where-it-works&quot;&gt;where it works&lt;&#x2F;h2&gt;
+&lt;p&gt;Memory-bound workloads see big wins. Memcached stays nearly flat even when only 50% of the working set fits in memory. PowerGraph runs 6.5× faster. VoltDB, while CPU-heavy, still sees 15× throughput improvement over disk.&lt;&#x2F;p&gt;
+&lt;p&gt;The cluster memory utilization goes from 40% to 60% (that&#x27;s 47% more effective use of RAM, with minimal network overhead (&amp;lt;1% of capacity)).&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;where-it-doesn-t&quot;&gt;where it doesn&#x27;t&lt;&#x2F;h2&gt;
+&lt;p&gt;CPU-bound workloads don&#x27;t benefit as much. VoltDB and Spark already run at high CPU utilization. Adding paging overhead (context switches, TLB flushes, page table walks) eats into that. Spark at 50% memory thrashes so badly it doesn&#x27;t complete.&lt;&#x2F;p&gt;
+&lt;p&gt;The fundamental limit: this isn&#x27;t local memory. Page faults still happen. You&#x27;re masking latency, not eliminating it. For workloads where microseconds matter deterministically, that&#x27;s a problem.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;performance&quot;&gt;Performance&lt;&#x2F;h2&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
 &lt;ul&gt;
-&lt;li&gt;Latency comparison: disk vs remote memory&lt;&#x2F;li&gt;
-&lt;li&gt;Throughput numbers from the paper&lt;&#x2F;li&gt;
-&lt;li&gt;Real workload results&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;limitations&quot;&gt;Limitations&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Network dependency&lt;&#x2F;li&gt;
-&lt;li&gt;Memory server failures&lt;&#x2F;li&gt;
-&lt;li&gt;Not a replacement for local memory&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;related-work&quot;&gt;Related Work&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Other remote paging systems&lt;&#x2F;li&gt;
-&lt;li&gt;Comparison with Fastswap, LegoOS, etc.&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;When to use Infiniswap&lt;&#x2F;li&gt;
-&lt;li&gt;Impact on memory disaggregation research&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;references&quot;&gt;References&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Infiniswap paper&lt;&#x2F;li&gt;
-&lt;li&gt;Source code repository&lt;&#x2F;li&gt;
+&lt;li&gt;Paper: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;www.usenix.org&#x2F;system&#x2F;files&#x2F;conference&#x2F;nsdi17&#x2F;nsdi17-gu.pdf&quot;&gt;Gu et al., &quot;Efficient Memory Disaggregation with Infiniswap&quot;, NSDI 2017&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
+&lt;li&gt;Tested on 32 machines, 56 Gbps Infiniband, 64GB RAM each&lt;&#x2F;li&gt;
+&lt;li&gt;Slab placement uses &quot;power of two choices&quot; (pick two random machines, query free memory, map to the one with more headroom)&lt;&#x2F;li&gt;
+&lt;li&gt;Slab eviction queries E+5 machines, evicts the coldest from that set (~363μs median)&lt;&#x2F;li&gt;
+&lt;li&gt;Page-out: synchronous RDMA_WRITE + async disk write (disk is fallback if remote crashes)&lt;&#x2F;li&gt;
+&lt;li&gt;Page-in: check bitmap -&amp;gt; RDMA_READ if remote, else read from disk&lt;&#x2F;li&gt;
+&lt;li&gt;Slab remapping after failure takes ~54ms (Infiniband memory registration)&lt;&#x2F;li&gt;
+&lt;li&gt;Default headroom threshold: 8GB per machine&lt;&#x2F;li&gt;
+&lt;li&gt;Hot slab threshold: 20 page I&#x2F;O ops&#x2F;sec (EWMA, α=0.2)&lt;&#x2F;li&gt;
+&lt;li&gt;Compared to: nbdX (Mellanox), Fastswap (kernel modification), LegoOS (full OS redesign)&lt;&#x2F;li&gt;
+&lt;li&gt;Code available on GitHub &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;SymbioticLab&#x2F;Infiniswap&quot;&gt;SymbioticLab&#x2F;infiniswap&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
 &lt;&#x2F;ul&gt;
 </content>
         
     </entry>
     <entry xml:lang="en">
         <title>Memory Disaggregation: Decoupling Memory from Compute</title>
-        <published>2025-03-23T00:00:00+00:00</published>
-        <updated>2025-03-23T00:00:00+00:00</updated>
+        <published>2026-01-05T00:00:00+00:00</published>
+        <updated>2026-01-05T00:00:00+00:00</updated>
         
         <author>
           <name>
@@ -104,51 +80,53 @@
         <id>https://yazeed1s.github.io/posts/memory-disaggregation/</id>
         
         <content type="html" xml:base="https://yazeed1s.github.io/posts/memory-disaggregation/">&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;introduction&quot;&gt;Introduction&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;What is memory disaggregation?&lt;&#x2F;li&gt;
-&lt;li&gt;Why do we need it? (memory stranding, resource utilization)&lt;&#x2F;li&gt;
-&lt;li&gt;The shift from monolithic servers to disaggregated architectures&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
+&lt;p&gt;This paper from VMware Research caught my attention because it asks a question I&#x27;d been circling around: why hasn&#x27;t memory disaggregation happened already?&lt;&#x2F;p&gt;
+&lt;p&gt;The idea has been around since the 90s. Intel pushed Rack Scale Architecture in 2013. But it never took off. The authors argue that two things finally align now: a burning economic problem and feasible technology to solve it.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;the-problem-with-traditional-memory&quot;&gt;The Problem with Traditional Memory&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Memory tied to individual servers&lt;&#x2F;li&gt;
-&lt;li&gt;Stranded memory (unused but unavailable to other nodes)&lt;&#x2F;li&gt;
-&lt;li&gt;Over-provisioning vs under-utilization&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
+&lt;h2 id=&quot;the-core-idea&quot;&gt;the core idea&lt;&#x2F;h2&gt;
+&lt;p&gt;Traditional servers bundle everything (CPU, memory, storage) into one box. If you need more RAM, you buy a bigger box or add DIMMs (if you haven&#x27;t hit the motherboard limit). If you don&#x27;t use all your RAM, it sits idle.&lt;&#x2F;p&gt;
+&lt;p&gt;Memory disaggregation pulls memory out into separate pools that multiple servers can access. Think of it like the shift from local storage to SAN&#x2F;NAS, but for memory, or better yet, like a GPU rack but for memory.&lt;&#x2F;p&gt;
+&lt;p&gt;This gives you two things:&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Capacity expansion.&lt;&#x2F;strong&gt; A server can use more memory than it physically contains by accessing the pool. Similar to Infiniswap, but with hardware support instead of software paging.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Data sharing.&lt;&#x2F;strong&gt; In the limit, pool memory can be mapped into multiple hosts so they can load&#x2F;store into the same bytes without explicit send&#x2F;recv. You still need software protocols (ownership, synchronization, failure), but the access looks like memory instead of messages.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;how-disaggregation-works&quot;&gt;How Disaggregation Works&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Separating memory pools from compute pools&lt;&#x2F;li&gt;
-&lt;li&gt;Remote memory access mechanisms&lt;&#x2F;li&gt;
-&lt;li&gt;Latency considerations&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
+&lt;h2 id=&quot;why-now&quot;&gt;why now&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;strong&gt;The economics are painful.&lt;&#x2F;strong&gt; Memory makes up 50% of server cost and 37% of total cost of ownership in cloud environments. Three companies control DRAM production. Demand explodes from data centers, ML training, and in-memory databases. Meanwhile, clusters waste memory (the paper shows over 70% of the time, more than half of aggregate cluster memory sits unused while some machines page to disk).&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;The technology finally exists.&lt;&#x2F;strong&gt; RDMA gives you single-digit microsecond latencies. But the bigger enabler is CXL (Compute eXpress Link): cache-coherent load&#x2F;store access to devices over PCIe, plus a roadmap toward switching, pooling, and (eventually) shared memory fabrics.&lt;&#x2F;p&gt;
+&lt;p&gt;Neat detail: the pool can use cheaper, denser (and potentially slower) DRAM, because it&#x27;s already the &quot;slow tier&quot; compared to local DIMMs.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;key-technologies&quot;&gt;Key Technologies&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;RDMA (link to rdma.md)&lt;&#x2F;li&gt;
-&lt;li&gt;CXL (link to cxl.md)&lt;&#x2F;li&gt;
-&lt;li&gt;Network fabrics&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
+&lt;h2 id=&quot;what-s-interesting&quot;&gt;what&#x27;s interesting&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;strong&gt;It&#x27;s not just about capacity.&lt;&#x2F;strong&gt; Most remote memory systems (Infiniswap, Fastswap) focus on page-to-remote-RAM-instead-of-disk. Useful, but limited. The promise of CXL is memory that looks like memory: load&#x2F;store access to a larger pool, and (with the right fabric features) the possibility of mapping the same bytes into multiple hosts. That&#x27;s qualitatively different from &quot;remote paging.&quot;&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;The OS problems are hard.&lt;&#x2F;strong&gt; The paper is mostly about what&#x27;s &lt;em&gt;unsolved&lt;&#x2F;em&gt;: memory allocation at scale, scheduling with memory locality, pointer sharing across servers, failure handling for &quot;optional&quot; memory, security for hot-swappable memory pools. These aren&#x27;t incremental fixes; they require rethinking fundamental abstractions.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;The timeline matches storage disaggregation.&lt;&#x2F;strong&gt; Start small (a few hosts per pool), add switches for rack-scale, and eventually push the fabric boundary outward. Whether that ends up looking like &quot;CXL over X&quot; or something else is still an open question, but the trajectory rhymes with how storage disaggregation played out.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;trade-offs&quot;&gt;Trade-offs&lt;&#x2F;h2&gt;
+&lt;h2 id=&quot;where-it-works-where-it-doesn-t&quot;&gt;where it works &#x2F; where it doesn&#x27;t&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;strong&gt;Good fit:&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
 &lt;ul&gt;
-&lt;li&gt;Latency vs utilization&lt;&#x2F;li&gt;
-&lt;li&gt;Complexity vs flexibility&lt;&#x2F;li&gt;
-&lt;li&gt;When disaggregation makes sense&lt;&#x2F;li&gt;
+&lt;li&gt;Data-intensive workloads (Spark, Ray, distributed DBs) that spend cycles serializing and copying&lt;&#x2F;li&gt;
+&lt;li&gt;Workloads with working sets that barely fit in local memory&lt;&#x2F;li&gt;
+&lt;li&gt;Clusters with significant memory imbalance&lt;&#x2F;li&gt;
+&lt;li&gt;Environments where memory is 50%+ of server cost&lt;&#x2F;li&gt;
 &lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;strong&gt;Bad fit:&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
 &lt;ul&gt;
-&lt;li&gt;Current state of adoption&lt;&#x2F;li&gt;
-&lt;li&gt;Future directions&lt;&#x2F;li&gt;
+&lt;li&gt;Workloads that fit comfortably in local memory (you&#x27;d be adding latency for no benefit)&lt;&#x2F;li&gt;
+&lt;li&gt;Latency-sensitive applications that can&#x27;t tolerate hundreds of extra nanoseconds in their hot path&lt;&#x2F;li&gt;
+&lt;li&gt;Traditional applications that don&#x27;t share data across processes&lt;&#x2F;li&gt;
 &lt;&#x2F;ul&gt;
+&lt;p&gt;The performance trade-off: pool memory is slower than local (hundreds of ns versus ~100ns), but still orders of magnitude faster than SSD&#x2F;HDD. For workloads that currently page to disk, this can be transformative. For workloads that don&#x27;t, adding a slower tier may just hurt.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;references&quot;&gt;References&lt;&#x2F;h2&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
 &lt;ul&gt;
-&lt;li&gt;Papers to cite&lt;&#x2F;li&gt;
-&lt;li&gt;Further reading&lt;&#x2F;li&gt;
+&lt;li&gt;Paper: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;dl.acm.org&#x2F;doi&#x2F;10.1145&#x2F;3606557.3606563&quot;&gt;Aguilera et al., &quot;Memory disaggregation: why now and what are the challenges&quot;, ACM SIGOPS Operating Systems Review, 2023&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
+&lt;li&gt;This is a position paper (no benchmarks, but clear analysis of the problem space)&lt;&#x2F;li&gt;
+&lt;li&gt;CXL 1.0: local memory expansion cards (shipping now)&lt;&#x2F;li&gt;
+&lt;li&gt;CXL 2.0&#x2F;3.0: fabric switches for pool memory (3-5 years out)&lt;&#x2F;li&gt;
+&lt;li&gt;Latency estimates: local ~100ns, CXL local ~200-300ns, CXL pool ~500-1000ns, RDMA ~1-5μs, SSD ~100μs&lt;&#x2F;li&gt;
+&lt;li&gt;Memory population rules (balanced channels, identical DIMMs) make incremental upgrades nearly impossible (another driver for disaggregation)&lt;&#x2F;li&gt;
+&lt;li&gt;Distributed shared memory systems from the 90s taught us: cache coherence doesn&#x27;t scale beyond rack-scale&lt;&#x2F;li&gt;
+&lt;li&gt;Security concern: DRAM retains data residue after power-down, and pool memory is hot-swappable (encryption matters more than for local memory)&lt;&#x2F;li&gt;
+&lt;li&gt;Related systems: Infiniswap (software paging over RDMA), LegoOS (full hardware disaggregation), The Machine (HPE, discontinued)&lt;&#x2F;li&gt;
 &lt;&#x2F;ul&gt;
 </content>
         
