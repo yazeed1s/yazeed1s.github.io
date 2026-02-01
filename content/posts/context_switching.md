@@ -1,6 +1,6 @@
 +++
 title = "OS Context Switching: What Happens When Processes Switch"
-date = 2025-03-23
+date = 2025-11-28
 description = "The mechanics of saving and restoring process state during a context switch."
 [taxonomies]
 tags = ["Operating Systems", "Scheduling", "CPU", "Linux", "Performance"]

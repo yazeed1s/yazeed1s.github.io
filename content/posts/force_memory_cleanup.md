@@ -8,13 +8,13 @@ tags = ["C", "Signals", "Linux"]
 
 ---
 
-In C, you put cleanup code at the end of `main()` - free your allocations, close your files, done. But what if your program crashes before reaching that code?
+In C, you put cleanup code at the end of `main()` to free your allocations, close your files, etc. But what if your program crashes before reaching that code?
 
 ---
 
 ## The Problem
 
-Standard cleanup at the end of main only works if your program exits normally. If it crashes - say, a null pointer dereference - the OS raises SIGSEGV and your program dies immediately. Your cleanup code never runs.
+Standard cleanup at the end of main only works if your program exits normally. If it crashes (e.g., a null pointer dereference), the OS raises SIGSEGV and your program dies immediately. Your cleanup code never runs.
 
 ```c
 #include <stdio.h>
@@ -65,7 +65,7 @@ int main(void) {
 }
 ```
 
-But `atexit()` handlers only run on **normal** exit - when main returns or when you call `exit()`. A signal like SIGSEGV bypasses atexit entirely.
+But `atexit()` handlers only run on **normal** exit, when main returns or when you call `exit()`. A signal like SIGSEGV bypasses atexit entirely.
 
 ## The Solution: Signal Handlers
 
@@ -80,15 +80,13 @@ To run cleanup code on crash, you register a signal handler:
 char *buffer = NULL;
 
 void cleanup_handler(int sig) {
+    (void)sig;
     // Note: using write() instead of printf() - see below
-    const char *msg = "Caught signal, cleaning up...\n";
-    write(STDERR_FILENO, msg, 31);
+    const char msg[] = "Caught signal, exiting...\n";
+    write(STDERR_FILENO, msg, sizeof(msg) - 1);
 
-    if (buffer != NULL) {
-        free(buffer);
-        buffer = NULL;
-    }
-
+    // For crash signals, keep the handler minimal. Most cleanup is not
+    // async-signal-safe, and the kernel will reclaim process memory anyway.
     _exit(1); // use _exit, not exit()
 }
 
@@ -116,7 +114,7 @@ Now when the program crashes, the handler runs first.
 
 ## Important: Async-Signal-Safety
 
-There's a catch. Signal handlers can interrupt your program at any point - even in the middle of malloc or printf. If your handler then calls malloc or printf, you can deadlock or corrupt memory.
+There's a catch. Signal handlers can interrupt your program at any point, even in the middle of malloc or printf. If your handler then calls malloc or printf, you can deadlock or corrupt memory.
 
 Only certain functions are safe to call from signal handlers. These are called "async-signal-safe" functions. The POSIX standard defines the list. Key ones:
 
@@ -124,7 +122,7 @@ Only certain functions are safe to call from signal handlers. These are called "
 - `_exit()` - safe (exit is NOT safe, it runs atexit handlers)
 - `close()`, `unlink()`, `fsync()` - safe
 
-`free()` is technically **not** async-signal-safe. In practice, it usually works because you're about to exit anyway, and modern allocators handle it reasonably. But be aware of this.
+`free()` is **not** async-signal-safe. It might "work" in a toy program, and then deadlock in production because the signal interrupted malloc/free internals. Don't rely on it.
 
 A safer pattern is to set a flag and let the main program handle cleanup:
 
@@ -148,11 +146,11 @@ int main(void) {
 }
 ```
 
-But for crash signals (SIGSEGV, SIGABRT), you can't return to normal execution - the program is already broken. So you do what cleanup you can in the handler and exit.
+But for crash signals (SIGSEGV, SIGABRT), you can't return to normal execution, the program is already broken. So you do what cleanup you can in the handler and exit.
 
 ## Wait, Doesn't the OS Clean Up Anyway?
 
-Yes. On any modern OS (Linux, macOS, Windows), when your process terminates - normally or not - the kernel reclaims all its resources:
+Yes. On any modern OS (Linux, macOS, Windows), when your process terminates (normally or not), the kernel reclaims all its resources:
 
 - Heap memory (malloc'd memory) - freed
 - File descriptors - closed

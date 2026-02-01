@@ -8,7 +8,7 @@ tags = ["C", "Spatial Data Structures", "Tiling Window Manager"]
 
 ---
 
-I was tired of writing work code all day, so I started a side project - building my own tiling window manager from scratch. Been working with spatial data structures at work, and BSP trees seemed like a good fit for this. Here's how it works.
+Some time ago, I decided to build my own tiling window manager from scratch. I was working with spatial data structures at work, and BSP trees seemed like a good fit for this kind of problem. And It all sounded like a fun challenge. 
 
 ---
 
@@ -20,21 +20,39 @@ Linux has a bunch of these (dwm, i3, bspwm). On Mac there's Yabai. They're not m
 
 The question is: how do you represent this layout in memory?
 
-## Why Not Linked Lists?
+## What the Layout Data Structure Needs to Do
 
-You could use a linked list to track windows. Simple enough. But there's a mismatch: linked lists are linear, window layouts are 2D.
+Before picking a data structure, it helps to think about what operations matter.
 
-When windows tile, they form a hierarchy - this half of the screen, that quarter, and so on. A list doesn't capture this naturally. Every time you add or remove a window, you'd have to recalculate all the rectangles from scratch. It works, but it's more math than I want to deal with.
+A tiling window manager, at minimum, needs to:
+
+- **Insert** a new window when one opens, splitting the focused region
+- **Delete** a window when it closes, reclaiming the space
+- **Resize** regions by adjusting split ratios
+- **Traverse** the layout to find the next/previous window
+- **Render** by walking the structure and applying positions to X11
+
+The shape of the data matters too. Window layouts are inherently hierarchical and spatial. The screen splits into halves, those halves split again. It's not a flat sequence at all.
+
+Whatever structure we pick, it should make the common operations cheap and match this hierarchical shape. Otherwise we're fighting the data.
+
+## Why a Linear Structure Falls Apart
+
+Given those constraints, the obvious first thought is a linked list. Simple, well understood. But there's a mismatch: linked lists are linear, window layouts are 2D.
+
+When windows tile, they form a hierarchy; this half of the screen, that quarter, and so on. A list doesn't capture this naturally. Every time you add or remove a window, you'd have to recalculate all the rectangles from scratch. It works, but it's more math than I want to deal with.
 
 ## Trees Handle It Better
 
-Trees are hierarchical. The screen is the root, each split creates two children. Windows live in the leaves. The structure maps directly to what you see on screen.
+So if the problem is hierarchical, the structure should be too.
+
+Trees fit naturally. The screen is the root, each split creates two children. Windows live in the leaves. The structure maps directly to what you see on screen
 
 That's where BSP trees come in.
 
 ## Binary Space Partitioning
 
-The idea is simple: start with the full screen, split it in half (horizontal or vertical), keep splitting as needed. Each split point becomes an internal node, each final region becomes a leaf.
+BSP trees are a specific kind of tree designed for recursive spatial division. The idea is simple: start with the full screen, split it in half (horizontal or vertical), keep splitting as needed. Each split point becomes an internal node, each final region becomes a leaf.
 
 In my implementation:
 
@@ -82,6 +100,8 @@ struct node_t {
 
 I include a parent pointer. Some implementations skip it to save memory, but having it makes traversal and sibling access trivial. Worth the extra 8 bytes per node.
 
+With the structure in place, let's look at the core operations: insertion and deletion.
+
 ## Insertion
 
 When you open a new window, here's what happens:
@@ -93,7 +113,7 @@ When you open a new window, here's what happens:
 5. Put the new window into the second child
 6. Split the parent's rectangle between them
 
-The split direction depends on the rectangle shape - if it's wider than tall, split vertically (side by side). Otherwise, split horizontally (top and bottom).
+The split direction depends on the rectangle shape; if it's wider than tall, split vertically (side by side). Otherwise, split horizontally (top and bottom).
 
 ```c
 void
@@ -236,7 +256,9 @@ Each internal node's rectangle contains its children. The tree structure directl
 
 ## Deletion
 
-When you close a window, the node gets removed. But you can't just delete it - the tree needs to stay valid.
+Insertion is the easy part. Deletion is where tree operations get interesting.
+
+When you close a window, the node gets removed. But you can't just delete it as the tree needs to stay valid.
 
 The key insight: when you remove a leaf, its parent (an internal node) now has only one child. That's not valid. So the sibling "takes over" the parent's position.
 

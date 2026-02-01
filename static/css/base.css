@@ -3,13 +3,14 @@ html {
     font-size: 0.95rem;
     line-height: 1.5;
     margin: auto;
-    max-width: 100ch;
+    max-width: 90ch;
     padding-top: 0.5rem;
     padding-right: 1em;
     padding-bottom: 3em;
     padding-left: 1em;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+    font-variant-ligatures: none;
 }
 
 img {
@@ -60,7 +61,7 @@ ul,
 ol,
 article > footer,
 article > header {
-    margin: 0 0 1.5rem;
+    margin: 0 0 0.6rem;
 }
 
 pre,
@@ -87,6 +88,7 @@ code {
     font-size: 0.9em;
     padding: 0.15em 0.4em;
     border-radius: 0.25rem;
+    font-variant-ligatures: none;
 }
 
 blockquote > *:last-child {
@@ -165,6 +167,17 @@ article > div {
     margin-bottom: 1.5rem;
     width: 100%;
 }
+
+/* article > ul,
+article > ol {
+    margin-top: -1rem;
+    margin-bottom: 0.5rem;
+}
+
+article > ul > li,
+article > ol > li {
+    margin-bottom: 0.25rem;
+} */
 
 article h1::before {
     content: "# ";
@@ -609,9 +622,9 @@ html code {
 }
 
 /* Code blocks: let theme handle foreground color */
-html pre code {
-    /* color: inherit; */
-}
+/* html pre code {
+    color: inherit;
+} */
 
 html hr {
     border: 0;

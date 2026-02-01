@@ -7,17 +7,18 @@ template = "index.html"
 
 I’m a Master’s student in Computer Science at Virginia Tech.
 
-This site is where I write about things I’m working on, systems I’m trying to understand better, or things that interest me in general. Most posts start from a very practical question, sometimes a silly one. Something breaks. Something old or new catches my attention. Something feels more complex than it should be and so on.
+This site is my systems notebook. I write about things I’m building, things I’m debugging, and systems I’m trying to understand well enough.
 
-A lot of what I care about sits close to the machine. Operating system internals, especially memory and storage. From time to time, I read about/look at Linux kernel subsystems when they feel relevant to what I’m trying to understand.
+Most posts start the same way: something breaks, something feels off, or some design choice keeps showing up and I can’t stop thinking about it.
 
-In terms of tools, I value simplicity and minimalism above all else, even in my personal life. That shows up in my choice of software, operating system, and programming languages.
+I mostly care about stuff close to the machine: operating systems, memory/storage, and whatever falls out of reading kernel code and papers.
 
-How I explain things is fairly consistent. I start with a concrete problem or question, then follow it wherever it leads. Sometimes that path is messy or indirect.
+You’ll find posts at different depths:
 
-This is not a tutorial site. It’s a working notebook. Some posts are incomplete. Some details are wrong. Some opinions will probably change.
-
-If you find something useful here, that’s great. If not, it at least helped me think more clearly. And if you do find something wrong, feel free to reach out.
+- Some are deep dives: the “here’s the mental model, the sharp edges, and where it breaks” kind.
+- Some are surface notes: a single idea, a sketch, a quick clarification, or a useful fact I don’t want to forget.
+- I keep the surface-level posts on purpose. If I waited until every topic was “deep dive ready,” I’d publish almost nothing.
+  If you find something useful here, that’s great. If not, it at least helped me think more clearly. And if you do find something wrong, feel free to reach out.
 
 **Links**
 
