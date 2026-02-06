@@ -26,6 +26,10 @@
         <lastmod>2026-02-05</lastmod>
     </url>
     <url>
+        <loc>https://yazeed1s.github.io/posts/ewmh-icccm/</loc>
+        <lastmod>2024-11-15</lastmod>
+    </url>
+    <url>
         <loc>https://yazeed1s.github.io/posts/force-memory-cleanup/</loc>
         <lastmod>2023-12-17</lastmod>
     </url>
@@ -34,8 +38,16 @@
         <lastmod>2026-01-18</lastmod>
     </url>
     <url>
+        <loc>https://yazeed1s.github.io/posts/interrupts-traps/</loc>
+        <lastmod>2025-03-15</lastmod>
+    </url>
+    <url>
         <loc>https://yazeed1s.github.io/posts/memory-disaggregation/</loc>
         <lastmod>2026-01-05</lastmod>
+    </url>
+    <url>
+        <loc>https://yazeed1s.github.io/posts/multimonitor-wm/</loc>
+        <lastmod>2025-01-05</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/my-monitor-was-dying/</loc>
@@ -56,6 +68,10 @@
     <url>
         <loc>https://yazeed1s.github.io/posts/what-a-process-owns/</loc>
         <lastmod>2026-02-06</lastmod>
+    </url>
+    <url>
+        <loc>https://yazeed1s.github.io/posts/x11-wm-basics/</loc>
+        <lastmod>2024-11-20</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/projects/</loc>
@@ -137,6 +153,9 @@
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/tiling-window-manager/</loc>
+    </url>
+    <url>
+        <loc>https://yazeed1s.github.io/tags/window-manager/</loc>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/x11/</loc>

@@ -229,4 +229,142 @@
 </content>
         
     </entry>
+    <entry xml:lang="en">
+        <title>Interrupts, Traps, and the Kernel Boundary</title>
+        <published>2025-03-15T00:00:00+00:00</published>
+        <updated>2025-03-15T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/interrupts-traps/"/>
+        <id>https://yazeed1s.github.io/posts/interrupts-traps/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/interrupts-traps/">&lt;p&gt;Your app calls a syscall. A packet arrives on the network card. The timer fires. These all interrupt normal execution, but they&#x27;re not the same thing. The terminology gets confusing because people use interrupt, trap, and exception loosely.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;user-space-vs-kernel-space&quot;&gt;user space vs kernel space&lt;&#x2F;h2&gt;
+&lt;p&gt;First the basics. Modern CPUs have privilege levels. On x86 these are called rings. Ring 0 is the most privileged (kernel). Ring 3 is least privileged (user applications).&lt;&#x2F;p&gt;
+&lt;p&gt;Your application runs in ring 3. It can execute normal instructions, access its own memory, do math. But it cannot:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Access hardware directly&lt;&#x2F;li&gt;
+&lt;li&gt;Read&#x2F;write arbitrary memory addresses&lt;&#x2F;li&gt;
+&lt;li&gt;Execute privileged instructions (like changing page tables or disabling interrupts)&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;The kernel runs in ring 0. It can do all of those things.&lt;&#x2F;p&gt;
+&lt;p&gt;When you call &lt;code&gt;read()&lt;&#x2F;code&gt; to read from a file, your code can&#x27;t just talk to the disk controller. It has to ask the kernel. The CPU has to switch from ring 3 to ring 0, do the privileged work, then switch back.&lt;&#x2F;p&gt;
+&lt;p&gt;This switch is the kernel boundary. Crossing it has a cost. You save registers, change privilege level, potentially flush caches. This is why syscalls aren&#x27;t free.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;interrupts&quot;&gt;interrupts&lt;&#x2F;h2&gt;
+&lt;p&gt;An interrupt is a signal from hardware that says &quot;stop what you&#x27;re doing, I need attention.&quot;&lt;&#x2F;p&gt;
+&lt;p&gt;Examples:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Keyboard: &quot;a key was pressed&quot;&lt;&#x2F;li&gt;
+&lt;li&gt;Network card: &quot;a packet arrived&quot;&lt;&#x2F;li&gt;
+&lt;li&gt;Timer: &quot;your time slice is up&quot;&lt;&#x2F;li&gt;
+&lt;li&gt;Disk controller: &quot;that read you asked for is done&quot;&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;Interrupts are asynchronous. They happen whenever the hardware needs attention, regardless of what the CPU is currently doing. You could be in the middle of a for loop and suddenly an interrupt fires.&lt;&#x2F;p&gt;
+&lt;p&gt;When an interrupt happens:&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;CPU stops executing current instruction stream&lt;&#x2F;li&gt;
+&lt;li&gt;Saves current state (registers, instruction pointer, flags)&lt;&#x2F;li&gt;
+&lt;li&gt;Looks up the interrupt handler in the Interrupt Descriptor Table (IDT)&lt;&#x2F;li&gt;
+&lt;li&gt;Jumps to that handler (now in ring 0)&lt;&#x2F;li&gt;
+&lt;li&gt;Handler does its work&lt;&#x2F;li&gt;
+&lt;li&gt;Handler returns, CPU restores state, continues where it left off&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;p&gt;The key thing: the currently running process doesn&#x27;t trigger this. It just happens to it.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;traps&quot;&gt;traps&lt;&#x2F;h2&gt;
+&lt;p&gt;A trap is a synchronous exception triggered by the currently running code. It&#x27;s intentional.&lt;&#x2F;p&gt;
+&lt;p&gt;The main example: syscalls. When you call &lt;code&gt;read()&lt;&#x2F;code&gt;, the C library eventually executes a special instruction (&lt;code&gt;syscall&lt;&#x2F;code&gt; on x86-64, &lt;code&gt;int 0x80&lt;&#x2F;code&gt; on older x86) that deliberately triggers a trap.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;User code calls read()&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;  -&amp;gt; libc wrapper&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    -&amp;gt; syscall instruction (trap into kernel)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;      -&amp;gt; kernel syscall handler&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;        -&amp;gt; returns to user space&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;The difference from interrupts: you asked for this. The code executing triggered it. It happens at a specific point in your instruction stream, not randomly.&lt;&#x2F;p&gt;
+&lt;p&gt;Other traps&#x2F;exceptions:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Page fault — you accessed memory that isn&#x27;t mapped. Could be a bug, or could be demand paging doing its job.&lt;&#x2F;li&gt;
+&lt;li&gt;Division by zero — arithmetic error&lt;&#x2F;li&gt;
+&lt;li&gt;Invalid opcode — tried to execute garbage&lt;&#x2F;li&gt;
+&lt;li&gt;Breakpoint — debugger trap (int 3)&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;Some of these are errors (division by zero kills your process). Some are handled and execution continues (page fault loads the page, then your load instruction retries).&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-naming-confusion&quot;&gt;the naming confusion&lt;&#x2F;h2&gt;
+&lt;p&gt;Different sources use these terms differently. Here&#x27;s how I think about it:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Interrupt&lt;&#x2F;strong&gt; — external, async, from hardware&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Trap&lt;&#x2F;strong&gt; — internal, sync, intentional (syscalls)&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Exception&lt;&#x2F;strong&gt; — internal, sync, usually an error (page fault, div by zero)&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Fault&lt;&#x2F;strong&gt; — exception that can be corrected (page fault) — instruction retries&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Abort&lt;&#x2F;strong&gt; — unrecoverable error&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;Some people use &quot;exception&quot; as the umbrella term for everything. Some use &quot;interrupt&quot; for everything. The Intel manual has its own definitions. It&#x27;s messy.&lt;&#x2F;p&gt;
+&lt;p&gt;What matters: understand whether the trigger is external (hardware) or internal (executing code), and whether it&#x27;s expected (syscall) or unexpected (error).&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-interrupt-descriptor-table&quot;&gt;the interrupt descriptor table&lt;&#x2F;h2&gt;
+&lt;p&gt;The CPU needs to know where to jump for each interrupt&#x2F;exception. This is stored in the IDT, a table in memory. The kernel sets this up at boot.&lt;&#x2F;p&gt;
+&lt;p&gt;Each entry has:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Handler address&lt;&#x2F;li&gt;
+&lt;li&gt;What privilege level can trigger it&lt;&#x2F;li&gt;
+&lt;li&gt;Gate type (interrupt gate, trap gate)&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;For hardware interrupts, the entries point to kernel interrupt handlers. For the syscall trap, it points to the syscall entry point.&lt;&#x2F;p&gt;
+&lt;p&gt;When an interrupt fires, the CPU:&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;Uses the interrupt number as an index into IDT&lt;&#x2F;li&gt;
+&lt;li&gt;Checks privilege&lt;&#x2F;li&gt;
+&lt;li&gt;Switches to ring 0 if needed&lt;&#x2F;li&gt;
+&lt;li&gt;Jumps to the handler address&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;h2 id=&quot;hardware-interrupts-in-more-detail&quot;&gt;hardware interrupts in more detail&lt;&#x2F;h2&gt;
+&lt;p&gt;When a device needs attention, it signals an interrupt request (IRQ). On modern systems this goes through an interrupt controller (APIC).&lt;&#x2F;p&gt;
+&lt;p&gt;The kernel has to:&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;Acknowledge the interrupt&lt;&#x2F;li&gt;
+&lt;li&gt;Figure out which device caused it&lt;&#x2F;li&gt;
+&lt;li&gt;Call the right driver&#x27;s handler&lt;&#x2F;li&gt;
+&lt;li&gt;Tell the interrupt controller we&#x27;re done&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;p&gt;Handling needs to be fast because interrupts are disabled (or that IRQ is masked) while you&#x27;re in the handler. If you take too long, you miss other interrupts.&lt;&#x2F;p&gt;
+&lt;p&gt;Linux splits this into top half and bottom half:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Top half&lt;&#x2F;strong&gt;: runs in interrupt context, does minimum work, schedules bottom half&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Bottom half&lt;&#x2F;strong&gt;: runs later with interrupts enabled, does the real work (softirqs, tasklets, workqueues)&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;For example, network card interrupt:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Top half: grab the packet from hardware, queue it, schedule bottom half&lt;&#x2F;li&gt;
+&lt;li&gt;Bottom half: process the packet up the network stack&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;h2 id=&quot;syscall-cost&quot;&gt;syscall cost&lt;&#x2F;h2&gt;
+&lt;p&gt;Crossing the kernel boundary isn&#x27;t free. You pay for:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Saving&#x2F;restoring registers&lt;&#x2F;li&gt;
+&lt;li&gt;Switching stacks (user stack -&amp;gt; kernel stack)&lt;&#x2F;li&gt;
+&lt;li&gt;TLB and cache effects&lt;&#x2F;li&gt;
+&lt;li&gt;Spectre mitigations on modern kernels (KPTI, retpolines)&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;On a modern system, a syscall might take a few hundred nanoseconds. Doesn&#x27;t sound like much, but if you&#x27;re doing thousands per second, it adds up.&lt;&#x2F;p&gt;
+&lt;p&gt;This is why people use:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Batching (fewer syscalls, more work per call)&lt;&#x2F;li&gt;
+&lt;li&gt;io_uring (submit many I&#x2F;O requests with one syscall)&lt;&#x2F;li&gt;
+&lt;li&gt;mmap (access files without read() syscalls)&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;On x86-64, &lt;code&gt;syscall&lt;&#x2F;code&gt;&#x2F;&lt;code&gt;sysret&lt;&#x2F;code&gt; are faster than the old &lt;code&gt;int 0x80&lt;&#x2F;code&gt; method&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;&#x2F;proc&#x2F;interrupts&lt;&#x2F;code&gt; shows interrupt counts per CPU&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;perf stat&lt;&#x2F;code&gt; can count context switches and syscalls&lt;&#x2F;li&gt;
+&lt;li&gt;NMI (Non-Maskable Interrupt) can&#x27;t be disabled, used for profiling and panic&lt;&#x2F;li&gt;
+&lt;li&gt;The timer interrupt is what makes preemptive multitasking work&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
 </feed>

@@ -103,8 +103,7 @@
 &lt;li&gt;Need page A -&amp;gt; fault, load A, evict B&lt;&#x2F;li&gt;
 &lt;li&gt;Forever&lt;&#x2F;li&gt;
 &lt;&#x2F;ol&gt;
-&lt;p&gt;System spends 99% of time moving data. 1% doing work. Disk light stuck on. Mouse barely moves.&lt;&#x2F;p&gt;
-&lt;p&gt;This is the performance cliff. Not gradual slowdown. Death spiral.&lt;&#x2F;p&gt;
+&lt;p&gt;System spends 99% of time moving data. 1% doing work. This is where you get the &quot;stuck mouse&quot; feeling.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;lru-picking-victims&quot;&gt;lru: picking victims&lt;&#x2F;h2&gt;
 &lt;p&gt;How does kernel decide which page to evict?&lt;&#x2F;p&gt;
