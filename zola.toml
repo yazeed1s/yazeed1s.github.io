@@ -10,11 +10,13 @@ taxonomies = [{ name = "tags", feed = true }]
 [markdown.highlighting]
 highlight_code_in_css = true
 extra_themes = [
-  "themes/gruvbox-custom-dark.json",
-  "themes/gruvbox-custom-light.json",
+  "themes/zenburn-custom-dark.json",
+  "themes/zenburn-custom-light.json",
 ]
-light_theme = "Gruvbox Material Light"
-dark_theme = "Gruvbox Material Dark"
+# light_theme = "Gruvbox Material Light"
+# dark_theme = "Gruvbox Material Dark"
+light_theme = "Zenburn Custom Light"
+dark_theme = "Zenburn Custom Dark"
 
 [slugify]
 paths = "on"
@@ -56,6 +58,9 @@ background = "#eae6deff"
 text = "#1a1410"
 text_muted = "#1a1410"
 accent = "#9E4440"
+bold = "#1a1410"
+italic = "#1a1410"
+headers = "#1a1410"
 accent_hover = "#7A3533"
 code_bg = "#e1ded6ff"
 border = "#abaaaaff"
@@ -65,6 +70,9 @@ background = "#303132"
 text = "#bebbb9ff"
 text_muted = "#d5d2cf"
 accent = "#e57665"
+bold = "#d5d2cf"
+italic = "#d5d2cf"
+headers = "#d5d2cf"
 accent_hover = "#888885"
 code_bg = "#282829"
 border = "#524f4c"

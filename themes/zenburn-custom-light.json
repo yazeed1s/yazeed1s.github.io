@@ -1,0 +1,262 @@
+{
+    "name": "Zenburn Custom Light",
+    "type": "light",
+    "colors": {
+        "editor.background": "#d7d5c3",
+        "editor.foreground": "#4b4b48"
+    },
+    "tokenColors": [
+        {
+            "scope": [
+                "comment",
+                "punctuation.definition.comment"
+            ],
+            "settings": {
+                "foreground": "#7a7d7a",
+                "fontStyle": "italic"
+            }
+        },
+        {
+            "scope": [
+                "keyword",
+                "storage.type",
+                "storage.modifier"
+            ],
+            "settings": {
+                "foreground": "#784367"
+            }
+        },
+        {
+            "scope": [
+                "keyword.operator",
+                "punctuation.accessor"
+            ],
+            "settings": {
+                "foreground": "#4b4b48"
+            }
+        },
+        {
+            "scope": [
+                "string",
+                "string.quoted"
+            ],
+            "settings": {
+                "foreground": "#4a6934"
+            }
+        },
+        {
+            "scope": [
+                "string.regexp"
+            ],
+            "settings": {
+                "foreground": "#266662"
+            }
+        },
+        {
+            "scope": [
+                "constant.numeric",
+                "constant.language"
+            ],
+            "settings": {
+                "foreground": "#784367"
+            }
+        },
+        {
+            "scope": [
+                "constant",
+                "constant.other"
+            ],
+            "settings": {
+                "foreground": "#784367"
+            }
+        },
+        {
+            "scope": [
+                "entity.name.function",
+                "support.function"
+            ],
+            "settings": {
+                "foreground": "#3c6362"
+            }
+        },
+        {
+            "scope": [
+                "entity.name.type",
+                "entity.name.class",
+                "support.type",
+                "support.class"
+            ],
+            "settings": {
+                "foreground": "#855959"
+            }
+        },
+        {
+            "scope": [
+                "variable",
+                "variable.other"
+            ],
+            "settings": {
+                "foreground": "#7d4242"
+            }
+        },
+        {
+            "scope": [
+                "variable.parameter",
+                "entity.name.variable.parameter",
+                "variable.other.member",
+                "variable.other.property",
+                "variable.other.field"
+            ],
+            "settings": {
+                "foreground": "#7d4242"
+            }
+        },
+        {
+            "scope": [
+                "entity.name.function.preprocessor",
+                "meta.preprocessor",
+                "keyword.control.directive"
+            ],
+            "settings": {
+                "foreground": "#784367"
+            }
+        },
+        {
+            "scope": [
+                "entity.other.attribute-name"
+            ],
+            "settings": {
+                "foreground": "#784367"
+            }
+        },
+        {
+            "scope": [
+                "entity.name.tag"
+            ],
+            "settings": {
+                "foreground": "#7d4242"
+            }
+        },
+        {
+            "scope": [
+                "punctuation.definition.tag"
+            ],
+            "settings": {
+                "foreground": "#7a7d7a"
+            }
+        },
+        {
+            "scope": [
+                "punctuation",
+                "punctuation.separator",
+                "punctuation.terminator"
+            ],
+            "settings": {
+                "foreground": "#4b4b48"
+            }
+        },
+        {
+            "scope": [
+                "support.function.builtin"
+            ],
+            "settings": {
+                "foreground": "#784367"
+            }
+        },
+        {
+            "scope": [
+                "entity.name.namespace",
+                "entity.name.module"
+            ],
+            "settings": {
+                "foreground": "#784367"
+            }
+        },
+        {
+            "scope": [
+                "entity.other.inherited-class",
+                "support.type.property-name"
+            ],
+            "settings": {
+                "foreground": "#855959"
+            }
+        },
+        {
+            "scope": [
+                "entity.name.label"
+            ],
+            "settings": {
+                "foreground": "#784367"
+            }
+        },
+        {
+            "scope": [
+                "markup.heading"
+            ],
+            "settings": {
+                "foreground": "#3c6362"
+            }
+        },
+        {
+            "scope": [
+                "markup.bold"
+            ],
+            "settings": {
+                "foreground": "#855959",
+                "fontStyle": "bold"
+            }
+        },
+        {
+            "scope": [
+                "markup.italic"
+            ],
+            "settings": {
+                "foreground": "#784367",
+                "fontStyle": "italic"
+            }
+        },
+        {
+            "scope": [
+                "markup.inline.raw",
+                "markup.raw"
+            ],
+            "settings": {
+                "foreground": "#4a6934"
+            }
+        },
+        {
+            "scope": [
+                "markup.underline.link",
+                "markup.link"
+            ],
+            "settings": {
+                "foreground": "#266662"
+            }
+        },
+        {
+            "scope": [
+                "markup.quote"
+            ],
+            "settings": {
+                "foreground": "#7a7d7a",
+                "fontStyle": "italic"
+            }
+        },
+        {
+            "scope": [
+                "markup.list"
+            ],
+            "settings": {
+                "foreground": "#7d4242"
+            }
+        },
+        {
+            "scope": [
+                "markup.strikethrough"
+            ],
+            "settings": {
+                "foreground": "#7a7d7a"
+            }
+        }
+    ]
+}

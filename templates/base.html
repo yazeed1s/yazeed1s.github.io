@@ -28,7 +28,12 @@ social -%} {% import "macros/hooks.html" as hooks -%} {% import
     config.extra.colours.light.accent_hover | default(value="#7A3533") %} {%
     set light_code_bg = config.extra.colours.light.code_bg |
     default(value="#f0ebe3") %} {% set light_border =
-    config.extra.colours.light.border | default(value="#e0d9ce") %} {% set
+    config.extra.colours.light.border | default(value="#e0d9ce") %}
+    {% set light_bold = config.extra.colours.light.bold | default(value=light_text) %}
+    {% set light_italic = config.extra.colours.light.italic | default(value=light_text) %}
+    {% set light_headers = config.extra.colours.light.headers | default(value=light_text) %}
+
+    {% set
     dark_bg = config.extra.colours.dark.background |
     default(value="#141413") %} {% set dark_text =
     config.extra.colours.dark.text | default(value="#e8e8e8") %} {% set
@@ -40,67 +45,32 @@ social -%} {% import "macros/hooks.html" as hooks -%} {% import
     config.extra.colours.dark.code_bg | default(value="#1e1e1d") %} {% set
     dark_border = config.extra.colours.dark.border |
     default(value="#2a2a29") %}
+    {% set dark_bold = config.extra.colours.dark.bold | default(value=dark_text) %}
+    {% set dark_italic = config.extra.colours.dark.italic | default(value=dark_text) %}
+    {% set dark_headers = config.extra.colours.dark.headers | default(value=dark_text) %}
     <style>
         :root {
-            --nav-basis: {{basis}}
-
-            %;
-
-            --light-bg: {{light_bg}}
-
-            ;
-
-            --light-text: {{light_text}}
-
-            ;
-
-            --light-text-muted: {{light_text_muted}}
-
-            ;
-
-            --light-accent: {{light_accent}}
-
-            ;
-
-            --light-accent-hover: {{light_accent_hover}}
-
-            ;
-
-            --light-code-bg: {{light_code_bg}}
-
-            ;
-
-            --light-border: {{light_border}}
-
-            ;
-
-            --dark-bg: {{dark_bg}}
-
-            ;
-
-            --dark-text: {{dark_text}}
-
-            ;
-
-            --dark-text-muted: {{dark_text_muted}}
-
-            ;
-
-            --dark-accent: {{dark_accent}}
-
-            ;
-
-            --dark-accent-hover: {{dark_accent_hover}}
-
-            ;
-
-            --dark-code-bg: {{dark_code_bg}}
-
-            ;
-
-            --dark-border: {{dark_border}}
-
-            ;
+            --nav-basis: {{basis}}%;
+            --light-bg: {{light_bg}};
+            --light-text: {{light_text}};
+            --light-text-muted: {{light_text_muted}};
+            --light-accent: {{light_accent}};
+            --light-accent-hover: {{light_accent_hover}};
+            --light-code-bg: {{light_code_bg}};
+            --light-border: {{light_border}};
+            --light-bold: {{light_bold}};
+            --light-italic: {{light_italic}};
+            --light-headers: {{light_headers}};
+            --dark-bg: {{dark_bg}};
+            --dark-text: {{dark_text}};
+            --dark-text-muted: {{dark_text_muted}};
+            --dark-accent: {{dark_accent}};
+            --dark-accent-hover: {{dark_accent_hover}};
+            --dark-code-bg: {{dark_code_bg}};
+            --dark-border: {{dark_border}};
+            --dark-bold: {{dark_bold}};
+            --dark-italic: {{dark_italic}};
+            --dark-headers: {{dark_headers}};
         }
     </style>
     <meta name="theme-color" id="tc" />

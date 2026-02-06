@@ -1,80 +1,59 @@
 +++
-title = "Memory Disaggregation: Decoupling Memory from Compute"
+title = "Memory Disaggregation"
 date = 2026-01-05
-description = "How modern data centers separate memory pools from compute nodes."
+description = "What memory disaggregation is and why people are talking about it now."
 [taxonomies]
-tags = ["Memory", "Distributed Systems", "Data Centers", "Hardware"]
+tags = ["Memory", "Distributed Systems"]
 +++
 
----
+I've been reading about memory disaggregation lately and wanted to write down what I understand so far. This is mostly from a VMware Research paper that asks a question I found interesting: why hasn't memory disaggregation happened already?
 
-This paper from VMware Research caught my attention because it asks a question I'd been circling around: why hasn't memory disaggregation happened already?
+The idea has been around since the 90s. Intel pushed Rack Scale Architecture in 2013. It didn't take off. The paper argues two things finally align now: the economics are painful enough and the technology exists to actually do something about it.
 
-The idea has been around since the 90s. Intel pushed Rack Scale Architecture in 2013. But it never took off. The authors argue that two things finally align now: a burning economic problem and feasible technology to solve it.
+## the basic idea
 
----
+Traditional servers bundle CPU, memory, storage into one box. Need more RAM? Buy a bigger box or add DIMMs if you haven't hit the motherboard limit. Don't use all your RAM? It sits idle. You can't share it.
 
-## the core idea
+Memory disaggregation pulls memory out into separate pools that multiple servers can access. Think about how we went from local storage to SAN/NAS, but for memory instead.
 
-Traditional servers bundle everything (CPU, memory, storage) into one box. If you need more RAM, you buy a bigger box or add DIMMs (if you haven't hit the motherboard limit). If you don't use all your RAM, it sits idle.
+So what does this actually give you:
 
-Memory disaggregation pulls memory out into separate pools that multiple servers can access. Think of it like the shift from local storage to SAN/NAS, but for memory, or better yet, like a GPU rack but for memory.
+- **Capacity expansion.** A server can use more memory than it physically contains by reaching into the pool. Similar to what Infiniswap does, but with hardware support instead of software paging tricks.
 
-This gives you two things:
+- **Data sharing.** Pool memory can be mapped into multiple hosts at once. They can load/store to the same bytes without serializing everything into messages. You still need software to handle ownership and synchronization and failures. But the access itself looks like memory, not network messages.
 
-**Capacity expansion.** A server can use more memory than it physically contains by accessing the pool. Similar to Infiniswap, but with hardware support instead of software paging.
+## why is this coming up now
 
-**Data sharing.** In the limit, pool memory can be mapped into multiple hosts so they can load/store into the same bytes without explicit send/recv. You still need software protocols (ownership, synchronization, failure), but the access looks like memory instead of messages.
+The economics are getting painful. Memory is like 50% of server cost and 37% of TCO. Three companies control DRAM production. Demand is exploding from data centers and ML and in-memory databases. And here's the frustrating part: clusters waste a lot of memory. Over 70% of the time, more than half of aggregate memory sits unused while some machines are paging to disk because they ran out.
 
----
+The technology also finally exists. RDMA gives single-digit microsecond latencies. But the bigger thing is CXL which gives you cache-coherent load/store access over PCIe. Plus theres a roadmap toward switches and pooling and shared memory fabrics.
 
-## why now
+The pool can even use cheaper denser slower DRAM since it's already the "slow tier" compared to local DIMMs anyway.
 
-**The economics are painful.** Memory makes up 50% of server cost and 37% of total cost of ownership in cloud environments. Three companies control DRAM production. Demand explodes from data centers, ML training, and in-memory databases. Meanwhile, clusters waste memory (the paper shows over 70% of the time, more than half of aggregate cluster memory sits unused while some machines page to disk).
+## what I found interesting
 
-**The technology finally exists.** RDMA gives you single-digit microsecond latencies. But the bigger enabler is CXL (Compute eXpress Link): cache-coherent load/store access to devices over PCIe, plus a roadmap toward switching, pooling, and (eventually) shared memory fabrics.
+It's not just about capacity. Most remote memory systems like Infiniswap focus on paging to remote RAM. That's useful but limited. CXL promises memory that actually looks like memory: load/store access to a larger pool. With the right fabric features you could map the same bytes into multiple hosts. That's different from shipping pages around.
 
-Neat detail: the pool can use cheaper, denser (and potentially slower) DRAM, because it's already the "slow tier" compared to local DIMMs.
+The OS problems are hard though. The paper is mostly about what's unsolved. Memory allocation at scale. Scheduling with memory locality. Pointer sharing across servers. Failure handling for "optional" memory. Security for hot-swappable pools. These need fundamental rethinking.
 
----
+The timeline matches what happened with storage disaggregation. Start small with few hosts per pool. Add switches for rack-scale. Push the fabric boundary outward. Whether it ends up being "CXL over something" or something else is open. But the trajectory rhymes with how storage disaggregation went.
 
-## what's interesting
+## where it fits and where it doesn't
 
-**It's not just about capacity.** Most remote memory systems (Infiniswap, Fastswap) focus on page-to-remote-RAM-instead-of-disk. Useful, but limited. The promise of CXL is memory that looks like memory: load/store access to a larger pool, and (with the right fabric features) the possibility of mapping the same bytes into multiple hosts. That's qualitatively different from "remote paging."
+Good for: data-intensive workloads like Spark or Ray or distributed DBs that spend cycles serializing and copying. Working sets that barely fit in local memory. Clusters with memory imbalance. Places where memory is already 50%+ of server cost.
 
-**The OS problems are hard.** The paper is mostly about what's _unsolved_: memory allocation at scale, scheduling with memory locality, pointer sharing across servers, failure handling for "optional" memory, security for hot-swappable memory pools. These aren't incremental fixes; they require rethinking fundamental abstractions.
+Bad for: workloads that already fit in local memory (you're just adding latency for no reason). Latency-sensitive apps that can't handle hundreds of extra nanoseconds. Traditional apps that don't share data across processes anyway.
 
-**The timeline matches storage disaggregation.** Start small (a few hosts per pool), add switches for rack-scale, and eventually push the fabric boundary outward. Whether that ends up looking like "CXL over X" or something else is still an open question, but the trajectory rhymes with how storage disaggregation played out.
-
----
-
-## where it works / where it doesn't
-
-**Good fit:**
-
-- Data-intensive workloads (Spark, Ray, distributed DBs) that spend cycles serializing and copying
-- Workloads with working sets that barely fit in local memory
-- Clusters with significant memory imbalance
-- Environments where memory is 50%+ of server cost
-
-**Bad fit:**
-
-- Workloads that fit comfortably in local memory (you'd be adding latency for no benefit)
-- Latency-sensitive applications that can't tolerate hundreds of extra nanoseconds in their hot path
-- Traditional applications that don't share data across processes
-
-The performance trade-off: pool memory is slower than local (hundreds of ns versus ~100ns), but still orders of magnitude faster than SSD/HDD. For workloads that currently page to disk, this can be transformative. For workloads that don't, adding a slower tier may just hurt.
-
----
+Pool memory is slower than local (hundreds of ns vs ~100ns). But still way faster than SSD or disk. For workloads that currently page to disk, this could be big. For workloads that dont page at all, adding a slower tier might just make things worse.
 
 ## notes
 
-- Paper: [Aguilera et al., "Memory disaggregation: why now and what are the challenges", ACM SIGOPS Operating Systems Review, 2023](https://dl.acm.org/doi/10.1145/3606557.3606563)
-- This is a position paper (no benchmarks, but clear analysis of the problem space)
+- Paper: [Aguilera et al., "Memory disaggregation: why now and what are the challenges", ACM SIGOPS, 2023](https://dl.acm.org/doi/10.1145/3606557.3606563)
+- Position paper, no benchmarks, just analysis of the problem space
 - CXL 1.0: local memory expansion cards (shipping now)
-- CXL 2.0/3.0: fabric switches for pool memory (3-5 years out)
+- CXL 2.0/3.0: fabric switches for pool memory (maybe 3-5 years out)
 - Latency estimates: local ~100ns, CXL local ~200-300ns, CXL pool ~500-1000ns, RDMA ~1-5μs, SSD ~100μs
-- Memory population rules (balanced channels, identical DIMMs) make incremental upgrades nearly impossible (another driver for disaggregation)
-- Distributed shared memory systems from the 90s taught us: cache coherence doesn't scale beyond rack-scale
-- Security concern: DRAM retains data residue after power-down, and pool memory is hot-swappable (encryption matters more than for local memory)
-- Related systems: Infiniswap (software paging over RDMA), LegoOS (full hardware disaggregation), The Machine (HPE, discontinued)
+- Memory population rules (balanced channels, identical DIMMs) make upgrades nearly impossible in practice
+- Distributed shared memory from 90s taught us: cache coherence doesn't scale beyond rack
+- Security: DRAM retains data after power-down and pool memory is hot-swappable so encryption matters
+- Related work: Infiniswap, LegoOS, The Machine (HPE, discontinued)
