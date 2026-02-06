@@ -5,12 +5,12 @@
     <link rel="self" type="application/atom+xml" href="https://yazeed1s.github.io/tags/cpu/atom.xml"/>
     <link rel="alternate" type="text/html" href="https://yazeed1s.github.io"/>
     <generator uri="https://www.getzola.org/">Zola</generator>
-    <updated>2025-11-28T00:00:00+00:00</updated>
+    <updated>2025-12-01T00:00:00+00:00</updated>
     <id>https://yazeed1s.github.io/tags/cpu/atom.xml</id>
     <entry xml:lang="en">
-        <title>OS Context Switching: What Happens When Processes Switch</title>
-        <published>2025-11-28T00:00:00+00:00</published>
-        <updated>2025-11-28T00:00:00+00:00</updated>
+        <title>Context Switches</title>
+        <published>2025-12-01T00:00:00+00:00</published>
+        <updated>2025-12-01T00:00:00+00:00</updated>
         
         <author>
           <name>
@@ -20,84 +20,56 @@
           </name>
         </author>
         
-        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/context-switching/"/>
-        <id>https://yazeed1s.github.io/posts/context-switching/</id>
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/context-switches/"/>
+        <id>https://yazeed1s.github.io/posts/context-switches/</id>
         
-        <content type="html" xml:base="https://yazeed1s.github.io/posts/context-switching/">&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;introduction&quot;&gt;Introduction&lt;&#x2F;h2&gt;
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/context-switches/">&lt;p&gt;I wanted to write down what I understand about context switches because they keep coming up when I read about performance and scheduling.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-is-a-context-switch&quot;&gt;what is a context switch&lt;&#x2F;h2&gt;
+&lt;p&gt;A context switch is when the CPU stops running one process (or thread) and starts running another. The OS has to save everything about the current process so it can resume it later, then load everything about the next process so it can start running.&lt;&#x2F;p&gt;
+&lt;p&gt;&quot;Everything&quot; here means: the program counter (where the process was in its code), the register values, the stack pointer, and some other CPU state. This is called the process context.&lt;&#x2F;p&gt;
+&lt;p&gt;The reason we need this is simple: we have more processes than CPUs. On my laptop I might have hundreds of processes but only 8 cores. They all need to run somehow, so they take turns. The OS gives each process a slice of time on a CPU, and when the slice is up (or something else happens), it switches to another process.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;when-do-context-switches-happen&quot;&gt;when do context switches happen&lt;&#x2F;h2&gt;
+&lt;p&gt;A few situations:&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Timer interrupt.&lt;&#x2F;strong&gt; The scheduler sets a timer (maybe 1-10ms depending on the OS and config). When it fires, the kernel gets control and can decide to switch to another process. This is called preemption.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Process blocks.&lt;&#x2F;strong&gt; If a process does something that has to wait (reading from disk, waiting for network, waiting for a lock), it makes no sense to keep it on the CPU. The kernel switches to something that can actually run.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Explicit yield.&lt;&#x2F;strong&gt; A process can voluntarily give up the CPU. This is rare in practice, most of the time the kernel just preempts.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Higher priority process wakes up.&lt;&#x2F;strong&gt; If something more important becomes runnable (like a real-time task or an interactive process that was waiting for input), the kernel might preempt the current process immediately.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-actually-happens-during-a-switch&quot;&gt;what actually happens during a switch&lt;&#x2F;h2&gt;
+&lt;p&gt;When the kernel decides to switch from process A to process B:&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;Save A&#x27;s registers to memory (usually in some kernel data structure associated with A, like the task_struct in Linux)&lt;&#x2F;li&gt;
+&lt;li&gt;Save A&#x27;s stack pointer&lt;&#x2F;li&gt;
+&lt;li&gt;Update page tables or TLB if the processes have different address spaces (this is where it gets expensive)&lt;&#x2F;li&gt;
+&lt;li&gt;Load B&#x27;s registers from memory&lt;&#x2F;li&gt;
+&lt;li&gt;Load B&#x27;s stack pointer&lt;&#x2F;li&gt;
+&lt;li&gt;Jump to wherever B left off&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;p&gt;If A and B are threads in the same process, step 3 is simpler because they share the same address space. This is one reason thread switches are cheaper than process switches.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;why-context-switches-are-expensive&quot;&gt;why context switches are expensive&lt;&#x2F;h2&gt;
+&lt;p&gt;The direct cost isn&#x27;t that bad. Saving and restoring registers takes maybe hundreds of nanoseconds to a few microseconds. The bigger costs are indirect:&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;TLB flush.&lt;&#x2F;strong&gt; The TLB caches virtual-to-physical address translations. If you switch to a process with a different address space, those cached translations are useless (or worse, wrong). The TLB gets flushed and the new process starts cold. Every memory access causes a TLB miss until the cache warms up again.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Cache pollution.&lt;&#x2F;strong&gt; The new process touches different memory. The L1&#x2F;L2&#x2F;L3 caches fill up with its data, evicting the old process&#x27;s data. When you switch back, you start with cold caches again.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Pipeline flush.&lt;&#x2F;strong&gt; Modern CPUs have deep pipelines with speculative execution. A context switch might flush all of that.&lt;&#x2F;p&gt;
+&lt;p&gt;So the direct cost is maybe 1-10 microseconds depending on the hardware. But the indirect costs from cache&#x2F;TLB warming can add hundreds of microseconds or more to the next stretch of execution.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;why-this-matters&quot;&gt;why this matters&lt;&#x2F;h2&gt;
+&lt;p&gt;If you&#x27;re doing I&#x2F;O-bound work, context switches are probably fine. You&#x27;re waiting on disk or network anyway, the overhead is noise compared to the wait time.&lt;&#x2F;p&gt;
+&lt;p&gt;If you&#x27;re doing CPU-bound work and switching a lot, you&#x27;re wasting cycles. This is why things like busy-waiting or spinning on a lock can sometimes outperform blocking (at least for short waits). You avoid the context switch overhead.&lt;&#x2F;p&gt;
+&lt;p&gt;It&#x27;s also why async I&#x2F;O and event loops (like epoll, io_uring, kqueue) are popular. Instead of blocking and switching, you check if something is ready and move on. You stay on the CPU. Fewer switches, warmer caches.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;some-numbers&quot;&gt;some numbers&lt;&#x2F;h2&gt;
+&lt;p&gt;These are rough and depend heavily on hardware and workload:&lt;&#x2F;p&gt;
 &lt;ul&gt;
-&lt;li&gt;What is a context switch?&lt;&#x2F;li&gt;
-&lt;li&gt;Why context switches are necessary&lt;&#x2F;li&gt;
-&lt;li&gt;The cost of switching&lt;&#x2F;li&gt;
+&lt;li&gt;Direct context switch cost: ~1-5 μs on modern hardware&lt;&#x2F;li&gt;
+&lt;li&gt;TLB flush + warmup: can add 10-100+ μs depending on working set size&lt;&#x2F;li&gt;
+&lt;li&gt;Thread switch (same process): cheaper, maybe 0.5-2 μs since no page table switch&lt;&#x2F;li&gt;
+&lt;li&gt;Typical scheduler timeslice: 1-10 ms&lt;&#x2F;li&gt;
 &lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;what-gets-saved&quot;&gt;What Gets Saved&lt;&#x2F;h2&gt;
+&lt;p&gt;The kernel tries to be smart about this. Linux&#x27;s CFS scheduler considers cache locality when picking where to run a task. It tries to keep tasks on the same CPU they ran on last time (CPU affinity) to preserve cache warmth.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
 &lt;ul&gt;
-&lt;li&gt;CPU registers (general purpose, special)&lt;&#x2F;li&gt;
-&lt;li&gt;Program counter&lt;&#x2F;li&gt;
-&lt;li&gt;Stack pointer&lt;&#x2F;li&gt;
-&lt;li&gt;Floating point &#x2F; SIMD state&lt;&#x2F;li&gt;
-&lt;li&gt;Memory mappings (page table pointer)&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;triggers-for-context-switch&quot;&gt;Triggers for Context Switch&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Timer interrupt (preemption)&lt;&#x2F;li&gt;
-&lt;li&gt;System calls&lt;&#x2F;li&gt;
-&lt;li&gt;I&#x2F;O blocking&lt;&#x2F;li&gt;
-&lt;li&gt;Voluntary yield&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;the-context-switch-process&quot;&gt;The Context Switch Process&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Step-by-step walkthrough&lt;&#x2F;li&gt;
-&lt;li&gt;Kernel mode transition&lt;&#x2F;li&gt;
-&lt;li&gt;Saving old state&lt;&#x2F;li&gt;
-&lt;li&gt;Loading new state&lt;&#x2F;li&gt;
-&lt;li&gt;Return to user mode&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;linux-implementation&quot;&gt;Linux Implementation&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;task_struct&lt;&#x2F;code&gt;&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;code&gt;switch_to()&lt;&#x2F;code&gt; macro&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;code&gt;schedule()&lt;&#x2F;code&gt; function&lt;&#x2F;li&gt;
-&lt;li&gt;Where the actual switch happens&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;performance-impact&quot;&gt;Performance Impact&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Direct costs (saving&#x2F;restoring registers)&lt;&#x2F;li&gt;
-&lt;li&gt;Indirect costs (cache pollution, TLB flush)&lt;&#x2F;li&gt;
-&lt;li&gt;Measuring context switch overhead&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;reducing-context-switches&quot;&gt;Reducing Context Switches&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;User-space threading (green threads)&lt;&#x2F;li&gt;
-&lt;li&gt;Async I&#x2F;O (epoll, io_uring)&lt;&#x2F;li&gt;
-&lt;li&gt;CPU affinity&lt;&#x2F;li&gt;
-&lt;li&gt;Batching work&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;diagram-ideas&quot;&gt;Diagram Ideas&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Context switch flow&lt;&#x2F;li&gt;
-&lt;li&gt;State saved&#x2F;restored&lt;&#x2F;li&gt;
-&lt;li&gt;Timeline of a switch&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Context switches are unavoidable but can be minimized&lt;&#x2F;li&gt;
-&lt;li&gt;Tradeoffs between responsiveness and throughput&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;references&quot;&gt;References&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Linux kernel source (kernel&#x2F;sched&#x2F;)&lt;&#x2F;li&gt;
-&lt;li&gt;Operating systems textbooks&lt;&#x2F;li&gt;
-&lt;li&gt;Performance measurement tools (perf, ftrace)&lt;&#x2F;li&gt;
+&lt;li&gt;You can measure context switches on Linux with &lt;code&gt;perf stat -e context-switches .&#x2F;your_program&lt;&#x2F;code&gt; or by reading &lt;code&gt;&#x2F;proc&#x2F;[pid]&#x2F;status&lt;&#x2F;code&gt;&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;vmstat 1&lt;&#x2F;code&gt; shows system-wide context switches per second&lt;&#x2F;li&gt;
+&lt;li&gt;Voluntary vs involuntary: voluntary means the process blocked or yielded, involuntary means the scheduler preempted it&lt;&#x2F;li&gt;
+&lt;li&gt;In user-space threading (green threads, goroutines), &quot;context switches&quot; are much cheaper because you&#x27;re not going through the kernel and not touching page tables&lt;&#x2F;li&gt;
 &lt;&#x2F;ul&gt;
 </content>
         

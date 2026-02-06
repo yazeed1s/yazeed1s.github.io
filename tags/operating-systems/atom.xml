@@ -5,216 +5,10 @@
     <link rel="self" type="application/atom+xml" href="https://yazeed1s.github.io/tags/operating-systems/atom.xml"/>
     <link rel="alternate" type="text/html" href="https://yazeed1s.github.io"/>
     <generator uri="https://www.getzola.org/">Zola</generator>
-    <updated>2025-12-15T00:00:00+00:00</updated>
+    <updated>2025-12-05T00:00:00+00:00</updated>
     <id>https://yazeed1s.github.io/tags/operating-systems/atom.xml</id>
     <entry xml:lang="en">
-        <title>What Linux Does When Memory Runs Out</title>
-        <published>2025-12-15T00:00:00+00:00</published>
-        <updated>2025-12-15T00:00:00+00:00</updated>
-        
-        <author>
-          <name>
-            
-              Unknown
-            
-          </name>
-        </author>
-        
-        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/linux-memory-pressure/"/>
-        <id>https://yazeed1s.github.io/posts/linux-memory-pressure/</id>
-        
-        <content type="html" xml:base="https://yazeed1s.github.io/posts/linux-memory-pressure/">&lt;hr &#x2F;&gt;
-&lt;p&gt;When you&#x27;re out of RAM and swap is filling up, Linux has to make hard choices. This post is about what those choices are and why they sometimes end with your process getting killed.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;page-replacement&quot;&gt;page replacement&lt;&#x2F;h2&gt;
-&lt;p&gt;When RAM is full and something new needs to come in, something else has to go out. Linux uses LRU lists (active&#x2F;inactive), split for anonymous memory (heap&#x2F;stack) and file-backed pages (page cache). The mental model is the same:&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Active list.&lt;&#x2F;strong&gt; Pages that have been accessed recently. These are &quot;hot&quot; (probably still in use).&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Inactive list.&lt;&#x2F;strong&gt; Pages that haven&#x27;t been touched in a while. These are candidates for eviction.&lt;&#x2F;p&gt;
-&lt;p&gt;New pages usually start inactive. If they get accessed again, they get promoted to active. Reclaim prefers victims from inactive.&lt;&#x2F;p&gt;
-&lt;p&gt;This is a rough approximation of LRU (Least Recently Used). True LRU would track exact access times for every page, which is too expensive. Linux settles for &quot;recently used&quot; versus &quot;not recently used.&quot;&lt;&#x2F;p&gt;
-&lt;p&gt;When memory pressure rises, the kernel scans pages on the inactive list, looking for victims. Clean pages (unchanged since loaded) can be dropped immediately. Dirty pages have to be written to disk first.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;swap-behavior&quot;&gt;swap behavior&lt;&#x2F;h2&gt;
-&lt;p&gt;Swap is the overflow area (disk space where evicted pages go).&lt;&#x2F;p&gt;
-&lt;p&gt;Linux doesn&#x27;t wait until RAM is completely full to start swapping. It swaps based on a tunable called &lt;strong&gt;swappiness&lt;&#x2F;strong&gt; (0-200). Roughly, it&#x27;s a knob for how willing the kernel is to swap anonymous memory versus reclaim file cache.&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;0&lt;&#x2F;strong&gt; = Avoid swapping anonymous memory unless you have to&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;60&lt;&#x2F;strong&gt; = Default-ish, balanced&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;100+&lt;&#x2F;strong&gt; = Swap more aggressively to keep RAM free for file cache&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; cat&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; &#x2F;proc&#x2F;sys&#x2F;vm&#x2F;swappiness&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;60&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;Higher swappiness means Linux will push application pages to swap earlier to keep more room for file system cache. Lower swappiness keeps your applications in RAM longer but may hurt cache performance.&lt;&#x2F;p&gt;
-&lt;p&gt;There&#x27;s no universally right answer. It depends on whether your workload benefits more from cached file data or from keeping application memory resident.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;what-can-t-be-swapped&quot;&gt;what can&#x27;t be swapped&lt;&#x2F;h2&gt;
-&lt;p&gt;Not all memory can go to disk.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Kernel memory can&#x27;t be swapped.&lt;&#x2F;strong&gt; The kernel&#x27;s own data structures (page tables, process descriptors, driver state) must stay in RAM. If the kernel itself got paged out, who would page it back in?&lt;&#x2F;p&gt;
-&lt;p&gt;Specifically, a lot of kernel allocations live in the direct map (the linear mapping of physical memory into kernel virtual addresses). It&#x27;s still mapped via page tables, but it&#x27;s not pageable like user memory.&lt;&#x2F;p&gt;
-&lt;p&gt;This is why memory leaks in kernel code are especially dangerous. That memory is gone until reboot.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;the-oom-killer&quot;&gt;the oom killer&lt;&#x2F;h2&gt;
-&lt;p&gt;When both RAM and swap are full and the kernel can&#x27;t reclaim any more memory, Linux invokes the &lt;strong&gt;OOM Killer&lt;&#x2F;strong&gt; (Out Of Memory Killer).&lt;&#x2F;p&gt;
-&lt;p&gt;It picks a process and terminates it. No negotiation. Just dead.&lt;&#x2F;p&gt;
-&lt;p&gt;How it chooses:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Memory usage.&lt;&#x2F;strong&gt; Bigger hogs are more likely targets.&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;OOM score.&lt;&#x2F;strong&gt; Each process has a computed score, plus a tunable adjustment, that influences selection.&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; Check a process&amp;#39;s OOM score&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; cat&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; &#x2F;proc&#x2F;1234&#x2F;oom_score&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;582&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; Protect important processes&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; echo&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt;1000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt; &amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; &#x2F;proc&#x2F;1234&#x2F;oom_score_adj&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;Setting &lt;code&gt;oom_score_adj&lt;&#x2F;code&gt; to -1000 makes a process essentially unkillable by the global OOM killer. Set it to +1000 and it becomes a preferred target.&lt;&#x2F;p&gt;
-&lt;p&gt;The OOM killer exists because the alternative is worse. Without it, the system would deadlock (no memory to allocate, no way to free any). At least killing one process gives everything else a chance to survive.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;why-linux-overcommits&quot;&gt;why linux overcommits&lt;&#x2F;h2&gt;
-&lt;p&gt;By default, Linux allows you to allocate more memory than exists. &lt;code&gt;malloc(1GB)&lt;&#x2F;code&gt; succeeds even if you only have 512MB free.&lt;&#x2F;p&gt;
-&lt;p&gt;This is &lt;strong&gt;overcommit&lt;&#x2F;strong&gt;, and it&#x27;s intentional. Most programs allocate way more memory than they use. Sparse arrays, buffers &quot;just in case,&quot; forked processes before exec. If Linux refused these allocations, lots of software would break.&lt;&#x2F;p&gt;
-&lt;p&gt;The downside: if you actually try to use all that memory you allocated, you trigger the OOM killer. The allocation succeeded, but using it didn&#x27;t.&lt;&#x2F;p&gt;
-&lt;p&gt;You can tune this behavior:&lt;&#x2F;p&gt;
-&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; Check current mode&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; cat&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; &#x2F;proc&#x2F;sys&#x2F;vm&#x2F;overcommit_memory&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;  #&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; heuristic (default)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; Options:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; 0 = heuristic overcommit (kernel guesses what&amp;#39;s safe)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; 1 = always overcommit (never refuse malloc)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; 2 = strict (refuse if total committed memory would exceed a commit limit derived from RAM, swap, and vm.overcommit_ratio &#x2F; vm.overcommit_kbytes)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;Mode 2 is safer but breaks more software. Mode 0 is a compromise. Mode 1 is living dangerously.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;what-this-means-practically&quot;&gt;what this means practically&lt;&#x2F;h2&gt;
-&lt;p&gt;&lt;strong&gt;Mysterious crashes.&lt;&#x2F;strong&gt; If your process dies with no explanation, check &lt;code&gt;dmesg&lt;&#x2F;code&gt; for OOM killer messages. It might not be your bug (Linux might have killed you to save the system).&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Server planning.&lt;&#x2F;strong&gt; On production servers, monitor swap usage. If you&#x27;re consistently in swap, you&#x27;re consistently slow. If swap fills up, the OOM killer is coming.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Memory limits.&lt;&#x2F;strong&gt; Use cgroups to limit how much memory a process can use. Better to have one application fail cleanly than to have the OOM killer pick arbitrarily.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Kernel memory matters.&lt;&#x2F;strong&gt; If kernel memory grows unbounded (driver bug, leak in a module), you can&#x27;t swap it out. Eventually, OOM. Unlike user-space leaks, you can&#x27;t just kill the offending process.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;the-reality&quot;&gt;the reality&lt;&#x2F;h2&gt;
-&lt;p&gt;Linux&#x27;s memory management is a set of tradeoffs, not solutions.&lt;&#x2F;p&gt;
-&lt;p&gt;Swappiness lets you trade application responsiveness for cache performance. Overcommit lets you trade guaranteed allocation for flexibility. The OOM killer trades one process&#x27;s life for system stability.&lt;&#x2F;p&gt;
-&lt;p&gt;None of these are free. The system is designed to keep running as long as possible, even when resources are exhausted. But &quot;running&quot; under memory pressure doesn&#x27;t mean &quot;running well.&quot;&lt;&#x2F;p&gt;
-&lt;p&gt;When you see the OOM killer fire, it&#x27;s not a bug. It&#x27;s the kernel doing exactly what it&#x27;s designed to do: making a hard choice so you don&#x27;t have to reboot.&lt;&#x2F;p&gt;
-</content>
-        
-    </entry>
-    <entry xml:lang="en">
-        <title>Paging to Disk and the Performance Cliff</title>
-        <published>2025-12-10T00:00:00+00:00</published>
-        <updated>2025-12-10T00:00:00+00:00</updated>
-        
-        <author>
-          <name>
-            
-              Unknown
-            
-          </name>
-        </author>
-        
-        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/paging-performance/"/>
-        <id>https://yazeed1s.github.io/posts/paging-performance/</id>
-        
-        <content type="html" xml:base="https://yazeed1s.github.io/posts/paging-performance/">&lt;hr &#x2F;&gt;
-&lt;p&gt;Virtual memory gives you the illusion of a big address space. Paging is the trick: shuffle pages between RAM and disk as needed. When it works, you barely notice. When it doesn&#x27;t, your system grinds to a halt.&lt;&#x2F;p&gt;
-&lt;p&gt;This post is about why that cliff exists.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;page-faults&quot;&gt;page faults&lt;&#x2F;h2&gt;
-&lt;p&gt;When a program accesses a virtual address, the MMU looks up the translation. If the page isn&#x27;t in RAM right now, you get a &lt;strong&gt;page fault&lt;&#x2F;strong&gt;.&lt;&#x2F;p&gt;
-&lt;p&gt;Despite the name, this isn&#x27;t an error. It&#x27;s the OS saying &quot;hold on, let me go get that.&quot;&lt;&#x2F;p&gt;
-&lt;ol&gt;
-&lt;li&gt;Program accesses memory&lt;&#x2F;li&gt;
-&lt;li&gt;MMU checks: is this page in RAM?&lt;&#x2F;li&gt;
-&lt;li&gt;No → triggers a page fault&lt;&#x2F;li&gt;
-&lt;li&gt;CPU traps to kernel&lt;&#x2F;li&gt;
-&lt;li&gt;Kernel figures out where the page actually is&lt;&#x2F;li&gt;
-&lt;li&gt;Kernel loads it into RAM (if needed)&lt;&#x2F;li&gt;
-&lt;li&gt;Kernel updates page tables&lt;&#x2F;li&gt;
-&lt;li&gt;Program continues, unaware anything happened&lt;&#x2F;li&gt;
-&lt;&#x2F;ol&gt;
-&lt;p&gt;There are two kinds:&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Minor faults.&lt;&#x2F;strong&gt; The page is already in RAM (page cache, shared mapping, or a freshly allocated zero page). The kernel just fixes up page tables. Fast (microseconds-ish).&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Major faults.&lt;&#x2F;strong&gt; The page has to be read from storage (swap or a file). Slow (tens of microseconds on SSDs, up to milliseconds on HDDs).&lt;&#x2F;p&gt;
-&lt;p&gt;That&#x27;s a 100–100,000× difference depending on what you&#x27;re paging to. Minor faults are usually noise. Major faults are the problem.&lt;&#x2F;p&gt;
-&lt;p&gt;Not all page faults are equal though. Some are expected:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Lazy allocation.&lt;&#x2F;strong&gt; The OS doesn&#x27;t actually allocate memory until you use it. First touch = minor fault.&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;Copy-on-write.&lt;&#x2F;strong&gt; Shared pages aren&#x27;t copied until someone writes to them.&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;Swapping.&lt;&#x2F;strong&gt; Pages evicted to disk due to memory pressure. These hurt, but the system keeps working.&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;Others are bugs:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;Accessing invalid addresses → kernel sends SIGSEGV, process dies.&lt;&#x2F;li&gt;
-&lt;li&gt;Dereferencing null or garbage pointers → same result.&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;paging-in-and-out&quot;&gt;paging in and out&lt;&#x2F;h2&gt;
-&lt;p&gt;&lt;strong&gt;Paging in&lt;&#x2F;strong&gt; = loading a page from disk into RAM when the program needs it.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Paging out&lt;&#x2F;strong&gt; = evicting a page from RAM to disk to make room for something else.&lt;&#x2F;p&gt;
-&lt;p&gt;When RAM is full and you need to load a new page, something has to go. The OS picks a &lt;strong&gt;victim page&lt;&#x2F;strong&gt; (usually one that hasn&#x27;t been accessed in a while). If it&#x27;s anonymous or dirty, it has to be written somewhere first (swap or its backing file). If it&#x27;s a clean file-backed page, it can often be dropped and reloaded later. Either way, you free up a frame for the new page.&lt;&#x2F;p&gt;
-&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Before:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;RAM:  [A][B][C][D] ← full&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Swap: [empty]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;OS needs to load page E but RAM is full&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;OS picks B as victim (hasn&amp;#39;t been used recently)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;After:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;RAM:  [A][E][C][D]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Swap: [B]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;If B gets accessed again later, it&#x27;s a page fault. The OS loads B back in, evicts something else. This is happening constantly in the background.&lt;&#x2F;p&gt;
-&lt;p&gt;Each page has a &lt;strong&gt;dirty bit&lt;&#x2F;strong&gt;. If the page has been written to since it was loaded, it&#x27;s dirty. The OS can&#x27;t just drop a dirty page (it has to write it to disk first). Clean pages can be discarded and reloaded from their original source.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;why-disk-hurts&quot;&gt;why disk hurts&lt;&#x2F;h2&gt;
-&lt;p&gt;Here&#x27;s the thing about disk:&lt;&#x2F;p&gt;
-&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Access type&lt;&#x2F;th&gt;&lt;th&gt;Latency&lt;&#x2F;th&gt;&lt;&#x2F;tr&gt;&lt;&#x2F;thead&gt;&lt;tbody&gt;
-&lt;tr&gt;&lt;td&gt;RAM&lt;&#x2F;td&gt;&lt;td&gt;~100 nanoseconds&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
-&lt;tr&gt;&lt;td&gt;SSD&lt;&#x2F;td&gt;&lt;td&gt;~100 microseconds&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
-&lt;tr&gt;&lt;td&gt;HDD&lt;&#x2F;td&gt;&lt;td&gt;~10 milliseconds&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
-&lt;&#x2F;tbody&gt;&lt;&#x2F;table&gt;
-&lt;p&gt;SSD is 1,000× slower than RAM. HDD is 100,000× slower. When a page fault hits disk, your program stalls for an eternity in CPU terms.&lt;&#x2F;p&gt;
-&lt;p&gt;One major page fault isn&#x27;t a problem. A hundred per second and your application feels sluggish. A thousand, and your system is unusable.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;thrashing&quot;&gt;thrashing&lt;&#x2F;h2&gt;
-&lt;p&gt;&lt;strong&gt;Thrashing&lt;&#x2F;strong&gt; is what happens when your working set doesn&#x27;t fit in RAM.&lt;&#x2F;p&gt;
-&lt;p&gt;The working set is the memory your programs are actively using right now. If it exceeds available RAM, the OS has to constantly swap pages in and out. Every page you load evicts something you&#x27;ll need again soon.&lt;&#x2F;p&gt;
-&lt;ol&gt;
-&lt;li&gt;Program needs page A → page fault, load A, evict B&lt;&#x2F;li&gt;
-&lt;li&gt;Program needs page B → page fault, load B, evict A&lt;&#x2F;li&gt;
-&lt;li&gt;Program needs page A → page fault, load A, evict B&lt;&#x2F;li&gt;
-&lt;li&gt;Repeat forever&lt;&#x2F;li&gt;
-&lt;&#x2F;ol&gt;
-&lt;p&gt;Your computer spends 99% of its time moving data between RAM and disk, and 1% doing actual work. Disk light stuck on. Everything frozen. Mouse barely moves.&lt;&#x2F;p&gt;
-&lt;p&gt;This is the performance cliff. You&#x27;re not just slow (you&#x27;re in a death spiral).&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;example-video-editing&quot;&gt;example: video editing&lt;&#x2F;h2&gt;
-&lt;p&gt;You&#x27;re editing a video project. The editor loads 20GB of project data but you only have 16GB of RAM.&lt;&#x2F;p&gt;
-&lt;p&gt;The OS keeps the current timeline section in RAM (you&#x27;re actively accessing it). Clips you haven&#x27;t touched in 10 minutes get paged out.&lt;&#x2F;p&gt;
-&lt;p&gt;When you scroll back to an old section:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;Page fault&lt;&#x2F;li&gt;
-&lt;li&gt;Disk read (you see the loading spinner)&lt;&#x2F;li&gt;
-&lt;li&gt;Some other clip gets evicted to make room&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;If you keep jumping around, constant paging. Everything is slow. But at least the editor works (without virtual memory, it wouldn&#x27;t open at all).&lt;&#x2F;p&gt;
-&lt;p&gt;This is the tradeoff. Virtual memory masks the problem, but it doesn&#x27;t make it go away. You&#x27;re borrowing capacity from disk, and disk is slow.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;this-is-why-remote-memory-matters&quot;&gt;this is why remote memory matters&lt;&#x2F;h2&gt;
-&lt;p&gt;Disk is 1,000-100,000× slower than RAM. That&#x27;s the fundamental limit.&lt;&#x2F;p&gt;
-&lt;p&gt;But what if you could page to someone else&#x27;s unused RAM over the network instead of to disk? RDMA networks give you single-digit microsecond latencies (still slower than local RAM, but often 10–1000× faster than disk depending on whether your baseline is SSD or HDD).&lt;&#x2F;p&gt;
-&lt;p&gt;That&#x27;s the premise behind systems like Infiniswap: keep the paging model but replace the slow part. The cliff becomes a slope.&lt;&#x2F;p&gt;
-&lt;p&gt;But that&#x27;s a different post.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;the-takeaway&quot;&gt;the takeaway&lt;&#x2F;h2&gt;
-&lt;p&gt;Paging exists because disk is big and cheap. It lets you run programs that need more memory than you have.&lt;&#x2F;p&gt;
-&lt;p&gt;But disk is also slow. When your working set exceeds RAM, every page fault is a disk access, and performance falls off a cliff.&lt;&#x2F;p&gt;
-&lt;p&gt;The cliff isn&#x27;t a bug. It&#x27;s physics. RAM is fast, disk is slow, and no amount of clever software changes that. You can smooth the transition, but you can&#x27;t eliminate it.&lt;&#x2F;p&gt;
-&lt;p&gt;If you&#x27;re constantly in swap, you need more RAM. Or you accept the slowdown. There&#x27;s no third option (just ways to make the second option less painful).&lt;&#x2F;p&gt;
-</content>
-        
-    </entry>
-    <entry xml:lang="en">
-        <title>Virtual Memory Is a Lie (And That&#x27;s the Point)</title>
+        <title>Swap and Paging: What Actually Happens When Memory Fills Up</title>
         <published>2025-12-05T00:00:00+00:00</published>
         <updated>2025-12-05T00:00:00+00:00</updated>
         
@@ -226,211 +20,142 @@
           </name>
         </author>
         
-        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/virtual-memory/"/>
-        <id>https://yazeed1s.github.io/posts/virtual-memory/</id>
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/swap-paging/"/>
+        <id>https://yazeed1s.github.io/posts/swap-paging/</id>
         
-        <content type="html" xml:base="https://yazeed1s.github.io/posts/virtual-memory/">&lt;hr &#x2F;&gt;
-&lt;p&gt;Operating systems lie to programs about how much memory exists.&lt;&#x2F;p&gt;
-&lt;p&gt;Every running program thinks it has gigabytes of RAM to itself. Chrome thinks it owns addresses 0x1000000 through 0x1C00000. So does your terminal. So does the video editor. But there&#x27;s only one physical RAM chip, and everyone&#x27;s fighting over it.&lt;&#x2F;p&gt;
-&lt;p&gt;This is virtual memory. Not a bug (a feature).&lt;&#x2F;p&gt;
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/swap-paging/">&lt;hr &#x2F;&gt;
+&lt;p&gt;I kept hitting concepts like &quot;page fault&quot; and &quot;swap&quot; while reading memory disaggregation papers. Figured I should actually understand what these mean at a low level before going further.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;the-illusion&quot;&gt;the illusion&lt;&#x2F;h2&gt;
-&lt;p&gt;When a program allocates memory, the OS doesn&#x27;t hand it physical RAM addresses. It gives the program &lt;strong&gt;virtual addresses&lt;&#x2F;strong&gt; (numbers that only make sense inside that process).&lt;&#x2F;p&gt;
-&lt;p&gt;The program reads and writes using these virtual addresses, mostly unaware of what&#x27;s happening behind the scenes. Sometimes the data is resident in RAM. Sometimes it isn&#x27;t, and the OS has to fault it in from its backing store (a file mapping or swap). The program doesn&#x27;t &quot;see&quot; any of this directly.&lt;&#x2F;p&gt;
-&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Chrome thinks:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;&amp;quot;I have memory from address 0x1000000 to 0x1C00000&amp;quot;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;h2 id=&quot;what-swap-is&quot;&gt;what swap is&lt;&#x2F;h2&gt;
+&lt;p&gt;Swap is disk space that acts as overflow for RAM. When physical memory fills up, the kernel moves some data to swap. Later, if that data is needed again, it gets loaded back.&lt;&#x2F;p&gt;
+&lt;p&gt;That&#x27;s sort of it. The complication is in the details.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;pages&quot;&gt;pages&lt;&#x2F;h2&gt;
+&lt;p&gt;The kernel doesn&#x27;t manage memory byte by byte. Too much bookkeeping. Instead it works in fixed-size chunks called &lt;strong&gt;pages&lt;&#x2F;strong&gt;. Usually 4KB.&lt;&#x2F;p&gt;
+&lt;p&gt;When you allocate memory, you get pages. When data moves to disk, it moves as pages. The physical counterpart is called a &lt;strong&gt;frame&lt;&#x2F;strong&gt;. Same size, different name. Pages are virtual, frames are physical.&lt;&#x2F;p&gt;
+&lt;p&gt;8GB of RAM = roughly 2 million frames. A process might think it has way more pages than that. Most aren&#x27;t backed by physical memory until used.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;page-tables-and-the-mmu&quot;&gt;page tables and the mmu&lt;&#x2F;h2&gt;
+&lt;p&gt;The CPU doesn&#x27;t know about virtual addresses on its own. There&#x27;s a &lt;strong&gt;Memory Management Unit (MMU)&lt;&#x2F;strong&gt; that translates virtual addresses to physical ones.&lt;&#x2F;p&gt;
+&lt;p&gt;How does it know the mapping? &lt;strong&gt;Page tables&lt;&#x2F;strong&gt;. Data structures the kernel maintains. The MMU walks these to find where a virtual page actually lives (which physical frame, or if it&#x27;s not in RAM at all).&lt;&#x2F;p&gt;
+&lt;p&gt;Walking page tables on every memory access would be slow. So the MMU has a cache called the &lt;strong&gt;TLB (Translation Lookaside Buffer)&lt;&#x2F;strong&gt;. Recent translations are stored there. Hit the TLB = fast. Miss = pay for the walk.&lt;&#x2F;p&gt;
+&lt;p&gt;Most accesses hit the TLB. That&#x27;s what makes virtual memory practical.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;page-faults&quot;&gt;page faults&lt;&#x2F;h2&gt;
+&lt;p&gt;Program accesses a virtual address. MMU checks: is this page in RAM? If not, you get a &lt;strong&gt;page fault&lt;&#x2F;strong&gt;.&lt;&#x2F;p&gt;
+&lt;p&gt;Not an error. Just the kernel saying &quot;hold on, I need to go get that.&quot;&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;Program accesses memory&lt;&#x2F;li&gt;
+&lt;li&gt;MMU finds page isn&#x27;t resident&lt;&#x2F;li&gt;
+&lt;li&gt;CPU traps to kernel&lt;&#x2F;li&gt;
+&lt;li&gt;Kernel figures out where page lives (swap, file, or nowhere)&lt;&#x2F;li&gt;
+&lt;li&gt;Kernel loads it into a frame&lt;&#x2F;li&gt;
+&lt;li&gt;Page table updated&lt;&#x2F;li&gt;
+&lt;li&gt;Program resumes&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;p&gt;Two kinds:&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Minor fault.&lt;&#x2F;strong&gt; Page is already somewhere in memory (page cache, shared mapping). Kernel just fixes the page table. Fast.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Major fault.&lt;&#x2F;strong&gt; Page has to be read from disk. Slow. Really slow.&lt;&#x2F;p&gt;
+&lt;p&gt;Some faults are expected:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Lazy allocation.&lt;&#x2F;strong&gt; Kernel doesn&#x27;t back memory until you touch it. First access = minor fault.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Copy-on-write.&lt;&#x2F;strong&gt; Shared pages aren&#x27;t copied until someone writes.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Swapping.&lt;&#x2F;strong&gt; Page was evicted earlier and now needed again.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;Others mean bugs. Accessing garbage address = SIGSEGV.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;paging-in-and-out&quot;&gt;paging in and out&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;strong&gt;Page in&lt;&#x2F;strong&gt; = loading a page from disk into RAM.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Page out&lt;&#x2F;strong&gt; = moving a page from RAM to disk to free space.&lt;&#x2F;p&gt;
+&lt;p&gt;RAM full. New page needed. Kernel picks a &lt;strong&gt;victim&lt;&#x2F;strong&gt; (some page not accessed recently). If it&#x27;s dirty (modified since loaded), kernel writes it to swap first. If it&#x27;s clean, kernel just drops it and reloads later if needed.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Before:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;RAM:  [A][B][C][D] ← full&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Swap: [empty]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Reality:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;- Some of that is in actual RAM&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;- Some isn&amp;#39;t resident right now (and will be faulted in from disk if needed)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;- Chrome doesn&amp;#39;t know the difference&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;This abstraction gives you three things:&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Isolation.&lt;&#x2F;strong&gt; Process A can&#x27;t access Process B&#x27;s memory. Even if they use the same virtual address, they&#x27;re mapped to completely different physical locations.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Simplicity.&lt;&#x2F;strong&gt; Every process thinks it has the whole address space to itself. No coordination needed. No worrying about stepping on another program&#x27;s memory.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Overcommit.&lt;&#x2F;strong&gt; You can allocate more memory than physically exists. The OS figures out where to actually put it (or whether to put it anywhere at all until you use it).&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;pages-memory-in-chunks&quot;&gt;pages: memory in chunks&lt;&#x2F;h2&gt;
-&lt;p&gt;The OS doesn&#x27;t manage memory byte-by-byte. Too much bookkeeping. Instead, it divides everything into fixed-size chunks called &lt;strong&gt;pages&lt;&#x2F;strong&gt;. On most systems, each page is 4KB.&lt;&#x2F;p&gt;
-&lt;p&gt;So 8GB of RAM is about 2 million pages. Your program might think it has access to 4 million pages (16GB of virtual space), but only 2 million can be in physical RAM at once.&lt;&#x2F;p&gt;
-&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Virtual Address Space              Physical RAM&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;+-------------------+              +-------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;| Page 0            | ───────────&amp;gt; | Frame 2           |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;+-------------------+              +-------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;| Page 1            | ───────────&amp;gt; | Frame 0           |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;+-------------------+              +-------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;| Page 2            | ──┐          | Frame 1           |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;+-------------------+   │          +-------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;| Page 3            |   │          | Frame 3           |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;+-------------------+   │          +-------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                       │&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                       │          Disk (Swap)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                       │          +-------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                       └────────&amp;gt; | Swap Slot         |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                  +-------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Need page E. Pick B as victim.&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Page 2 is &amp;quot;swapped out&amp;quot; (it exists on disk, not in RAM)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;When referring to physical RAM, the chunks are called &lt;strong&gt;frames&lt;&#x2F;strong&gt;. Same size as pages, different name. This distinction matters when you&#x27;re tracking what&#x27;s virtual versus what&#x27;s real.&lt;&#x2F;p&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;After:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;RAM:  [A][E][C][D]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Swap: [B]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;If B is accessed again? Major fault. Load B. Evict something else. This happens constantly under memory pressure.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;translation-the-mmu&quot;&gt;translation: the mmu&lt;&#x2F;h2&gt;
-&lt;p&gt;The &lt;strong&gt;Memory Management Unit (MMU)&lt;&#x2F;strong&gt; is hardware that does the virtual-to-physical address translation. When the CPU accesses memory, it asks the MMU: &quot;what&#x27;s the physical address for virtual address 0x5000?&quot;&lt;&#x2F;p&gt;
-&lt;p&gt;The OS maintains &lt;strong&gt;page tables&lt;&#x2F;strong&gt; (data structures that map virtual page numbers to physical frame numbers). The MMU walks these tables to find the answer.&lt;&#x2F;p&gt;
-&lt;p&gt;But walking tables on every memory access would be slow. So the MMU uses a small cache called the &lt;strong&gt;Translation Lookaside Buffer (TLB)&lt;&#x2F;strong&gt;. Recent translations are cached here. Hit the TLB, and translation is essentially free. Miss it, and you pay for a page table walk.&lt;&#x2F;p&gt;
-&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;CPU wants address 0x5000&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    ↓&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;MMU checks TLB&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    ↓&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Hit? → Return physical address (fast)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    ↓&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Miss? → Walk page tables (slower)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;        → Cache result in TLB&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;        → Return physical address&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;Most memory accesses hit the TLB. That&#x27;s what makes virtual memory practical (the common case is fast).&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-dirty-bit&quot;&gt;the dirty bit&lt;&#x2F;h2&gt;
+&lt;p&gt;Each page has a &lt;strong&gt;dirty bit&lt;&#x2F;strong&gt;. Set if the page has been modified since it was loaded.&lt;&#x2F;p&gt;
+&lt;p&gt;Why it matters: clean pages can be dropped. Kernel can reload from file or wherever. Dirty pages can&#x27;t. Kernel has to write them somewhere first.&lt;&#x2F;p&gt;
+&lt;p&gt;Anonymous memory (heap, stack) that&#x27;s dirty goes to swap. File-backed memory that&#x27;s modified goes back to the file (or swap, depends).&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;page-tables-the-mapping-structure&quot;&gt;page tables: the mapping structure&lt;&#x2F;h2&gt;
-&lt;p&gt;The OS maintains &lt;strong&gt;page tables&lt;&#x2F;strong&gt; (data structures that map virtual page numbers to physical frame numbers). Linux uses a hierarchical structure. On x86-64 it&#x27;s usually 4 levels, and can be 5 levels if 5-level paging is enabled. The names you see in Linux look like this:&lt;&#x2F;p&gt;
-&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;+-----+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;| PGD | ← Page Global Directory (top level)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;+-----+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   |   +-----+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   +──&amp;gt;| P4D | ← Page Level 4 Directory&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;       +-----+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;          |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;          |   +-----+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;          +──&amp;gt;| PUD | ← Page Upper Directory&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;              +-----+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                 |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                 |   +-----+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                 +──&amp;gt;| PMD | ← Page Middle Directory&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                     +-----+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                        |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                        |   +-----+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                        +──&amp;gt;| PTE | ← Page Table Entry (bottom level)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                            +-----+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;On many x86-64 systems, the P4D level is &quot;folded&quot; away (so you effectively have 4 levels even though the macros still exist).&lt;&#x2F;p&gt;
-&lt;p&gt;Each level is an array of pointers to the next level. Why hierarchical? Two reasons:&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Saves memory.&lt;&#x2F;strong&gt; A flat page table mapping all of virtual memory would be huge and mostly empty. With a hierarchy, you only allocate entries for memory that&#x27;s actually in use.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Enables large pages.&lt;&#x2F;strong&gt; Higher level entries can directly map large chunks (2MB or 1GB) without going all the way to the bottom. Fewer levels = faster translation.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;why-disk-access-hurts&quot;&gt;why disk access hurts&lt;&#x2F;h2&gt;
+&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Access&lt;&#x2F;th&gt;&lt;th&gt;Latency&lt;&#x2F;th&gt;&lt;&#x2F;tr&gt;&lt;&#x2F;thead&gt;&lt;tbody&gt;
+&lt;tr&gt;&lt;td&gt;RAM&lt;&#x2F;td&gt;&lt;td&gt;~100 nanoseconds&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;SSD&lt;&#x2F;td&gt;&lt;td&gt;~100 microseconds&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;HDD&lt;&#x2F;td&gt;&lt;td&gt;~10 milliseconds&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;&#x2F;tbody&gt;&lt;&#x2F;table&gt;
+&lt;p&gt;SSD is 1,000× slower than RAM. HDD is 100,000× slower.&lt;&#x2F;p&gt;
+&lt;p&gt;Major fault = disk access = program stalls for eternity in CPU time.&lt;&#x2F;p&gt;
+&lt;p&gt;One major fault, who cares. Hundred per second, app feels sluggish. Thousand, system unusable.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;huge-pages&quot;&gt;huge pages&lt;&#x2F;h2&gt;
-&lt;p&gt;Linux supports &lt;strong&gt;huge pages&lt;&#x2F;strong&gt; (larger page sizes than the usual 4KB). Typically 2MB or 1GB.&lt;&#x2F;p&gt;
-&lt;p&gt;Why bother? Benefits:&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;thrashing&quot;&gt;thrashing&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;strong&gt;Thrashing&lt;&#x2F;strong&gt; is what happens when working set doesn&#x27;t fit in RAM.&lt;&#x2F;p&gt;
+&lt;p&gt;Working set = the memory you&#x27;re actively using right now. Bigger than RAM? Kernel constantly swapping pages in and out. Every page you load evicts something you need again soon.&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;Need page A -&amp;gt; fault, load A, evict B&lt;&#x2F;li&gt;
+&lt;li&gt;Need page B -&amp;gt; fault, load B, evict A&lt;&#x2F;li&gt;
+&lt;li&gt;Need page A -&amp;gt; fault, load A, evict B&lt;&#x2F;li&gt;
+&lt;li&gt;Forever&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;p&gt;System spends 99% of time moving data. 1% doing work. Disk light stuck on. Mouse barely moves.&lt;&#x2F;p&gt;
+&lt;p&gt;This is the performance cliff. Not gradual slowdown. Death spiral.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;lru-picking-victims&quot;&gt;lru: picking victims&lt;&#x2F;h2&gt;
+&lt;p&gt;How does kernel decide which page to evict?&lt;&#x2F;p&gt;
+&lt;p&gt;Ideal: evict the one that won&#x27;t be needed soonest. Can&#x27;t predict future. So kernel approximates with &lt;strong&gt;LRU (Least Recently Used)&lt;&#x2F;strong&gt;. Pages not accessed in a while are good candidates.&lt;&#x2F;p&gt;
+&lt;p&gt;Linux maintains active&#x2F;inactive lists. Pages accessed recently go to active. Cold pages drift to inactive. Reclaim takes from inactive first.&lt;&#x2F;p&gt;
+&lt;p&gt;True LRU would track exact access times for every page. Too expensive. Linux settles for &quot;recently used&quot; vs &quot;not recently used.&quot;&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;swappiness&quot;&gt;swappiness&lt;&#x2F;h2&gt;
+&lt;p&gt;Linux doesn&#x27;t wait until RAM is completely full to start swapping. There&#x27;s a knob called &lt;strong&gt;swappiness&lt;&#x2F;strong&gt;.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; cat&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; &#x2F;proc&#x2F;sys&#x2F;vm&#x2F;swappiness&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;60&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Range is 0-200. Affects how willing kernel is to swap anonymous memory vs reclaim file cache.&lt;&#x2F;p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Less TLB pressure.&lt;&#x2F;strong&gt; Fewer entries needed to cover the same memory.&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;Less page table overhead.&lt;&#x2F;strong&gt; Higher level entries map directly, skipping levels.&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;Better performance.&lt;&#x2F;strong&gt; For workloads with large contiguous memory access.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;0&lt;&#x2F;strong&gt; = Avoid swapping. Hold app memory, sacrifice cache.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;60&lt;&#x2F;strong&gt; = Default. Balanced.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;100+&lt;&#x2F;strong&gt; = Swap more. Keep cache warm.&lt;&#x2F;li&gt;
 &lt;&#x2F;ul&gt;
-&lt;p&gt;The tradeoff: if you only need 100KB, you still use a 2MB page. Wasted space. And finding large contiguous chunks of physical memory is harder than finding small ones.&lt;&#x2F;p&gt;
-&lt;p&gt;When using huge pages, the page table walk can end early (a PMD entry can directly map a 2MB page, or a PUD entry can map 1GB). No need to go all the way down to PTE level.&lt;&#x2F;p&gt;
+&lt;p&gt;No universal right answer. Depends on workload.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;why-overcommit-works&quot;&gt;why overcommit works&lt;&#x2F;h2&gt;
-&lt;p&gt;Here&#x27;s something counterintuitive: a program can allocate more memory than exists, and nothing breaks.&lt;&#x2F;p&gt;
-&lt;p&gt;You have 8GB of RAM. You open Chrome (3GB), a video editor (4GB), Photoshop (3GB), plus the OS (1GB). That&#x27;s 11GB for 8GB of physical RAM.&lt;&#x2F;p&gt;
-&lt;p&gt;Why doesn&#x27;t Photoshop refuse to open?&lt;&#x2F;p&gt;
-&lt;p&gt;Because allocation isn&#x27;t the same as use. When a program calls &lt;code&gt;malloc(1GB)&lt;&#x2F;code&gt;, the OS says &quot;sure&quot; and hands back virtual addresses. But it doesn&#x27;t actually reserve 1GB of physical RAM (not until the program writes to those addresses).&lt;&#x2F;p&gt;
-&lt;p&gt;This is &lt;strong&gt;lazy allocation&lt;&#x2F;strong&gt;. Pages exist on paper but aren&#x27;t backed by real memory until touched. If the program never uses all the memory it asked for (common), the OS never has to find physical frames for it.&lt;&#x2F;p&gt;
-&lt;p&gt;And if memory pressure gets high, the OS can evict cold pages and later fault them back in. The program doesn&#x27;t have to know where the bytes live, but it will absolutely notice the latency when a page fault hits disk.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-can-t-be-swapped&quot;&gt;what can&#x27;t be swapped&lt;&#x2F;h2&gt;
+&lt;p&gt;Not everything can go to disk.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Kernel memory.&lt;&#x2F;strong&gt; Page tables, process descriptors, driver state. Must stay in RAM. If kernel got paged out, who pages it back in?&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Pinned memory.&lt;&#x2F;strong&gt; Memory explicitly locked by application (mlock). Used by RDMA, databases, etc.&lt;&#x2F;p&gt;
+&lt;p&gt;Kernel memory leaks are dangerous. That memory is gone until reboot.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;the-mental-model&quot;&gt;the mental model&lt;&#x2F;h2&gt;
-&lt;p&gt;Think of virtual memory as a layer of indirection between programs and physical reality.&lt;&#x2F;p&gt;
-&lt;p&gt;Programs see: a contiguous address space that belongs to them alone.&lt;&#x2F;p&gt;
-&lt;p&gt;Reality: fragmented physical frames, shared by everyone, with some data on disk.&lt;&#x2F;p&gt;
-&lt;p&gt;The OS maintains the illusion. Programs stay simple. Memory stays isolated. And you can run more stuff than your RAM should theoretically allow (at least until you actually try to use it all at once).&lt;&#x2F;p&gt;
-&lt;p&gt;That&#x27;s when things get interesting. But that&#x27;s a different post.&lt;&#x2F;p&gt;
-</content>
-        
-    </entry>
-    <entry xml:lang="en">
-        <title>OS Context Switching: What Happens When Processes Switch</title>
-        <published>2025-11-28T00:00:00+00:00</published>
-        <updated>2025-11-28T00:00:00+00:00</updated>
-        
-        <author>
-          <name>
-            
-              Unknown
-            
-          </name>
-        </author>
-        
-        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/context-switching/"/>
-        <id>https://yazeed1s.github.io/posts/context-switching/</id>
-        
-        <content type="html" xml:base="https://yazeed1s.github.io/posts/context-switching/">&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;introduction&quot;&gt;Introduction&lt;&#x2F;h2&gt;
+&lt;h2 id=&quot;overcommit&quot;&gt;overcommit&lt;&#x2F;h2&gt;
+&lt;p&gt;Linux lets you allocate more memory than exists. &lt;code&gt;malloc(1GB)&lt;&#x2F;code&gt; succeeds even with 512MB free.&lt;&#x2F;p&gt;
+&lt;p&gt;Intentional. Called &lt;strong&gt;overcommit&lt;&#x2F;strong&gt;. Most programs allocate more than they use. Sparse arrays. Forked processes before exec. Refusing would break software.&lt;&#x2F;p&gt;
+&lt;p&gt;Downside: actually use all that memory? OOM killer fires. Allocation succeeded, using it didn&#x27;t.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; cat&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; &#x2F;proc&#x2F;sys&#x2F;vm&#x2F;overcommit_memory&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;  #&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; heuristic (default)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; 0 = guess what&amp;#39;s safe&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; 1 = always allow (yolo)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; 2 = strict (refuse if exceeds limit)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Mode 2 is safer but breaks things. Mode 1 is living dangerously.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;why-this-matters-for-remote-memory&quot;&gt;why this matters for remote memory&lt;&#x2F;h2&gt;
+&lt;p&gt;Main problem: disk is slow. 1,000-100,000× slower than RAM.&lt;&#x2F;p&gt;
+&lt;p&gt;Systems like Infiniswap replace swap with network access to remote memory. RDMA gives single-digit microsecond latency. Still slower than local RAM. But 10-1000× faster than disk.&lt;&#x2F;p&gt;
+&lt;p&gt;Keep the paging model. Replace the slow part. Cliff becomes slope.&lt;&#x2F;p&gt;
+&lt;p&gt;The interesting thing: Linux has a &lt;strong&gt;frontswap&lt;&#x2F;strong&gt; interface. It&#x27;s a hook that lets you intercept pages before they go to disk. Implement a few callbacks and your module becomes an alternative swap backend. That&#x27;s how Infiniswap plugs into the kernel. Pages that would go to disk get redirected over the network instead.&lt;&#x2F;p&gt;
+&lt;p&gt;I want to look at this interface in more detail later. How frontswap works, what the callbacks look like, and what&#x27;s involved in building something like Infiniswap. Different post.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
 &lt;ul&gt;
-&lt;li&gt;What is a context switch?&lt;&#x2F;li&gt;
-&lt;li&gt;Why context switches are necessary&lt;&#x2F;li&gt;
-&lt;li&gt;The cost of switching&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;what-gets-saved&quot;&gt;What Gets Saved&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;CPU registers (general purpose, special)&lt;&#x2F;li&gt;
-&lt;li&gt;Program counter&lt;&#x2F;li&gt;
-&lt;li&gt;Stack pointer&lt;&#x2F;li&gt;
-&lt;li&gt;Floating point &#x2F; SIMD state&lt;&#x2F;li&gt;
-&lt;li&gt;Memory mappings (page table pointer)&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;triggers-for-context-switch&quot;&gt;Triggers for Context Switch&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Timer interrupt (preemption)&lt;&#x2F;li&gt;
-&lt;li&gt;System calls&lt;&#x2F;li&gt;
-&lt;li&gt;I&#x2F;O blocking&lt;&#x2F;li&gt;
-&lt;li&gt;Voluntary yield&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;the-context-switch-process&quot;&gt;The Context Switch Process&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Step-by-step walkthrough&lt;&#x2F;li&gt;
-&lt;li&gt;Kernel mode transition&lt;&#x2F;li&gt;
-&lt;li&gt;Saving old state&lt;&#x2F;li&gt;
-&lt;li&gt;Loading new state&lt;&#x2F;li&gt;
-&lt;li&gt;Return to user mode&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;linux-implementation&quot;&gt;Linux Implementation&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;task_struct&lt;&#x2F;code&gt;&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;code&gt;switch_to()&lt;&#x2F;code&gt; macro&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;code&gt;schedule()&lt;&#x2F;code&gt; function&lt;&#x2F;li&gt;
-&lt;li&gt;Where the actual switch happens&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;performance-impact&quot;&gt;Performance Impact&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Direct costs (saving&#x2F;restoring registers)&lt;&#x2F;li&gt;
-&lt;li&gt;Indirect costs (cache pollution, TLB flush)&lt;&#x2F;li&gt;
-&lt;li&gt;Measuring context switch overhead&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;reducing-context-switches&quot;&gt;Reducing Context Switches&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;User-space threading (green threads)&lt;&#x2F;li&gt;
-&lt;li&gt;Async I&#x2F;O (epoll, io_uring)&lt;&#x2F;li&gt;
-&lt;li&gt;CPU affinity&lt;&#x2F;li&gt;
-&lt;li&gt;Batching work&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;diagram-ideas&quot;&gt;Diagram Ideas&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Context switch flow&lt;&#x2F;li&gt;
-&lt;li&gt;State saved&#x2F;restored&lt;&#x2F;li&gt;
-&lt;li&gt;Timeline of a switch&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Context switches are unavoidable but can be minimized&lt;&#x2F;li&gt;
-&lt;li&gt;Tradeoffs between responsiveness and throughput&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;references&quot;&gt;References&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Linux kernel source (kernel&#x2F;sched&#x2F;)&lt;&#x2F;li&gt;
-&lt;li&gt;Operating systems textbooks&lt;&#x2F;li&gt;
-&lt;li&gt;Performance measurement tools (perf, ftrace)&lt;&#x2F;li&gt;
+&lt;li&gt;Page size usually 4KB. Huge pages exist (2MB, 1GB) to reduce TLB pressure.&lt;&#x2F;li&gt;
+&lt;li&gt;&quot;Anonymous memory&quot; = heap, stack (no backing file). &quot;File-backed&quot; = mmap&#x27;d files, page cache.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;vmstat&lt;&#x2F;code&gt;, &lt;code&gt;sar&lt;&#x2F;code&gt;, &lt;code&gt;&#x2F;proc&#x2F;meminfo&lt;&#x2F;code&gt; for monitoring paging activity.&lt;&#x2F;li&gt;
+&lt;li&gt;Swap on SSD helps. Swap on HDD is pain.&lt;&#x2F;li&gt;
+&lt;li&gt;zswap = compressed swap cache in RAM. Buys time before hitting disk.&lt;&#x2F;li&gt;
 &lt;&#x2F;ul&gt;
 </content>
         

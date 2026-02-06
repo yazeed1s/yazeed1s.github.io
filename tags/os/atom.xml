@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <title>Yazeed&#x27;s Blog - OS</title>
+    <subtitle>Notes on systems and low-level software.</subtitle>
+    <link rel="self" type="application/atom+xml" href="https://yazeed1s.github.io/tags/os/atom.xml"/>
+    <link rel="alternate" type="text/html" href="https://yazeed1s.github.io"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2026-02-06T00:00:00+00:00</updated>
+    <id>https://yazeed1s.github.io/tags/os/atom.xml</id>
+    <entry xml:lang="en">
+        <title>What a Process Really Owns</title>
+        <published>2026-02-06T00:00:00+00:00</published>
+        <updated>2026-02-06T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/what-a-process-owns/"/>
+        <id>https://yazeed1s.github.io/posts/what-a-process-owns/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/what-a-process-owns/">&lt;p&gt;I wanted to think through what a process actually &quot;owns&quot; because I realized I had a fuzzy picture of it. We throw around words like &quot;process&quot;, &quot;thread&quot;, &quot;address space&quot; but I wanted to be more concrete about what the kernel actually tracks.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-short-version&quot;&gt;the short version&lt;&#x2F;h2&gt;
+&lt;p&gt;A process owns:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Its own virtual address space&lt;&#x2F;li&gt;
+&lt;li&gt;File descriptors&lt;&#x2F;li&gt;
+&lt;li&gt;Signal handlers&lt;&#x2F;li&gt;
+&lt;li&gt;Resource limits&lt;&#x2F;li&gt;
+&lt;li&gt;A process ID and various metadata&lt;&#x2F;li&gt;
+&lt;li&gt;One or more threads of execution&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;When you fork(), the child gets copies of most of these. When you exec(), most of it gets replaced with fresh stuff for the new program.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;address-space&quot;&gt;address space&lt;&#x2F;h2&gt;
+&lt;p&gt;This is the big one. Every process gets its own virtual address space. On a 64-bit system that&#x27;s a huge range of addresses (48 bits usable on x86-64, so 256 TB of virtual space).&lt;&#x2F;p&gt;
+&lt;p&gt;The address space contains:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Text segment&lt;&#x2F;strong&gt;: the executable code, usually read-only&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Data segment&lt;&#x2F;strong&gt;: initialized global&#x2F;static variables&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;BSS&lt;&#x2F;strong&gt;: uninitialized globals (zeroed on startup)&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Heap&lt;&#x2F;strong&gt;: dynamic allocations (malloc, new)&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Stack&lt;&#x2F;strong&gt;: function call frames, local variables&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Memory-mapped regions&lt;&#x2F;strong&gt;: shared libraries, mmap&#x27;d files, anonymous mappings&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;The kernel tracks all this in data structures (on Linux, the &lt;code&gt;mm_struct&lt;&#x2F;code&gt; and a tree of &lt;code&gt;vm_area_struct&lt;&#x2F;code&gt;). Each region has permissions (read&#x2F;write&#x2F;execute) and backing (file, anonymous, shared, private).&lt;&#x2F;p&gt;
+&lt;p&gt;You can see your process&#x27;s memory map in &lt;code&gt;&#x2F;proc&#x2F;self&#x2F;maps&lt;&#x2F;code&gt;:&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; cat&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; &#x2F;proc&#x2F;self&#x2F;maps&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;55a4c8a00000-55a4c8a02000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; r--p&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 00000000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 08:01&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1234567&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;  &#x2F;usr&#x2F;bin&#x2F;cat&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;55a4c8a02000-55a4c8a06000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; r-xp&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 00002000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 08:01&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1234567&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;  &#x2F;usr&#x2F;bin&#x2F;cat&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;55a4c8a06000-55a4c8a09000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; r--p&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 00006000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 08:01&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1234567&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;  &#x2F;usr&#x2F;bin&#x2F;cat&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;.&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;7f8c12000000-7f8c12021000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; rw-p&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 00000000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 00:00&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;7ffd5c9e0000-7ffd5ca01000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; rw-p&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 00000000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 00:00&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;span&gt;        [stack&lt;&#x2F;span&gt;&lt;span&gt;]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Each line is a region with its address range, permissions, offset, device, inode, and path.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;file-descriptors&quot;&gt;file descriptors&lt;&#x2F;h2&gt;
+&lt;p&gt;A process has a table of open file descriptors. These are just small integers (0, 1, 2, 3, ...) that refer to open files, pipes, sockets, devices, whatever.&lt;&#x2F;p&gt;
+&lt;p&gt;By convention:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;0 = stdin&lt;&#x2F;li&gt;
+&lt;li&gt;1 = stdout&lt;&#x2F;li&gt;
+&lt;li&gt;2 = stderr&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;When you open() a file, you get the lowest available fd number. When you fork(), the child inherits copies of the parent&#x27;s fd table (pointing to the same underlying file objects, so they share the file offset).&lt;&#x2F;p&gt;
+&lt;p&gt;The kernel tracks this in a &lt;code&gt;files_struct&lt;&#x2F;code&gt;. Each fd points to a &lt;code&gt;file&lt;&#x2F;code&gt; object which points to an inode.&lt;&#x2F;p&gt;
+&lt;p&gt;You can see a process&#x27;s fds in &lt;code&gt;&#x2F;proc&#x2F;[pid]&#x2F;fd&#x2F;&lt;&#x2F;code&gt;:&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; ls&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;la&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; &#x2F;proc&#x2F;self&#x2F;fd&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;lrwx------&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; user&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; user&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 64&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; Jan&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;  1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 00:00&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;span&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; &#x2F;dev&#x2F;pts&#x2F;0&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;lrwx------&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; user&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; user&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 64&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; Jan&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;  1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 00:00&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1&lt;&#x2F;span&gt;&lt;span&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; &#x2F;dev&#x2F;pts&#x2F;0&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;lrwx------&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; user&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; user&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 64&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; Jan&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;  1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 00:00&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 2&lt;&#x2F;span&gt;&lt;span&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; &#x2F;dev&#x2F;pts&#x2F;0&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;lr-x------&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; user&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; user&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 64&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; Jan&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;  1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 00:00&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 3&lt;&#x2F;span&gt;&lt;span&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; &#x2F;proc&#x2F;12345&#x2F;fd&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;&lt;h2 id=&quot;credentials-and-ids&quot;&gt;credentials and IDs&lt;&#x2F;h2&gt;
+&lt;p&gt;A process has:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;PID&lt;&#x2F;strong&gt;: unique process ID&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;PPID&lt;&#x2F;strong&gt;: parent process ID&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;UID&#x2F;GID&lt;&#x2F;strong&gt;: user and group IDs (real, effective, saved)&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Process group and session IDs&lt;&#x2F;strong&gt;: for job control&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;The UID&#x2F;GID stuff is more complicated than I expected. There&#x27;s the real UID (who you actually are), effective UID (what permissions you&#x27;re currently using), and saved UID (so you can drop and regain privileges). This is how setuid programs work.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;signal-handling&quot;&gt;signal handling&lt;&#x2F;h2&gt;
+&lt;p&gt;A process has a table of signal handlers. Each signal (SIGINT, SIGTERM, SIGSEGV, etc.) can have:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Default action (terminate, ignore, stop, etc.)&lt;&#x2F;li&gt;
+&lt;li&gt;A custom handler function&lt;&#x2F;li&gt;
+&lt;li&gt;Ignored&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;Plus there&#x27;s a signal mask (which signals are currently blocked) and pending signals (delivered but not yet handled).&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;resource-limits&quot;&gt;resource limits&lt;&#x2F;h2&gt;
+&lt;p&gt;Every process has limits on things like:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Maximum file size it can create&lt;&#x2F;li&gt;
+&lt;li&gt;Number of open files&lt;&#x2F;li&gt;
+&lt;li&gt;Stack size&lt;&#x2F;li&gt;
+&lt;li&gt;CPU time&lt;&#x2F;li&gt;
+&lt;li&gt;Memory&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;You can see these with &lt;code&gt;ulimit -a&lt;&#x2F;code&gt; in bash. The kernel enforces these.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;threads&quot;&gt;threads&lt;&#x2F;h2&gt;
+&lt;p&gt;Here&#x27;s where it gets a bit confusing. On Linux, threads are really just processes that share stuff. When you create a thread (via clone() with the right flags), the new &quot;thread&quot; shares the address space, file descriptors, signal handlers, etc. with the parent.&lt;&#x2F;p&gt;
+&lt;p&gt;So a &quot;process&quot; might have multiple threads, and they all share most of the resources I listed above. But each thread has its own:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Thread ID&lt;&#x2F;li&gt;
+&lt;li&gt;Stack&lt;&#x2F;li&gt;
+&lt;li&gt;Register state&lt;&#x2F;li&gt;
+&lt;li&gt;Signal mask&lt;&#x2F;li&gt;
+&lt;li&gt;errno&lt;&#x2F;li&gt;
+&lt;li&gt;Thread-local storage&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;The kernel calls these &quot;tasks&quot; internally. A process is really a group of tasks that share an address space.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;pcb-and-tcb&quot;&gt;PCB and TCB&lt;&#x2F;h2&gt;
+&lt;p&gt;So all this stuff I&#x27;ve been talking about, the kernel has to store it somewhere. That&#x27;s where the Process Control Block (PCB) and Thread Control Block (TCB) come in.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Process Control Block (PCB)&lt;&#x2F;strong&gt; is a kernel data structure that holds everything about a process. On Linux this is the &lt;code&gt;task_struct&lt;&#x2F;code&gt; (confusingly named since it&#x27;s used for both processes and threads). It contains:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Process state (running, sleeping, stopped, zombie)&lt;&#x2F;li&gt;
+&lt;li&gt;PID, PPID, credentials&lt;&#x2F;li&gt;
+&lt;li&gt;Pointers to the memory management structures (&lt;code&gt;mm_struct&lt;&#x2F;code&gt;)&lt;&#x2F;li&gt;
+&lt;li&gt;Pointer to the file descriptor table (&lt;code&gt;files_struct&lt;&#x2F;code&gt;)&lt;&#x2F;li&gt;
+&lt;li&gt;Signal handling info&lt;&#x2F;li&gt;
+&lt;li&gt;Scheduling info (priority, time slice, CPU affinity)&lt;&#x2F;li&gt;
+&lt;li&gt;Accounting info (CPU time used, etc.)&lt;&#x2F;li&gt;
+&lt;li&gt;Pointers to parent, children, siblings in the process tree&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;When the scheduler picks a process to run, it reads from the PCB to restore the process&#x27;s context. When the kernel needs to check permissions or deliver a signal, it looks at the PCB.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Thread Control Block (TCB)&lt;&#x2F;strong&gt; stores the execution context for a specific thread. On Linux this is also in &lt;code&gt;task_struct&lt;&#x2F;code&gt; since threads and processes use the same structure. But the thread-specific stuff includes:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Register state (saved during context switch)&lt;&#x2F;li&gt;
+&lt;li&gt;Stack pointer&lt;&#x2F;li&gt;
+&lt;li&gt;Thread ID&lt;&#x2F;li&gt;
+&lt;li&gt;Signal mask (which signals this thread blocks)&lt;&#x2F;li&gt;
+&lt;li&gt;Thread-local storage pointer&lt;&#x2F;li&gt;
+&lt;li&gt;errno location&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;The key difference is that multiple TCBs (threads) can point to the same memory management structures and file descriptor tables, while separate PCBs (processes) have their own.&lt;&#x2F;p&gt;
+&lt;p&gt;When you do a context switch, the kernel saves the current thread&#x27;s register state into its TCB, then loads the next thread&#x27;s state from its TCB. If the threads belong to different processes, it also has to switch page tables (which is the expensive part).&lt;&#x2F;p&gt;
+&lt;p&gt;You can think of it like this: the PCB holds &quot;what resources does this process own&quot; while the TCB holds &quot;where is this thread in its execution&quot;. A single-threaded process has one PCB and effectively one TCB. A multi-threaded process has one PCB (shared resources) and multiple TCBs (one per thread).&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-happens-on-fork&quot;&gt;what happens on fork()&lt;&#x2F;h2&gt;
+&lt;p&gt;When you fork():&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Address space is copied (or copy-on-write, so it&#x27;s cheap until you modify things)&lt;&#x2F;li&gt;
+&lt;li&gt;File descriptors are copied (but point to the same file objects)&lt;&#x2F;li&gt;
+&lt;li&gt;Signal handlers are copied&lt;&#x2F;li&gt;
+&lt;li&gt;The child gets a new PID&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;The child is almost identical to the parent at the moment of fork. This is why fork+exec is the traditional Unix way to spawn programs: fork copies everything, then exec replaces it all with a new program.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-i-find-interesting&quot;&gt;what I find interesting&lt;&#x2F;h2&gt;
+&lt;p&gt;The address space isolation is the core thing. That&#x27;s what makes a process a process. Everything else (fds, credentials, signals) is just bookkeeping.&lt;&#x2F;p&gt;
+&lt;p&gt;Threads share the address space but are otherwise separate schedulable entities. This is why data races are possible with threads but not between processes (unless you explicitly share memory).&lt;&#x2F;p&gt;
+&lt;p&gt;The &#x2F;proc filesystem is amazing for introspection. You can see almost everything about a running process without any special tools. Just cat files.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;On Linux, look at &lt;code&gt;task_struct&lt;&#x2F;code&gt; in the kernel source to see what the kernel tracks per task&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;mm_struct&lt;&#x2F;code&gt; holds the memory management info&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;files_struct&lt;&#x2F;code&gt; holds the fd table&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;signal_struct&lt;&#x2F;code&gt; and &lt;code&gt;sighand_struct&lt;&#x2F;code&gt; handle signals&lt;&#x2F;li&gt;
+&lt;li&gt;The clone() syscall lets you pick exactly what to share between parent and child, which is how threads are implemented&lt;&#x2F;li&gt;
+&lt;li&gt;cgroups and namespaces add more layers of isolation on top of this (for containers)&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;If you want to poke around a running process, check &lt;code&gt;&#x2F;proc&#x2F;[pid]&#x2F;status&lt;&#x2F;code&gt; (state, memory, threads), &lt;code&gt;&#x2F;proc&#x2F;[pid]&#x2F;maps&lt;&#x2F;code&gt; (memory map), &lt;code&gt;&#x2F;proc&#x2F;[pid]&#x2F;fd&lt;&#x2F;code&gt; (open file descriptors), &lt;code&gt;&#x2F;proc&#x2F;[pid]&#x2F;limits&lt;&#x2F;code&gt; (resource limits), &lt;code&gt;&#x2F;proc&#x2F;[pid]&#x2F;task&#x2F;&lt;&#x2F;code&gt; (threads). Also &lt;code&gt;ulimit -a&lt;&#x2F;code&gt; for your shell&#x27;s limits and &lt;code&gt;grep ctxt &#x2F;proc&#x2F;self&#x2F;status&lt;&#x2F;code&gt; for context switch counts.&lt;&#x2F;p&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>Context Switches</title>
+        <published>2025-12-01T00:00:00+00:00</published>
+        <updated>2025-12-01T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/context-switches/"/>
+        <id>https://yazeed1s.github.io/posts/context-switches/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/context-switches/">&lt;p&gt;I wanted to write down what I understand about context switches because they keep coming up when I read about performance and scheduling.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-is-a-context-switch&quot;&gt;what is a context switch&lt;&#x2F;h2&gt;
+&lt;p&gt;A context switch is when the CPU stops running one process (or thread) and starts running another. The OS has to save everything about the current process so it can resume it later, then load everything about the next process so it can start running.&lt;&#x2F;p&gt;
+&lt;p&gt;&quot;Everything&quot; here means: the program counter (where the process was in its code), the register values, the stack pointer, and some other CPU state. This is called the process context.&lt;&#x2F;p&gt;
+&lt;p&gt;The reason we need this is simple: we have more processes than CPUs. On my laptop I might have hundreds of processes but only 8 cores. They all need to run somehow, so they take turns. The OS gives each process a slice of time on a CPU, and when the slice is up (or something else happens), it switches to another process.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;when-do-context-switches-happen&quot;&gt;when do context switches happen&lt;&#x2F;h2&gt;
+&lt;p&gt;A few situations:&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Timer interrupt.&lt;&#x2F;strong&gt; The scheduler sets a timer (maybe 1-10ms depending on the OS and config). When it fires, the kernel gets control and can decide to switch to another process. This is called preemption.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Process blocks.&lt;&#x2F;strong&gt; If a process does something that has to wait (reading from disk, waiting for network, waiting for a lock), it makes no sense to keep it on the CPU. The kernel switches to something that can actually run.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Explicit yield.&lt;&#x2F;strong&gt; A process can voluntarily give up the CPU. This is rare in practice, most of the time the kernel just preempts.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Higher priority process wakes up.&lt;&#x2F;strong&gt; If something more important becomes runnable (like a real-time task or an interactive process that was waiting for input), the kernel might preempt the current process immediately.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-actually-happens-during-a-switch&quot;&gt;what actually happens during a switch&lt;&#x2F;h2&gt;
+&lt;p&gt;When the kernel decides to switch from process A to process B:&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;Save A&#x27;s registers to memory (usually in some kernel data structure associated with A, like the task_struct in Linux)&lt;&#x2F;li&gt;
+&lt;li&gt;Save A&#x27;s stack pointer&lt;&#x2F;li&gt;
+&lt;li&gt;Update page tables or TLB if the processes have different address spaces (this is where it gets expensive)&lt;&#x2F;li&gt;
+&lt;li&gt;Load B&#x27;s registers from memory&lt;&#x2F;li&gt;
+&lt;li&gt;Load B&#x27;s stack pointer&lt;&#x2F;li&gt;
+&lt;li&gt;Jump to wherever B left off&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;p&gt;If A and B are threads in the same process, step 3 is simpler because they share the same address space. This is one reason thread switches are cheaper than process switches.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;why-context-switches-are-expensive&quot;&gt;why context switches are expensive&lt;&#x2F;h2&gt;
+&lt;p&gt;The direct cost isn&#x27;t that bad. Saving and restoring registers takes maybe hundreds of nanoseconds to a few microseconds. The bigger costs are indirect:&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;TLB flush.&lt;&#x2F;strong&gt; The TLB caches virtual-to-physical address translations. If you switch to a process with a different address space, those cached translations are useless (or worse, wrong). The TLB gets flushed and the new process starts cold. Every memory access causes a TLB miss until the cache warms up again.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Cache pollution.&lt;&#x2F;strong&gt; The new process touches different memory. The L1&#x2F;L2&#x2F;L3 caches fill up with its data, evicting the old process&#x27;s data. When you switch back, you start with cold caches again.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Pipeline flush.&lt;&#x2F;strong&gt; Modern CPUs have deep pipelines with speculative execution. A context switch might flush all of that.&lt;&#x2F;p&gt;
+&lt;p&gt;So the direct cost is maybe 1-10 microseconds depending on the hardware. But the indirect costs from cache&#x2F;TLB warming can add hundreds of microseconds or more to the next stretch of execution.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;why-this-matters&quot;&gt;why this matters&lt;&#x2F;h2&gt;
+&lt;p&gt;If you&#x27;re doing I&#x2F;O-bound work, context switches are probably fine. You&#x27;re waiting on disk or network anyway, the overhead is noise compared to the wait time.&lt;&#x2F;p&gt;
+&lt;p&gt;If you&#x27;re doing CPU-bound work and switching a lot, you&#x27;re wasting cycles. This is why things like busy-waiting or spinning on a lock can sometimes outperform blocking (at least for short waits). You avoid the context switch overhead.&lt;&#x2F;p&gt;
+&lt;p&gt;It&#x27;s also why async I&#x2F;O and event loops (like epoll, io_uring, kqueue) are popular. Instead of blocking and switching, you check if something is ready and move on. You stay on the CPU. Fewer switches, warmer caches.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;some-numbers&quot;&gt;some numbers&lt;&#x2F;h2&gt;
+&lt;p&gt;These are rough and depend heavily on hardware and workload:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Direct context switch cost: ~1-5 μs on modern hardware&lt;&#x2F;li&gt;
+&lt;li&gt;TLB flush + warmup: can add 10-100+ μs depending on working set size&lt;&#x2F;li&gt;
+&lt;li&gt;Thread switch (same process): cheaper, maybe 0.5-2 μs since no page table switch&lt;&#x2F;li&gt;
+&lt;li&gt;Typical scheduler timeslice: 1-10 ms&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;The kernel tries to be smart about this. Linux&#x27;s CFS scheduler considers cache locality when picking where to run a task. It tries to keep tasks on the same CPU they ran on last time (CPU affinity) to preserve cache warmth.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;You can measure context switches on Linux with &lt;code&gt;perf stat -e context-switches .&#x2F;your_program&lt;&#x2F;code&gt; or by reading &lt;code&gt;&#x2F;proc&#x2F;[pid]&#x2F;status&lt;&#x2F;code&gt;&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;vmstat 1&lt;&#x2F;code&gt; shows system-wide context switches per second&lt;&#x2F;li&gt;
+&lt;li&gt;Voluntary vs involuntary: voluntary means the process blocked or yielded, involuntary means the scheduler preempted it&lt;&#x2F;li&gt;
+&lt;li&gt;In user-space threading (green threads, goroutines), &quot;context switches&quot; are much cheaper because you&#x27;re not going through the kernel and not touching page tables&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+</feed>

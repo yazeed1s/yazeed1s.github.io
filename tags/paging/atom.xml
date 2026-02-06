@@ -8,7 +8,7 @@
     <updated>2026-01-18T00:00:00+00:00</updated>
     <id>https://yazeed1s.github.io/tags/paging/atom.xml</id>
     <entry xml:lang="en">
-        <title>Infiniswap: Remote Memory Paging Over RDMA</title>
+        <title>Infiniswap</title>
         <published>2026-01-18T00:00:00+00:00</published>
         <updated>2026-01-18T00:00:00+00:00</updated>
         
@@ -23,42 +23,189 @@
         <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/infiniswap/"/>
         <id>https://yazeed1s.github.io/posts/infiniswap/</id>
         
-        <content type="html" xml:base="https://yazeed1s.github.io/posts/infiniswap/">&lt;hr &#x2F;&gt;
-&lt;p&gt;I came across this paper while looking into memory disaggregation. The idea is deceptively simple: when a machine runs out of RAM, instead of paging to disk, page to another machine&#x27;s unused memory over the network.&lt;&#x2F;p&gt;
-&lt;p&gt;What caught my attention is &lt;em&gt;how&lt;&#x2F;em&gt; they pulled it off; no application changes, no core kernel patching. It&#x27;s a kernel module that hooks into Linux&#x27;s swap path and uses remote RAM as the fast tier, with disk as fallback.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;the-core-idea&quot;&gt;the core idea&lt;&#x2F;h2&gt;
-&lt;p&gt;Production clusters waste a lot of memory. Some machines are memory-starved while others sit idle. The 99th percentile machine often uses 2-3× more memory than the median. Meanwhile, over half the cluster&#x27;s aggregate memory goes unused.&lt;&#x2F;p&gt;
-&lt;p&gt;When applications can&#x27;t fit their working set in RAM, performance falls off a cliff. VoltDB drops from 95K TPS to 4K TPS. Memcached&#x27;s tail latency shoots up 21×. Disk is too slow to help (1000× slower than memory).&lt;&#x2F;p&gt;
-&lt;p&gt;Infiniswap&#x27;s insight: RDMA networks give you single-digit microsecond latencies. That&#x27;s fast enough to make remote memory a viable swap target. Instead of page -&amp;gt; disk, you do page -&amp;gt; remote RAM over RDMA. The remote CPU stays out of the data movement; the RNIC does the DMA.&lt;&#x2F;p&gt;
-&lt;p&gt;The result: swap that looks normal to Linux, but is backed by slabs of remote memory scattered across the cluster.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;what-s-clever&quot;&gt;what&#x27;s clever&lt;&#x2F;h2&gt;
-&lt;p&gt;A few design choices stood out:&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Using swap as the integration point.&lt;&#x2F;strong&gt; Instead of modifying the kernel&#x27;s page fault handler or remapping virtual memory, Infiniswap plugs into Linux&#x27;s existing swap subsystem. The kernel already knows how to page out and page back in. Infiniswap just changes where those swapped pages live. The trade-off is you&#x27;re still going through the swap path (page faults, context switches, the whole thing) but you get deployment simplicity.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;One-sided RDMA.&lt;&#x2F;strong&gt; Traditional network block devices (like Mellanox&#x27;s nbdX) use send&#x2F;recv semantics. The remote CPU has to wake up, copy data, respond. Infiniswap uses RDMA_READ and RDMA_WRITE (the RNIC directly accesses remote memory without running remote code on the critical path). The paper shows nbdX burns multiple vCPUs on the remote side; Infiniswap largely avoids that.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Slab-based design.&lt;&#x2F;strong&gt; Pages are grouped into 1GB slabs. Each slab maps to one remote machine. This keeps the metadata manageable (tracking millions of individual 4KB pages across the cluster would be expensive). When a slab gets &quot;hot&quot; (&amp;gt;20 page I&#x2F;O ops&#x2F;sec), it gets mapped to remote memory. Cold slabs stay on disk.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;where-it-works&quot;&gt;where it works&lt;&#x2F;h2&gt;
-&lt;p&gt;Memory-bound workloads see big wins. Memcached stays nearly flat even when only 50% of the working set fits in memory. PowerGraph runs 6.5× faster. VoltDB, while CPU-heavy, still sees 15× throughput improvement over disk.&lt;&#x2F;p&gt;
-&lt;p&gt;The cluster memory utilization goes from 40% to 60% (that&#x27;s 47% more effective use of RAM, with minimal network overhead (&amp;lt;1% of capacity)).&lt;&#x2F;p&gt;
-&lt;h2 id=&quot;where-it-doesn-t&quot;&gt;where it doesn&#x27;t&lt;&#x2F;h2&gt;
-&lt;p&gt;CPU-bound workloads don&#x27;t benefit as much. VoltDB and Spark already run at high CPU utilization. Adding paging overhead (context switches, TLB flushes, page table walks) eats into that. Spark at 50% memory thrashes so badly it doesn&#x27;t complete.&lt;&#x2F;p&gt;
-&lt;p&gt;The fundamental limit: this isn&#x27;t local memory. Page faults still happen. You&#x27;re masking latency, not eliminating it. For workloads where microseconds matter deterministically, that&#x27;s a problem.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/infiniswap/">&lt;p&gt;I found this paper while reading about memory disaggregation. The idea is simple: when a machine runs out of RAM, page to another machine&#x27;s unused memory instead of disk.&lt;&#x2F;p&gt;
+&lt;p&gt;What caught my attention is how they did it. No application changes. No core kernel patching. It&#x27;s a kernel module that hooks into Linux&#x27;s swap path. Remote RAM becomes the fast tier. Disk is just the fallback.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-problem-they-re-solving&quot;&gt;the problem they&#x27;re solving&lt;&#x2F;h2&gt;
+&lt;p&gt;Production clusters waste a lot of memory. Some machines are memory-starved while others sit idle. The 99th percentile machine uses 2-3× more memory than the median. Over half the cluster&#x27;s aggregate memory goes unused.&lt;&#x2F;p&gt;
+&lt;p&gt;When apps can&#x27;t fit their working set in RAM, performance falls off a cliff. VoltDB drops from 95K TPS to 4K TPS. Memcached&#x27;s tail latency shoots up 21×. Disk is just too slow (like 1000× slower than memory).&lt;&#x2F;p&gt;
+&lt;p&gt;So they thought: RDMA gives single-digit microsecond latencies. That&#x27;s fast enough to make remote memory a viable swap target. Pages go to remote RAM over RDMA instead of disk. The remote CPU stays out of the data movement entirely since the RNIC does the DMA.&lt;&#x2F;p&gt;
+&lt;p&gt;Result: swap that looks normal to Linux but is backed by slabs of remote memory scattered across the cluster.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-i-thought-was-clever&quot;&gt;what I thought was clever&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;strong&gt;Using swap as the integration point.&lt;&#x2F;strong&gt; Instead of modifying the page fault handler or remapping virtual memory, they plug into Linux&#x27;s swap subsystem. The kernel already knows how to page out and page in. Infiniswap just changes where those pages live. The trade-off is you still go through the swap path (page faults, context switches). But you get deployment simplicity because everything else just works.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;One-sided RDMA.&lt;&#x2F;strong&gt; Traditional network block devices like Mellanox&#x27;s nbdX use send&#x2F;recv. Remote CPU wakes up, copies data, responds. Infiniswap uses RDMA_READ and RDMA_WRITE. The RNIC accesses remote memory directly without running any code on the remote side. nbdX burns multiple vCPUs on the remote machine. Infiniswap doesn&#x27;t touch the remote CPU at all.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Slab-based design.&lt;&#x2F;strong&gt; Pages are grouped into 1GB slabs. Each slab maps to one remote machine. This keeps metadata manageable. Tracking millions of 4KB pages across the cluster would be expensive. Hot slabs (more than 20 page I&#x2F;O ops&#x2F;sec) get mapped to remote memory. Cold slabs stay on disk.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;where-it-works-well&quot;&gt;where it works well&lt;&#x2F;h2&gt;
+&lt;p&gt;Memory-bound workloads see big wins. Memcached stays nearly flat even when only 50% of the working set fits in memory. PowerGraph runs 6.5× faster. VoltDB sees 15× throughput improvement over disk.&lt;&#x2F;p&gt;
+&lt;p&gt;Cluster memory utilization: goes from 40% to 60%. That&#x27;s 47% more effective use of RAM. Network overhead is less than 1% of capacity.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;where-it-doesn-t-work&quot;&gt;where it doesn&#x27;t work&lt;&#x2F;h2&gt;
+&lt;p&gt;CPU-bound workloads don&#x27;t benefit much. VoltDB and Spark already run at high CPU utilization. Adding paging overhead (context switches, TLB flushes, page table walks) eats into that. Spark at 50% memory thrashes so badly it doesn&#x27;t complete.&lt;&#x2F;p&gt;
+&lt;p&gt;There&#x27;s a fundamental limit here: this isn&#x27;t local memory. Page faults still happen. You&#x27;re masking latency, not eliminating it. For workloads where microseconds matter deterministically, that&#x27;s still a problem.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
 &lt;ul&gt;
 &lt;li&gt;Paper: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;www.usenix.org&#x2F;system&#x2F;files&#x2F;conference&#x2F;nsdi17&#x2F;nsdi17-gu.pdf&quot;&gt;Gu et al., &quot;Efficient Memory Disaggregation with Infiniswap&quot;, NSDI 2017&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
 &lt;li&gt;Tested on 32 machines, 56 Gbps Infiniband, 64GB RAM each&lt;&#x2F;li&gt;
-&lt;li&gt;Slab placement uses &quot;power of two choices&quot; (pick two random machines, query free memory, map to the one with more headroom)&lt;&#x2F;li&gt;
-&lt;li&gt;Slab eviction queries E+5 machines, evicts the coldest from that set (~363μs median)&lt;&#x2F;li&gt;
+&lt;li&gt;Slab placement uses &quot;power of two choices&quot; (pick two random machines, query free memory, use the one with more headroom)&lt;&#x2F;li&gt;
+&lt;li&gt;Slab eviction queries E+5 machines, evicts coldest (~363μs median)&lt;&#x2F;li&gt;
 &lt;li&gt;Page-out: synchronous RDMA_WRITE + async disk write (disk is fallback if remote crashes)&lt;&#x2F;li&gt;
-&lt;li&gt;Page-in: check bitmap -&amp;gt; RDMA_READ if remote, else read from disk&lt;&#x2F;li&gt;
+&lt;li&gt;Page-in: check bitmap → RDMA_READ if remote, else disk&lt;&#x2F;li&gt;
 &lt;li&gt;Slab remapping after failure takes ~54ms (Infiniband memory registration)&lt;&#x2F;li&gt;
 &lt;li&gt;Default headroom threshold: 8GB per machine&lt;&#x2F;li&gt;
 &lt;li&gt;Hot slab threshold: 20 page I&#x2F;O ops&#x2F;sec (EWMA, α=0.2)&lt;&#x2F;li&gt;
-&lt;li&gt;Compared to: nbdX (Mellanox), Fastswap (kernel modification), LegoOS (full OS redesign)&lt;&#x2F;li&gt;
-&lt;li&gt;Code available on GitHub &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;SymbioticLab&#x2F;Infiniswap&quot;&gt;SymbioticLab&#x2F;infiniswap&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
+&lt;li&gt;Compared against nbdX (Mellanox), Fastswap, LegoOS&lt;&#x2F;li&gt;
+&lt;li&gt;Code: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;SymbioticLab&#x2F;Infiniswap&quot;&gt;SymbioticLab&#x2F;infiniswap&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>Swap and Paging: What Actually Happens When Memory Fills Up</title>
+        <published>2025-12-05T00:00:00+00:00</published>
+        <updated>2025-12-05T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/swap-paging/"/>
+        <id>https://yazeed1s.github.io/posts/swap-paging/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/swap-paging/">&lt;hr &#x2F;&gt;
+&lt;p&gt;I kept hitting concepts like &quot;page fault&quot; and &quot;swap&quot; while reading memory disaggregation papers. Figured I should actually understand what these mean at a low level before going further.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;what-swap-is&quot;&gt;what swap is&lt;&#x2F;h2&gt;
+&lt;p&gt;Swap is disk space that acts as overflow for RAM. When physical memory fills up, the kernel moves some data to swap. Later, if that data is needed again, it gets loaded back.&lt;&#x2F;p&gt;
+&lt;p&gt;That&#x27;s sort of it. The complication is in the details.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;pages&quot;&gt;pages&lt;&#x2F;h2&gt;
+&lt;p&gt;The kernel doesn&#x27;t manage memory byte by byte. Too much bookkeeping. Instead it works in fixed-size chunks called &lt;strong&gt;pages&lt;&#x2F;strong&gt;. Usually 4KB.&lt;&#x2F;p&gt;
+&lt;p&gt;When you allocate memory, you get pages. When data moves to disk, it moves as pages. The physical counterpart is called a &lt;strong&gt;frame&lt;&#x2F;strong&gt;. Same size, different name. Pages are virtual, frames are physical.&lt;&#x2F;p&gt;
+&lt;p&gt;8GB of RAM = roughly 2 million frames. A process might think it has way more pages than that. Most aren&#x27;t backed by physical memory until used.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;page-tables-and-the-mmu&quot;&gt;page tables and the mmu&lt;&#x2F;h2&gt;
+&lt;p&gt;The CPU doesn&#x27;t know about virtual addresses on its own. There&#x27;s a &lt;strong&gt;Memory Management Unit (MMU)&lt;&#x2F;strong&gt; that translates virtual addresses to physical ones.&lt;&#x2F;p&gt;
+&lt;p&gt;How does it know the mapping? &lt;strong&gt;Page tables&lt;&#x2F;strong&gt;. Data structures the kernel maintains. The MMU walks these to find where a virtual page actually lives (which physical frame, or if it&#x27;s not in RAM at all).&lt;&#x2F;p&gt;
+&lt;p&gt;Walking page tables on every memory access would be slow. So the MMU has a cache called the &lt;strong&gt;TLB (Translation Lookaside Buffer)&lt;&#x2F;strong&gt;. Recent translations are stored there. Hit the TLB = fast. Miss = pay for the walk.&lt;&#x2F;p&gt;
+&lt;p&gt;Most accesses hit the TLB. That&#x27;s what makes virtual memory practical.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;page-faults&quot;&gt;page faults&lt;&#x2F;h2&gt;
+&lt;p&gt;Program accesses a virtual address. MMU checks: is this page in RAM? If not, you get a &lt;strong&gt;page fault&lt;&#x2F;strong&gt;.&lt;&#x2F;p&gt;
+&lt;p&gt;Not an error. Just the kernel saying &quot;hold on, I need to go get that.&quot;&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;Program accesses memory&lt;&#x2F;li&gt;
+&lt;li&gt;MMU finds page isn&#x27;t resident&lt;&#x2F;li&gt;
+&lt;li&gt;CPU traps to kernel&lt;&#x2F;li&gt;
+&lt;li&gt;Kernel figures out where page lives (swap, file, or nowhere)&lt;&#x2F;li&gt;
+&lt;li&gt;Kernel loads it into a frame&lt;&#x2F;li&gt;
+&lt;li&gt;Page table updated&lt;&#x2F;li&gt;
+&lt;li&gt;Program resumes&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;p&gt;Two kinds:&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Minor fault.&lt;&#x2F;strong&gt; Page is already somewhere in memory (page cache, shared mapping). Kernel just fixes the page table. Fast.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Major fault.&lt;&#x2F;strong&gt; Page has to be read from disk. Slow. Really slow.&lt;&#x2F;p&gt;
+&lt;p&gt;Some faults are expected:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Lazy allocation.&lt;&#x2F;strong&gt; Kernel doesn&#x27;t back memory until you touch it. First access = minor fault.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Copy-on-write.&lt;&#x2F;strong&gt; Shared pages aren&#x27;t copied until someone writes.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Swapping.&lt;&#x2F;strong&gt; Page was evicted earlier and now needed again.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;Others mean bugs. Accessing garbage address = SIGSEGV.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;paging-in-and-out&quot;&gt;paging in and out&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;strong&gt;Page in&lt;&#x2F;strong&gt; = loading a page from disk into RAM.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Page out&lt;&#x2F;strong&gt; = moving a page from RAM to disk to free space.&lt;&#x2F;p&gt;
+&lt;p&gt;RAM full. New page needed. Kernel picks a &lt;strong&gt;victim&lt;&#x2F;strong&gt; (some page not accessed recently). If it&#x27;s dirty (modified since loaded), kernel writes it to swap first. If it&#x27;s clean, kernel just drops it and reloads later if needed.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Before:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;RAM:  [A][B][C][D] ← full&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Swap: [empty]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Need page E. Pick B as victim.&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;After:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;RAM:  [A][E][C][D]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Swap: [B]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;If B is accessed again? Major fault. Load B. Evict something else. This happens constantly under memory pressure.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;the-dirty-bit&quot;&gt;the dirty bit&lt;&#x2F;h2&gt;
+&lt;p&gt;Each page has a &lt;strong&gt;dirty bit&lt;&#x2F;strong&gt;. Set if the page has been modified since it was loaded.&lt;&#x2F;p&gt;
+&lt;p&gt;Why it matters: clean pages can be dropped. Kernel can reload from file or wherever. Dirty pages can&#x27;t. Kernel has to write them somewhere first.&lt;&#x2F;p&gt;
+&lt;p&gt;Anonymous memory (heap, stack) that&#x27;s dirty goes to swap. File-backed memory that&#x27;s modified goes back to the file (or swap, depends).&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;why-disk-access-hurts&quot;&gt;why disk access hurts&lt;&#x2F;h2&gt;
+&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Access&lt;&#x2F;th&gt;&lt;th&gt;Latency&lt;&#x2F;th&gt;&lt;&#x2F;tr&gt;&lt;&#x2F;thead&gt;&lt;tbody&gt;
+&lt;tr&gt;&lt;td&gt;RAM&lt;&#x2F;td&gt;&lt;td&gt;~100 nanoseconds&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;SSD&lt;&#x2F;td&gt;&lt;td&gt;~100 microseconds&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;HDD&lt;&#x2F;td&gt;&lt;td&gt;~10 milliseconds&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;&#x2F;tbody&gt;&lt;&#x2F;table&gt;
+&lt;p&gt;SSD is 1,000× slower than RAM. HDD is 100,000× slower.&lt;&#x2F;p&gt;
+&lt;p&gt;Major fault = disk access = program stalls for eternity in CPU time.&lt;&#x2F;p&gt;
+&lt;p&gt;One major fault, who cares. Hundred per second, app feels sluggish. Thousand, system unusable.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;thrashing&quot;&gt;thrashing&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;strong&gt;Thrashing&lt;&#x2F;strong&gt; is what happens when working set doesn&#x27;t fit in RAM.&lt;&#x2F;p&gt;
+&lt;p&gt;Working set = the memory you&#x27;re actively using right now. Bigger than RAM? Kernel constantly swapping pages in and out. Every page you load evicts something you need again soon.&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;Need page A -&amp;gt; fault, load A, evict B&lt;&#x2F;li&gt;
+&lt;li&gt;Need page B -&amp;gt; fault, load B, evict A&lt;&#x2F;li&gt;
+&lt;li&gt;Need page A -&amp;gt; fault, load A, evict B&lt;&#x2F;li&gt;
+&lt;li&gt;Forever&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;p&gt;System spends 99% of time moving data. 1% doing work. Disk light stuck on. Mouse barely moves.&lt;&#x2F;p&gt;
+&lt;p&gt;This is the performance cliff. Not gradual slowdown. Death spiral.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;lru-picking-victims&quot;&gt;lru: picking victims&lt;&#x2F;h2&gt;
+&lt;p&gt;How does kernel decide which page to evict?&lt;&#x2F;p&gt;
+&lt;p&gt;Ideal: evict the one that won&#x27;t be needed soonest. Can&#x27;t predict future. So kernel approximates with &lt;strong&gt;LRU (Least Recently Used)&lt;&#x2F;strong&gt;. Pages not accessed in a while are good candidates.&lt;&#x2F;p&gt;
+&lt;p&gt;Linux maintains active&#x2F;inactive lists. Pages accessed recently go to active. Cold pages drift to inactive. Reclaim takes from inactive first.&lt;&#x2F;p&gt;
+&lt;p&gt;True LRU would track exact access times for every page. Too expensive. Linux settles for &quot;recently used&quot; vs &quot;not recently used.&quot;&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;swappiness&quot;&gt;swappiness&lt;&#x2F;h2&gt;
+&lt;p&gt;Linux doesn&#x27;t wait until RAM is completely full to start swapping. There&#x27;s a knob called &lt;strong&gt;swappiness&lt;&#x2F;strong&gt;.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; cat&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; &#x2F;proc&#x2F;sys&#x2F;vm&#x2F;swappiness&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;60&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Range is 0-200. Affects how willing kernel is to swap anonymous memory vs reclaim file cache.&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;0&lt;&#x2F;strong&gt; = Avoid swapping. Hold app memory, sacrifice cache.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;60&lt;&#x2F;strong&gt; = Default. Balanced.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;100+&lt;&#x2F;strong&gt; = Swap more. Keep cache warm.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;No universal right answer. Depends on workload.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;what-can-t-be-swapped&quot;&gt;what can&#x27;t be swapped&lt;&#x2F;h2&gt;
+&lt;p&gt;Not everything can go to disk.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Kernel memory.&lt;&#x2F;strong&gt; Page tables, process descriptors, driver state. Must stay in RAM. If kernel got paged out, who pages it back in?&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Pinned memory.&lt;&#x2F;strong&gt; Memory explicitly locked by application (mlock). Used by RDMA, databases, etc.&lt;&#x2F;p&gt;
+&lt;p&gt;Kernel memory leaks are dangerous. That memory is gone until reboot.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;overcommit&quot;&gt;overcommit&lt;&#x2F;h2&gt;
+&lt;p&gt;Linux lets you allocate more memory than exists. &lt;code&gt;malloc(1GB)&lt;&#x2F;code&gt; succeeds even with 512MB free.&lt;&#x2F;p&gt;
+&lt;p&gt;Intentional. Called &lt;strong&gt;overcommit&lt;&#x2F;strong&gt;. Most programs allocate more than they use. Sparse arrays. Forked processes before exec. Refusing would break software.&lt;&#x2F;p&gt;
+&lt;p&gt;Downside: actually use all that memory? OOM killer fires. Allocation succeeded, using it didn&#x27;t.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; cat&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; &#x2F;proc&#x2F;sys&#x2F;vm&#x2F;overcommit_memory&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;  #&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; heuristic (default)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; 0 = guess what&amp;#39;s safe&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; 1 = always allow (yolo)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; 2 = strict (refuse if exceeds limit)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Mode 2 is safer but breaks things. Mode 1 is living dangerously.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;why-this-matters-for-remote-memory&quot;&gt;why this matters for remote memory&lt;&#x2F;h2&gt;
+&lt;p&gt;Main problem: disk is slow. 1,000-100,000× slower than RAM.&lt;&#x2F;p&gt;
+&lt;p&gt;Systems like Infiniswap replace swap with network access to remote memory. RDMA gives single-digit microsecond latency. Still slower than local RAM. But 10-1000× faster than disk.&lt;&#x2F;p&gt;
+&lt;p&gt;Keep the paging model. Replace the slow part. Cliff becomes slope.&lt;&#x2F;p&gt;
+&lt;p&gt;The interesting thing: Linux has a &lt;strong&gt;frontswap&lt;&#x2F;strong&gt; interface. It&#x27;s a hook that lets you intercept pages before they go to disk. Implement a few callbacks and your module becomes an alternative swap backend. That&#x27;s how Infiniswap plugs into the kernel. Pages that would go to disk get redirected over the network instead.&lt;&#x2F;p&gt;
+&lt;p&gt;I want to look at this interface in more detail later. How frontswap works, what the callbacks look like, and what&#x27;s involved in building something like Infiniswap. Different post.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Page size usually 4KB. Huge pages exist (2MB, 1GB) to reduce TLB pressure.&lt;&#x2F;li&gt;
+&lt;li&gt;&quot;Anonymous memory&quot; = heap, stack (no backing file). &quot;File-backed&quot; = mmap&#x27;d files, page cache.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;vmstat&lt;&#x2F;code&gt;, &lt;code&gt;sar&lt;&#x2F;code&gt;, &lt;code&gt;&#x2F;proc&#x2F;meminfo&lt;&#x2F;code&gt; for monitoring paging activity.&lt;&#x2F;li&gt;
+&lt;li&gt;Swap on SSD helps. Swap on HDD is pain.&lt;&#x2F;li&gt;
+&lt;li&gt;zswap = compressed swap cache in RAM. Buys time before hitting disk.&lt;&#x2F;li&gt;
 &lt;&#x2F;ul&gt;
 </content>
         

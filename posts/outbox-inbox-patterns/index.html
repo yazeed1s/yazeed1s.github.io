@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Why you need transactional outbox and idempotent inbox when building event-driven systems." />
+<meta
+    name="keywords"
+    content="yazeed, blog, alharthi, yaz, yazeed1s"
+/>
+<link rel="canonical" href="https://yazeed1s.github.io/posts/outbox-inbox-patterns/" />
+
+<title>Outbox and Inbox Patterns | Yazeed&#x27;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
+<meta property="og:title" content="Outbox and Inbox Patterns | Yazeed&#x27;s Blog" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://yazeed1s.github.io/posts/outbox-inbox-patterns/" />
+<meta property="og:description" content="Why you need transactional outbox and idempotent inbox when building event-driven systems." />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Outbox and Inbox Patterns" />
+<meta name="twitter:description" content="Why you need transactional outbox and idempotent inbox when building event-driven systems." />
+
+    <link rel="icon" href="&#x2F;favicon.ico" />
+    
+    <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
+    <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+
+           
+    
+    
+    
+
+          
+    
+    
+    
+    <style>
+        :root {
+            --nav-basis: 25%;
+            --light-bg: #eae6deff;
+            --light-text: #1a1410;
+            --light-text-muted: #1a1410;
+            --light-accent: #9E4440;
+            --light-accent-hover: #7A3533;
+            --light-code-bg: #e1ded6ff;
+            --light-border: #abaaaaff;
+            --light-bold: #1a1410;
+            --light-italic: #1a1410;
+            --light-headers: #1a1410;
+            --dark-bg: #303132;
+            --dark-text: #bebbb9ff;
+            --dark-text-muted: #d5d2cf;
+            --dark-accent: #e57665;
+            --dark-accent-hover: #888885;
+            --dark-code-bg: #282829;
+            --dark-border: #524f4c;
+            --dark-bold: #d5d2cf;
+            --dark-italic: #d5d2cf;
+            --dark-headers: #d5d2cf;
+        }
+    </style>
+    <meta name="theme-color" id="tc" />
+    <script>
+        (function () {
+            var m = matchMedia("(prefers-color-scheme:dark)"),
+                t = localStorage.theme || (m.matches ? "dark" : "light"),
+                h = document.documentElement,
+                c = document.getElementById("tc");
+            h.className = t;
+            function u() {
+                c.content = getComputedStyle(h).getPropertyValue("--tc");
+            }
+            u();
+            window.T = function () {
+                t = t === "dark" ? "light" : "dark";
+                localStorage.theme = t;
+                h.className = t;
+                u();
+            };
+        })();
+    </script>
+    
+</head>
+
+<body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><symbol id="light" viewBox="0 0 32 32"><rect x="15" y="2" width="2" height="5"/><rect x="21.6675" y="6.8536" width="4.958" height="1.9998" transform="translate(1.5191 19.3744) rotate(-45)"/><rect x="25" y="15" width="5" height="2"/><rect x="23.1466" y="21.6675" width="1.9998" height="4.958" transform="translate(-10.0018 24.1465) rotate(-45)"/><rect x="15" y="25" width="2" height="5"/><rect x="5.3745" y="23.1466" width="4.958" height="1.9998" transform="translate(-14.7739 12.6256) rotate(-45)"/><rect x="2" y="15" width="5" height="2"/><rect x="6.8536" y="5.3745" width="1.9998" height="4.958" transform="translate(-3.253 7.8535) rotate(-45)"/><path d="M16,12a4,4,0,1,1-4,4,4.0045,4.0045,0,0,1,4-4m0-2a6,6,0,1,0,6,6,6,6,0,0,0-6-6Z"/></symbol>
+<symbol id="asleep" viewBox="0 0 32 32"><path d="M13.5025,5.4136A15.0755,15.0755,0,0,0,25.096,23.6082a11.1134,11.1134,0,0,1-7.9749,3.3893c-.1385,0-.2782.0051-.4178,0A11.0944,11.0944,0,0,1,13.5025,5.4136M14.98,3a1.0024,1.0024,0,0,0-.1746.0156A13.0959,13.0959,0,0,0,16.63,28.9973c.1641.006.3282,0,.4909,0a13.0724,13.0724,0,0,0,10.702-5.5556,1.0094,1.0094,0,0,0-.7833-1.5644A13.08,13.08,0,0,1,15.8892,4.38,1.0149,1.0149,0,0,0,14.98,3Z"/></symbol>
+<symbol id="rss" viewBox="0 0 32 32"><path d="M8,18c-3.3,0-6,2.7-6,6s2.7,6,6,6s6-2.7,6-6C14,20.7,11.3,18,8,18z M8,28c-2.2,0-4-1.8-4-4s1.8-4,4-4s4,1.8,4,4C12,26.2,10.2,28,8,28z"/><path d="M30,24h-2C28,13,19,4,8,4V2C20.1,2,30,11.9,30,24z"/><path d="M22,24h-2c0-6.6-5.4-12-12-12v-2C15.7,10,22,16.3,22,24z"/></symbol>
+</svg>
+
+    <header id="site-header">
+        <div>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <nav>
+                <a href="https://yazeed1s.github.io/" >Home</a>
+                <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
+                <a href="https://yazeed1s.github.io/projects/" >Projects</a>
+                <a href="https://yazeed1s.github.io/tags/" >Tags</a>
+                </nav>
+            <a href="#" onclick="
+                        T();
+                        return false;
+                    " class="theme" aria-label="Toggle theme" title="Toggle theme">
+<svg><use href="#light"/></svg>
+<svg><use href="#asleep"/></svg></a>
+        </div>
+    </header>
+    <hr class="site-sep" />
+    <main id="main">
+<article>
+    <header>
+        <h1>Outbox and Inbox Patterns</h1>
+        <div class="post-meta">
+            <time datetime="2025-11-25">25 Nov 2025</time>
+            
+            <span>Why you need transactional outbox and idempotent inbox when building event-driven systems.</span>
+             
+            <span class="post-tags">
+                <span class="post-tags-label">Tags: </span>
+                
+                <a href="https://yazeed1s.github.io/tags/distributed-systems">Distributed Systems</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/event-driven">Event Driven</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/patterns">Patterns</a>
+            </span>
+            
+        </div>
+    </header>
+     <p>I've been working on an event-driven system and ran into a classic problem: how do I make sure that when I save something to my database, the corresponding event actually gets published to the message broker. And on the receiving side, how do I make sure I don't process the same event twice when the broker delivers it multiple times.</p>
+<p>These are the Outbox and Inbox patterns. Not new ideas. But I had to actually implement them to understand why they matter.</p>
+<h2 id="the-fundamental-problem">the fundamental problem</h2>
+<p>Say you save a user to the database and then publish a <code>UserCreated</code> event.</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="plain"><span class="giallo-l"><span>1. save user to DB</span></span>
+<span class="giallo-l"><span>2. publish event to broker</span></span>
+<span class="giallo-l"><span>3. done</span></span></code></pre>
+<p>What if you crash between step 1 and step 2? User is saved, but the event is never published. And the system is now inconsistent. Some service was waiting for that event to do something and it will never hear about this user.</p>
+<p>The obvious thought is "just do both in a transaction." But you can't. The database and the message broker are two separate systems. You can't wrap them in the same ACID transaction. Distributed transactions (2PC) exist but they're slow and fragile and most message brokers don't even support them.</p>
+<h2 id="the-outbox-pattern">the outbox pattern</h2>
+<p>The outbox pattern helps with one part of the problem; making sure the event gets published. The idea is surprisingly simple, you don't publish directly to the broker. Instead, write the event to a table in the same database, in the same transaction as your domain data.</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="plain"><span class="giallo-l"><span>1. BEGIN transaction</span></span>
+<span class="giallo-l"><span>2. save user to DB</span></span>
+<span class="giallo-l"><span>3. save &quot;UserCreated&quot; event to outbox_events table</span></span>
+<span class="giallo-l"><span>4. COMMIT</span></span></code></pre>
+<p>If step 2 and 3 succeed, they succeed together. If anything fails, both roll back. This makes it an atomic operation. Now the database is the source of truth for "what events need to be published."</p>
+<p>A separate background worker polls the outbox table, picks up pending events, and publishes them to the broker. When it gets confirmation, it marks the row as sent.</p>
+<p>The table looks something like:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="sql"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">CREATE</span><span style="color: light-dark(#784367, #D4B399);"> TABLE</span><span style="color: light-dark(#3C6362, #A2BD90);"> outbox_events</span><span> (</span></span>
+<span class="giallo-l"><span>    id UUID </span><span style="color: light-dark(#784367, #D4B399);">PRIMARY KEY</span><span>,</span></span>
+<span class="giallo-l"><span>    aggregate_id UUID </span><span style="color: light-dark(#784367, #D4B399);">NOT NULL</span><span>,</span></span>
+<span class="giallo-l"><span>    aggregate_type </span><span style="color: light-dark(#784367, #D4B399);">VARCHAR</span><span>(</span><span style="color: light-dark(#784367, #CA9D7D);">100</span><span>)</span><span style="color: light-dark(#784367, #D4B399);"> NOT NULL</span><span>,</span></span>
+<span class="giallo-l"><span>    event_type </span><span style="color: light-dark(#784367, #D4B399);">VARCHAR</span><span>(</span><span style="color: light-dark(#784367, #CA9D7D);">100</span><span>)</span><span style="color: light-dark(#784367, #D4B399);"> NOT NULL</span><span>,</span></span>
+<span class="giallo-l"><span>    payload JSONB </span><span style="color: light-dark(#784367, #D4B399);">NOT NULL</span><span>,</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    status</span><span style="color: light-dark(#784367, #D4B399);"> TEXT</span><span style="color: light-dark(#784367, #D4B399);"> NOT NULL</span><span style="color: light-dark(#784367, #D4B399);"> CHECK</span><span> (</span><span style="color: light-dark(#784367, #D4B399);">status</span><span style="color: light-dark(#784367, #D4B399);"> IN</span><span> (</span><span style="color: light-dark(#4B4B48, #7F7C77);">&#39;</span><span style="color: light-dark(#4A6934, #CB8B8B);">PENDING</span><span style="color: light-dark(#4B4B48, #7F7C77);">&#39;</span><span>, </span><span style="color: light-dark(#4B4B48, #7F7C77);">&#39;</span><span style="color: light-dark(#4A6934, #CB8B8B);">SENT</span><span style="color: light-dark(#4B4B48, #7F7C77);">&#39;</span><span>, </span><span style="color: light-dark(#4B4B48, #7F7C77);">&#39;</span><span style="color: light-dark(#4A6934, #CB8B8B);">FAILED</span><span style="color: light-dark(#4B4B48, #7F7C77);">&#39;</span><span>)),</span></span>
+<span class="giallo-l"><span>    created_at </span><span style="color: light-dark(#784367, #D4B399);">TIMESTAMP</span><span style="color: light-dark(#784367, #D4B399);">TZ</span><span style="color: light-dark(#784367, #D4B399);"> DEFAULT</span><span style="color: light-dark(#784367, #D4B399);"> now</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span>,</span></span>
+<span class="giallo-l"><span>    sent_at </span><span style="color: light-dark(#784367, #D4B399);">TIMESTAMP</span><span style="color: light-dark(#784367, #D4B399);">TZ</span></span>
+<span class="giallo-l"><span>);</span></span>
+<span class="giallo-l"></span></code></pre>
+<p>The worker reads rows where <code>status = 'PENDING'</code>, publishes to the broker, and updates to <code>SENT</code>. If publish fails, it leaves it pending or marks it failed after some retry threshold.</p>
+<h2 id="what-can-go-wrong-with-outbox">what can go wrong with outbox</h2>
+<p><strong>Ordering.</strong> If you run multiple worker instances for throughput, they might publish events out of order. Event B commits after event A, but worker 2 publishes B before worker 1 publishes A. If your consumers care about ordering, you need to partition by aggregate or use a single worker.</p>
+<p><strong>Dual write illusion.</strong> The outbox doesn't magically solve the dual write problem, it just moves it. Now the dual write is between "mark row as SENT" and "broker actually received it." If you mark SENT before the broker confirms, and the broker was down, you lose the event. If you mark SENT after the broker confirms, and you crash before marking, you'll republish on restart. The second is safer because inbox handles duplicates.</p>
+<p><strong>Broker down.</strong> If the broker is unreachable for a long time, your outbox table grows unbounded. Depending on your write rate this can become a real problem. You need monitoring and maybe backpressure if the table gets too large.</p>
+<h2 id="the-inbox-pattern">the inbox pattern</h2>
+<p>Publishing is one half. Consuming is the other.</p>
+<p>Delivery guarantees depend on your broker. Some offer exactly-once (Kafka with transactions, for example), some offer at-least-once (most durable brokers with acknowledgment), some offer at-most-once (fire and forget). If you're using something like core NATS with no persistence, you get at-most-once: message is gone the moment it's published if no one is listening. With a durable broker that retries on no-ack, you get at-least-once, which means your handler might receive the same event multiple times. Process it every time and you double-create things, double-charge customers, whatever your handler does happens twice.</p>
+<p>The inbox is the mirror of the outbox. Before processing, you record that you received this event. If you see it again, you skip it.</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="sql"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">CREATE</span><span style="color: light-dark(#784367, #D4B399);"> TABLE</span><span style="color: light-dark(#3C6362, #A2BD90);"> inbox_events</span><span> (</span></span>
+<span class="giallo-l"><span>    id UUID </span><span style="color: light-dark(#784367, #D4B399);">PRIMARY KEY</span><span>,</span></span>
+<span class="giallo-l"><span>    event_id UUID </span><span style="color: light-dark(#784367, #D4B399);">NOT NULL</span><span>,</span></span>
+<span class="giallo-l"><span>    handler_name </span><span style="color: light-dark(#784367, #D4B399);">VARCHAR</span><span>(</span><span style="color: light-dark(#784367, #CA9D7D);">100</span><span>)</span><span style="color: light-dark(#784367, #D4B399);"> NOT NULL</span><span>,</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    status</span><span style="color: light-dark(#784367, #D4B399);"> TEXT</span><span style="color: light-dark(#784367, #D4B399);"> NOT NULL</span><span style="color: light-dark(#784367, #D4B399);"> CHECK</span><span> (</span><span style="color: light-dark(#784367, #D4B399);">status</span><span style="color: light-dark(#784367, #D4B399);"> IN</span><span> (</span><span style="color: light-dark(#4B4B48, #7F7C77);">&#39;</span><span style="color: light-dark(#4A6934, #CB8B8B);">PENDING</span><span style="color: light-dark(#4B4B48, #7F7C77);">&#39;</span><span>, </span><span style="color: light-dark(#4B4B48, #7F7C77);">&#39;</span><span style="color: light-dark(#4A6934, #CB8B8B);">PROCESSED</span><span style="color: light-dark(#4B4B48, #7F7C77);">&#39;</span><span>, </span><span style="color: light-dark(#4B4B48, #7F7C77);">&#39;</span><span style="color: light-dark(#4A6934, #CB8B8B);">FAILED</span><span style="color: light-dark(#4B4B48, #7F7C77);">&#39;</span><span>)),</span></span>
+<span class="giallo-l"><span>    received_at </span><span style="color: light-dark(#784367, #D4B399);">TIMESTAMP</span><span style="color: light-dark(#784367, #D4B399);">TZ</span><span style="color: light-dark(#784367, #D4B399);"> DEFAULT</span><span style="color: light-dark(#784367, #D4B399);"> now</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span>,</span></span>
+<span class="giallo-l"><span>    processed_at </span><span style="color: light-dark(#784367, #D4B399);">TIMESTAMP</span><span style="color: light-dark(#784367, #D4B399);">TZ</span><span>,</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    UNIQUE</span><span>(event_id, handler_name)</span></span>
+<span class="giallo-l"><span>);</span></span></code></pre>
+<p>The unique constraint on <code>(event_id, handler_name)</code> is the key. When a message arrives:</p>
+<ol>
+<li>Try to insert into inbox with that event_id and handler_name</li>
+<li>If insert fails (constraint violation), you already handled this event. ACK and return.</li>
+<li>If insert succeeds, process the event.</li>
+<li>Update status to <code>PROCESSED</code>.</li>
+</ol>
+<p>This gives you idempotency at the handler level. Same handler won't process the same event twice.</p>
+<h2 id="what-can-go-wrong-with-inbox">what can go wrong with inbox</h2>
+<p><strong>Ghosting.</strong> You insert the inbox row, then crash before doing the actual work. The event is now "locked" because the row exists, but the work never happened. Next delivery will see the row and skip it.</p>
+<p>This is a real problem. One mitigation is to only insert the inbox row after successful processing, but then you're back to the crash-between-work-and-record problem, just in a different order. Another is to have a timeout or "last touched" timestamp and treat old pending rows as abandoned.</p>
+<p><strong>Pruning.</strong> Same as outbox. <code>PROCESSED</code> rows accumulate. Need cleanup.</p>
+<h2 id="some-brokers-handle-parts-of-this">some brokers handle parts of this</h2>
+<p>Before implementing all of this, check what your broker does.</p>
+<p>Some brokers (like Kafka or NATS JetStream) persist messages to disk and support exactly-once semantics with proper configuration. They track what has been delivered and acknowledged. If a subscriber is down, the message waits. If you publish with a deduplication ID, the broker won't double-publish.</p>
+<p>This doesn't eliminate the need for these patterns entirely, but it might simplify things. With a proper durable broker:</p>
+<ul>
+<li>Outbox still useful if you need the DB write and event publish to be atomic. Broker acknowledgment happens after publish, not as part of the same transaction.</li>
+<li>Inbox might be less critical if the broker guarantees exactly-once delivery. But "exactly-once" is tricky and often has caveats. I would still keep inbox for safety.</li>
+</ul>
+<p>If you're using a fire-and-forget broker with no persistence (like core NATS), you absolutely need both patterns. Message gone the moment it's published if no one is listening.</p>
+<h2 id="the-at-least-once-guarantee">the at-least-once guarantee</h2>
+<p>This whole setup gives you at-least-once delivery from end to end. You're guaranteed the event will eventually reach the handler (outbox retries until success). The handler is guaranteed to not double-process (inbox deduplicates).</p>
+<p>You don't get exactly-once. The outbox worker might publish, then crash before marking <code>SENT</code>, then on restart publish again. That's fine because the inbox catches the duplicate.</p>
+<h2 id="operational-stuff">operational stuff</h2>
+<p>Both tables need maintenance:</p>
+<ul>
+<li><strong>Batch reads.</strong> Don't poll one row at a time. Read 100 or whatever.</li>
+<li><strong>Polling interval.</strong> Too fast wastes CPU. Too slow adds latency. We use 500ms.</li>
+<li><strong>Cleanup job.</strong> Delete <code>SENT</code>/<code>PROCESSED</code> rows older than X days.</li>
+<li><strong>Monitoring.</strong> Track how many <code>PENDING</code> rows are piling up. Alert if growing.</li>
+<li><strong>Failure handling.</strong> After N retries, mark <code>FAILED</code>. Maybe route to a dead letter table for manual inspection.</li>
+</ul>
+<h2 id="when-you-actually-need-this">when you actually need this</h2>
+<p>If you're building anything where <code>"database saved but event not published"</code> would cause real problems, you probably need outbox. If your handlers have side effects that shouldn't happen twice, you need inbox.</p>
+<p>If you're doing toy projects or your consistency requirements are loose, maybe you can skip it. But in production systems with money or important state involved, I wouldn't trust the happy path.</p>
+<h2 id="notes">notes</h2>
+<ul>
+<li>Polling isn't the only way. Some DBs support change data capture (CDC) which can trigger on outbox inserts. Debezium does this with Postgres.</li>
+<li>Some people use the inbox pattern even for HTTP requests, not just events. Same idea: deduplicate by request ID.</li>
+<li>The outbox pattern is sometimes called "transactional outbox" or "outbox polling."</li>
+<li>Kafka has built-in exactly-once if you use transactions correctly. Still worth understanding what's happening underneath.</li>
+</ul>
+  
+</article>
+</main>
+    <hr class="site-sep bottom-sep" />
+    <footer class="s">
+        
+    </footer>
+    
+
+    <script>
+        document.querySelectorAll("article img[srcset]").forEach((i) => {
+            if (i.closest("a")) return;
+            i.style.cursor = "pointer";
+            i.onclick = () => {
+                let d = document.createElement("div"),
+                    s = i.srcset.split(",").pop().trim().split(" ")[0];
+                d.className = "lb";
+                d.innerHTML = '<img src="' + s + '">';
+                document.body.style.overflow = "hidden";
+                d.onclick = () => {
+                    d.remove();
+                    document.body.style.overflow = "";
+                };
+                document.body.appendChild(d);
+            };
+        });
+    </script>
+    
+<button id="scroll-to-top" aria-label="Scroll to top" title="Scroll to top">↑</button>
+<script>
+    (function() {
+        var btn = document.getElementById("scroll-to-top");
+        if (btn) {
+            window.addEventListener("scroll", function() {
+                if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                    btn.classList.add("show");
+                } else {
+                    btn.classList.remove("show");
+                }
+            });
+            btn.addEventListener("click", function() {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        }
+    })();
+</script>
+</body>
+
+</html>

@@ -106,6 +106,9 @@ html.light {
     --muted: var(--light-text-muted);
     --code-bg: var(--light-code-bg);
     --border: var(--light-border);
+    --bold: var(--light-bold);
+    --italic: var(--light-italic);
+    --headers: var(--light-headers);
     color: var(--text);
 }
 
@@ -119,6 +122,9 @@ html.dark {
     --muted: var(--dark-text-muted);
     --code-bg: var(--dark-code-bg);
     --border: var(--dark-border);
+    --bold: var(--dark-bold);
+    --italic: var(--dark-italic);
+    --headers: var(--dark-headers);
     color: var(--text);
 }
 
@@ -155,9 +161,18 @@ html h2,
 html h3,
 html h4,
 html h5,
-html h6,
-html strong {
-    color: var(--text);
+html h6 {
+    color: var(--headers);
+}
+
+html strong,
+html b {
+    color: var(--bold);
+}
+
+html em,
+html i {
+    color: var(--italic);
 }
 
 article > img,
@@ -168,16 +183,28 @@ article > div {
     width: 100%;
 }
 
-/* article > ul,
-article > ol {
-    margin-top: -1rem;
-    margin-bottom: 0.5rem;
+
+
+article table {
+    width: 100%;
+    margin: 1.5rem 0;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--code-bg);
+    border-radius: 0.4rem;
+    font-size: 0.9rem;
 }
 
-article > ul > li,
-article > ol > li {
-    margin-bottom: 0.25rem;
-} */
+article th,
+article td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+}
+
+article th {
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+}
 
 article h1::before {
     content: "# ";
@@ -721,4 +748,48 @@ a:focus-visible {
 
 .recent-posts h2 {
     margin-bottom: 1rem;
+}
+
+/* Scroll to top button */
+#scroll-to-top {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 0.4rem;
+    background-color: var(--code-bg);
+    color: var(--muted);
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+    visibility: hidden;
+    opacity: 0;
+    transition: visibility 0.3s, opacity 0.3s, color 0.2s;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    padding-bottom: 3px;
+}
+
+#scroll-to-top.show {
+    visibility: visible;
+    opacity: 0.8;
+}
+
+#scroll-to-top:hover {
+    opacity: 1;
+    color: var(--accent);
+}
+
+@media (max-width: 600px) {
+    #scroll-to-top {
+        bottom: 1.5rem;
+        right: 1.5rem;
+        width: 2rem;
+        height: 2rem;
+        font-size: 1.1rem;
+    }
 }

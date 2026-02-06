@@ -5,7 +5,7 @@
 <meta charset="UTF-8" />
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="description" content="How RDMA bypasses the kernel on the data path, letting NICs DMA straight between user buffers." />
+<meta name="description" content="How RDMA bypasses the kernel on the data path." />
 <meta
     name="keywords"
     content="yazeed, blog, alharthi, yaz, yazeed1s"
@@ -17,79 +17,49 @@
 <meta property="og:title" content="RDMA: Bypassing the Kernel for Network I&#x2F;O | Yazeed&#x27;s Blog" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://yazeed1s.github.io/posts/rdma/" />
-<meta property="og:description" content="How RDMA bypasses the kernel on the data path, letting NICs DMA straight between user buffers." />
+<meta property="og:description" content="How RDMA bypasses the kernel on the data path." />
 
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="RDMA: Bypassing the Kernel for Network I&#x2F;O" />
-<meta name="twitter:description" content="How RDMA bypasses the kernel on the data path, letting NICs DMA straight between user buffers." />
+<meta name="twitter:description" content="How RDMA bypasses the kernel on the data path." />
 
     <link rel="icon" href="&#x2F;favicon.ico" />
     
     <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
     <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
 
-                  
+           
+    
+    
+    
+
+          
+    
+    
+    
     <style>
         :root {
-            --nav-basis: 25
-
-            %;
-
-            --light-bg: #eae6deff
-
-            ;
-
-            --light-text: #1a1410
-
-            ;
-
-            --light-text-muted: #1a1410
-
-            ;
-
-            --light-accent: #9E4440
-
-            ;
-
-            --light-accent-hover: #7A3533
-
-            ;
-
-            --light-code-bg: #e1ded6ff
-
-            ;
-
-            --light-border: #abaaaaff
-
-            ;
-
-            --dark-bg: #303132
-
-            ;
-
-            --dark-text: #bebbb9ff
-
-            ;
-
-            --dark-text-muted: #d5d2cf
-
-            ;
-
-            --dark-accent: #e57665
-
-            ;
-
-            --dark-accent-hover: #888885
-
-            ;
-
-            --dark-code-bg: #282829
-
-            ;
-
-            --dark-border: #524f4c
-
-            ;
+            --nav-basis: 25%;
+            --light-bg: #eae6deff;
+            --light-text: #1a1410;
+            --light-text-muted: #1a1410;
+            --light-accent: #9E4440;
+            --light-accent-hover: #7A3533;
+            --light-code-bg: #e1ded6ff;
+            --light-border: #abaaaaff;
+            --light-bold: #1a1410;
+            --light-italic: #1a1410;
+            --light-headers: #1a1410;
+            --dark-bg: #303132;
+            --dark-text: #bebbb9ff;
+            --dark-text-muted: #d5d2cf;
+            --dark-accent: #e57665;
+            --dark-accent-hover: #888885;
+            --dark-code-bg: #282829;
+            --dark-border: #524f4c;
+            --dark-bold: #d5d2cf;
+            --dark-italic: #d5d2cf;
+            --dark-headers: #d5d2cf;
         }
     </style>
     <meta name="theme-color" id="tc" />
@@ -147,7 +117,7 @@
         <div class="post-meta">
             <time datetime="2025-12-28">28 Dec 2025</time>
             
-            <span>How RDMA bypasses the kernel on the data path, letting NICs DMA straight between user buffers.</span>
+            <span>How RDMA bypasses the kernel on the data path.</span>
              
             <span class="post-tags">
                 <span class="post-tags-label">Tags: </span>
@@ -164,117 +134,110 @@
         </div>
     </header>
      <hr />
-<p>I've been reading about memory disaggregation and kept running into RDMA as the enabling technology. The pitch is simple: what if your application could read and write memory on a remote machine without dragging the remote CPU into the loop?</p>
-<p>The core concept is kernel bypass. In traditional TCP, every packet goes through the kernel's network stack. Data gets copied (or at least touched) as it crosses user/kernel boundaries, checksums happen, packets get queued, interrupts fire. The CPU is in the middle of basically everything.</p>
-<p>RDMA flips this. The network card (called an RNIC) reads directly from your application's memory buffer and sends it over the wire. The remote RNIC DMA-writes directly into the destination application's buffer.</p>
-<p>No kernel on the data path, no socket buffers, and (for one-sided ops) no remote syscall/interrupt just to move bytes. (You still pay CPU to post work and handle completions, but you stop burning cycles on the kernel stack and copies.)</p>
-<p>This is why systems like Infiniswap and modern distributed databases obsess over RDMA. Often single-digit microsecond latencies instead of tens or hundreds.</p>
-<p>The difference is clear when you visualize the stack:</p>
+<p>I kept seeing RDMA in papers. Infiniswap uses it. FaRM uses it. Every memory disaggregation thing depends on it.</p>
+<p>I knew the idea: skip the kernel, be fast. But I didn't understand how. Like, what does "kernel bypass" actually mean. So I went to figure it out.</p>
+<hr />
+<h2 id="what-s-wrong-with-normal-networking">what's wrong with normal networking</h2>
+<p>When you use TCP, kernel is always involved.</p>
+<p>App calls <code>send()</code>. That's a syscall. You go into kernel. Your data gets copied from app buffer to kernel buffer. TCP runs its state machine. Checksum. Segmentation. Put in queue. Eventually driver sends to NIC.</p>
+<p>Receive side same thing. NIC gets packet, interrupt, kernel wakes up, copies to socket buffer. App calls <code>recv()</code>, another copy into app buffer.</p>
+<p>So. Two copies. Multiple syscalls. Context switches every time. CPU is busy with all of this.</p>
+<p>If you're moving big files, it's OK. Overhead doesn't matter much. But if you want millions of small operations per second, like key-value gets, this overhead is too much.</p>
+<hr />
+<h2 id="what-rdma-does-different">what rdma does different</h2>
+<p>With RDMA, the network card reads and writes directly to your app memory.</p>
+<p>You want to send? NIC reads from your buffer. DMA. You receive? NIC writes into your buffer. DMA. Kernel is not there. No copies.</p>
+<p>And there's something called one-sided operations. RDMA_WRITE puts bytes into remote memory. RDMA_READ pulls bytes from there. Remote CPU doesn't even know. It keeps running. Nobody woke it up.</p>
+<p>First time I saw this it looked strange. You're writing to memory on different machine, through network card, and that machine doesn't know it happened.</p>
 <p><img src="/images/rdma.png" alt="TCP vs RDMA" /></p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);"><code data-lang="plain"><span class="giallo-l"><span>                   TCP/IP                                      RDMA</span></span>
-<span class="giallo-l"></span>
-<span class="giallo-l"><span>+-------------------+  +-------------------+     +-------------------+  +-------------------+</span></span>
-<span class="giallo-l"><span>|      SERVER       |  |      SERVER       |     |      SERVER       |  |      SERVER       |</span></span>
-<span class="giallo-l"><span>|                   |  |                   |     |                   |  |                   |</span></span>
-<span class="giallo-l"><span>|   +-----------+   |  |   +-----------+   |     |   +-----------+   |  |   +-----------+   |</span></span>
-<span class="giallo-l"><span>|   |    App    |   |  |   |    App    |   |     |   |    App    |   |  |   |    App    |   |</span></span>
-<span class="giallo-l"><span>|   +-----+-----+   |  |   +-----+-----+   |     |   +-----+-----+   |  |   +-----+-----+   |</span></span>
-<span class="giallo-l"><span>|         |         |  |         |         |     |         |         |  |         |         |</span></span>
-<span class="giallo-l"><span>|         v         |  |         v         |     |         v         |  |         v         |</span></span>
-<span class="giallo-l"><span>|   +-----------+   |  |   +-----------+   |     |   +-----------+   |  |   +-----------+   |</span></span>
-<span class="giallo-l"><span>|   |  Buffer   |   |  |   |  Buffer   |   |     |   |  Buffer   |   |  |   |  Buffer   |   |</span></span>
-<span class="giallo-l"><span>|   +-----+-----+   |  |   +-----+-----+   |     |   +-----+-----+   |  |   +-----+-----+   |</span></span>
-<span class="giallo-l"><span>|         |         |  |         |         |     |         |         |  |         |         |</span></span>
-<span class="giallo-l"><span>|         v         |  |         v         |     |         |         |  |         |         |</span></span>
-<span class="giallo-l"><span>|   +-----------+   |  |   +-----------+   |     |   (kernel bypass) |  |   (kernel bypass) |</span></span>
-<span class="giallo-l"><span>|   |  Sockets  |   |  |   |  Sockets  |   |     |         |         |  |         |         |</span></span>
-<span class="giallo-l"><span>|   +-----+-----+   |  |   +-----+-----+   |     |         |         |  |         |         |</span></span>
-<span class="giallo-l"><span>|         |         |  |         |         |     |         |         |  |         |         |</span></span>
-<span class="giallo-l"><span>|         v         |  |         v         |     |         |         |  |         |         |</span></span>
-<span class="giallo-l"><span>|   +-----------+   |  |   +-----------+   |     |         |         |  |         |         |</span></span>
-<span class="giallo-l"><span>|   | Transport |   |  |   | Transport |   |     |         |         |  |         |         |</span></span>
-<span class="giallo-l"><span>|   +-----+-----+   |  |   +-----+-----+   |     |         |         |  |         |         |</span></span>
-<span class="giallo-l"><span>|         |         |  |         |         |     |         |         |  |         |         |</span></span>
-<span class="giallo-l"><span>|         v         |  |         v         |     |         |         |  |         |         |</span></span>
-<span class="giallo-l"><span>|   +-----------+   |  |   +-----------+   |     |         |         |  |         |         |</span></span>
-<span class="giallo-l"><span>|   | NIC Drvr  |   |  |   | NIC Drvr  |   |     |         |         |  |         |         |</span></span>
-<span class="giallo-l"><span>|   +-----+-----+   |  |   +-----+-----+   |     |         |         |  |         |         |</span></span>
-<span class="giallo-l"><span>|         |         |  |         |         |     |         |         |  |         |         |</span></span>
-<span class="giallo-l"><span>+---------+---------+  +---------+---------+     +---------+---------+  +---------+---------+</span></span>
-<span class="giallo-l"><span>          |                      |                         |                      |</span></span>
-<span class="giallo-l"><span>          v                      v                         v                      v</span></span>
-<span class="giallo-l"><span>       [NIC]&lt;-----------------&gt;[NIC]                    [RNIC]&lt;----------------&gt;[RNIC]</span></span></code></pre>
+<hr />
+<h2 id="setup-vs-data-path">setup vs data path</h2>
+<p>OK but the kernel is still there. Just not on data path.</p>
+<p>Before you send anything you need to set things up. Open device. Create queues. Register memory. Connect to remote side. All this is syscalls. Kernel checks everything.</p>
+<p>Only after setup the fast path works. Then you post work to hardware directly. Poll completions. No syscalls for that part.</p>
+<p>So the trade is: expensive setup, cheap operations after. Good if you do many operations. Not good for connections that don't last.</p>
+<hr />
+<h2 id="queue-pairs">queue pairs</h2>
+<p>RDMA doesn't use sockets. Uses queues instead.</p>
+<p><strong>Queue Pair</strong> is your connection. Has send queue and receive queue. You put work requests there, saying what to do (send this buffer, read from that address). NIC processes them when it can.</p>
+<p><strong>Completion Queue</strong> is how you know things finished. NIC puts entries. You poll or wait.</p>
+<p>The annoying thing: queue pairs start in RESET state. You have to move them through states: RESET → INIT → RTR → RTS. If you miss one nothing works. No error. Just nothing happens. This took me a while to figure out first time.</p>
+<hr />
+<h2 id="memory-registration">memory registration</h2>
+<p>Before NIC can touch your memory, you register it.</p>
+<p>What registration does:</p>
+<ul>
+<li>Pins the pages. Memory can't go to swap. Physical addresses stay valid because hardware will DMA there.</li>
+<li>Builds translation in NIC. Hardware needs to know where virtual address X is in physical memory.</li>
+<li>Gives you keys. lkey for your own ops, rkey to share with remote. They need your rkey to access your memory.</li>
+</ul>
+<p>Registration is a syscall. This is where kernel checks permissions.</p>
+<hr />
+<h2 id="who-checks-if-not-kernel">who checks if not kernel</h2>
+<p>This part confused me for a while.</p>
+<p>With normal networking kernel validates everything. Bad pointer? SIGSEGV. Wrong permission? Error. Kernel is the one checking.</p>
+<p>But RDMA kernel is not in data path. So how bad accesses get stopped?</p>
+<p>Answer is hardware.</p>
+<p>When you register memory, kernel tells the NIC: these addresses valid, these permissions, this protection domain. NIC stores all this in its memory protection tables.</p>
+<p>Then during transfers NIC checks every operation:</p>
+<ul>
+<li>Is address in registered region?</li>
+<li>Permissions OK?</li>
+<li>Key matches?</li>
+</ul>
+<p>If something wrong, operation fails. Error shows in completion queue. Not SIGSEGV because NIC caught it, not CPU.</p>
+<p>Hardware does what kernel would do, just at wire speed.</p>
+<hr />
+<h2 id="protection-domains">protection domains</h2>
+<p>You can't access anyone's memory.</p>
+<p><strong>Protection Domain</strong> is security boundary. When you make queue pair and register memory, you put them in a PD. Operations only work on memory in same PD.</p>
+<p>This is like kernel process isolation but for RDMA. Different apps get different PDs.</p>
+<hr />
+<h2 id="one-sided-and-two-sided">one-sided and two-sided</h2>
+<p>Two kinds of operations.</p>
+<p><strong>Two-sided.</strong> Both sides do something. Receiver posts buffer first. Sender posts send. Both CPUs involved.</p>
+<p><strong>One-sided.</strong> Only you do something. RDMA_WRITE pushes data to remote memory. RDMA_READ pulls data. Remote CPU not involved. Not even aware.</p>
+<p>One-sided is where RDMA is powerful. But also more work. If remote app needs to know you wrote, you have to tell it. Usually you write a flag that it polls. Or use atomics. Synchronization is your problem to solve.</p>
+<hr />
+<h2 id="atomics">atomics</h2>
+<p>There are atomic operations:</p>
+<ul>
+<li>Compare-and-swap</li>
+<li>Fetch-and-add</li>
+</ul>
+<p>They run at remote memory, atomically. Remote CPU not involved.</p>
+<p>Good for locks, counters. But slower than regular read/write. And some NICs implement in firmware so even slower. Depends on card.</p>
 <hr />
 <h2 id="the-hardware">the hardware</h2>
-<p>You need an RNIC (RDMA Network Interface Card). This isn't your regular NIC. The RNIC implements RDMA protocols in hardware—it knows how to access memory regions, validate permissions, and move data without running the kernel network stack on every packet.</p>
-<p>Two common protocol families:</p>
-<p><strong>InfiniBand (IB):</strong> The original RDMA technology. Requires special switches and cabling. Common in HPC clusters and supercomputers. Latencies under 1μs.</p>
-<p><strong>RoCE (RDMA over Converged Ethernet):</strong> Runs over Ethernet. Easier to deploy if you already have Ethernet infrastructure, but in practice you usually end up treating the fabric as "almost lossless" (PFC/ECN/DCB tuning) or performance gets ugly under loss/congestion. Slightly higher latency than InfiniBand, but close enough for most use cases.</p>
-<p>There's also iWARP (RDMA over TCP). It avoids the whole "make Ethernet lossless" dance, but it's less common in modern deployments and often doesn't match RoCE/IB latency.</p>
+<p>You need special NIC. Normal ones don't do RDMA.</p>
+<p><strong>InfiniBand.</strong> The original. Needs its own switches and cables. Very low latency, under microsecond. HPC clusters use this.</p>
+<p><strong>RoCE.</strong> RDMA over Ethernet. Works on regular switches. But Ethernet drops packets and RDMA really doesn't like that. So you configure switches for "lossless" mode. Priority flow control and so on. It gets complicated.</p>
+<p><strong>iWARP.</strong> RDMA over TCP. Most compatible. But TCP adds latency.</p>
+<p>I think most datacenters use RoCE v2 now.</p>
 <hr />
-<h2 id="the-programming-model">the programming model</h2>
-<p>RDMA exposes a different mental model than sockets. Instead of <code>send()</code> and <code>recv()</code>, you work with queues and memory regions. The main abstractions from <code>libibverbs</code> (the userspace library from <a rel="external" href="https://github.com/linux-rdma/rdma-core">rdma-core</a>):</p>
-<p><strong>Queue Pair (QP):</strong> Your connection to the hardware. A QP has two queues (a send queue and a receive queue). You post work requests to these queues, and the RNIC processes them asynchronously.</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">struct</span><span> ibv_qp </span><span style="color: light-dark(#9C4641, #EA6962);">*</span><span style="color: light-dark(#707943, #A9B665);">ibv_create_qp</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span style="color: light-dark(#9C4641, #EA6962);">struct</span><span> ibv_pd </span><span style="color: light-dark(#9C4641, #EA6962);">*</span><span>pd</span><span style="color: light-dark(#685C52, #9C8B7C);">,</span></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">                             struct</span><span> ibv_qp_init_attr </span><span style="color: light-dark(#9C4641, #EA6962);">*</span><span>qp_init_attr</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span></code></pre>
-<p>Creating a QP isn't enough. Fresh QPs start in a <code>RESET</code> state. You have to walk them through a state machine: <code>RESET</code> -&gt; <code>INIT</code> -&gt; <code>RTR</code> (ready to receive) -&gt; <code>RTS</code> (ready to send). Only then can data actually flow. This trips up everyone the first time.</p>
-<p><strong>Completion Queue (CQ):</strong> How you know an operation finished. When the RNIC completes a work request, it posts a completion entry to the CQ. You poll the CQ or wait for an interrupt.</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">struct</span><span> ibv_cq </span><span style="color: light-dark(#9C4641, #EA6962);">*</span><span style="color: light-dark(#707943, #A9B665);">ibv_create_cq</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span style="color: light-dark(#9C4641, #EA6962);">struct</span><span> ibv_context </span><span style="color: light-dark(#9C4641, #EA6962);">*</span><span>context</span><span style="color: light-dark(#685C52, #9C8B7C);">,</span><span style="color: light-dark(#9C4641, #EA6962);"> int</span><span> cqe</span><span style="color: light-dark(#685C52, #9C8B7C);">,</span></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">                             void</span><span style="color: light-dark(#9C4641, #EA6962);"> *</span><span>cq_context</span><span style="color: light-dark(#685C52, #9C8B7C);">,</span></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">                             struct</span><span> ibv_comp_channel </span><span style="color: light-dark(#9C4641, #EA6962);">*</span><span>channel</span><span style="color: light-dark(#685C52, #9C8B7C);">,</span></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">                             int</span><span> comp_vector</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span></code></pre>
-<p>Two modes for processing completions:</p>
-<ul>
-<li><strong>Polling:</strong> Call <code>ibv_poll_cq</code> in a loop. Lowest latency, highest throughput, burns CPU.</li>
-<li><strong>Interrupt-based:</strong> Use <code>ibv_req_notify_cq</code> to arm the CQ for events. Lower CPU usage, higher latency.</li>
-</ul>
-<p>A single CQ can serve multiple QPs. This is useful for consolidating completion processing.</p>
-<p><strong>Memory Region (MR):</strong> Before the RNIC can touch your memory, you must register it. Registration does two things: pins the memory so it can't be swapped to disk, and gives you keys.</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">struct</span><span> ibv_mr </span><span style="color: light-dark(#9C4641, #EA6962);">*</span><span style="color: light-dark(#707943, #A9B665);">ibv_reg_mr</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span style="color: light-dark(#9C4641, #EA6962);">struct</span><span> ibv_pd </span><span style="color: light-dark(#9C4641, #EA6962);">*</span><span>pd</span><span style="color: light-dark(#685C52, #9C8B7C);">,</span><span style="color: light-dark(#9C4641, #EA6962);"> void</span><span style="color: light-dark(#9C4641, #EA6962);"> *</span><span>addr</span><span style="color: light-dark(#685C52, #9C8B7C);">,</span></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">                          size_t</span><span> length</span><span style="color: light-dark(#685C52, #9C8B7C);">,</span><span style="color: light-dark(#9C4641, #EA6962);"> int</span><span> access</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span></code></pre>
-<p>The <code>access</code> flags matter. <code>IBV_ACCESS_LOCAL_WRITE</code> lets the RNIC write into this MR (e.g., receives). <code>IBV_ACCESS_REMOTE_READ</code> and <code>IBV_ACCESS_REMOTE_WRITE</code> let remote machines access it directly. The registration returns an <code>lkey</code> (used by the local RNIC to validate local work requests) and an <code>rkey</code> (presented by remote peers). You share the rkey with the other side.</p>
-<p><strong>Protection Domain (PD):</strong> A security boundary. QPs and MRs belong to a PD. The RNIC checks that any operation matches—you can't use an MR with a QP from a different PD. This replaces the safety checks we lost by bypassing the kernel.</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">struct</span><span> ibv_pd </span><span style="color: light-dark(#9C4641, #EA6962);">*</span><span style="color: light-dark(#707943, #A9B665);">ibv_alloc_pd</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span style="color: light-dark(#9C4641, #EA6962);">struct</span><span> ibv_context </span><span style="color: light-dark(#9C4641, #EA6962);">*</span><span>context</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span></code></pre>
+<h2 id="some-numbers">some numbers</h2>
+<table><thead><tr><th>What</th><th>How long</th></tr></thead><tbody>
+<tr><td>TCP round trip</td><td>10-50 μs</td></tr>
+<tr><td>RDMA round trip</td><td>1-5 μs</td></tr>
+<tr><td>Local memory</td><td>~100 ns</td></tr>
+</tbody></table>
+<p>RDMA is maybe 10x faster than TCP. But still 10x slower than local RAM. This is important when you think about memory disaggregation. You're replacing local memory with remote. Microseconds add up.</p>
 <hr />
-<h2 id="one-sided-vs-two-sided">one-sided vs two-sided</h2>
-<p>RDMA supports both:</p>
-<p><strong>Two-sided (send/receive):</strong> Traditional messaging. One side posts a send, the other posts a receive. Both CPUs are aware of the transfer. Simpler to reason about, similar to sockets.</p>
-<p><strong>One-sided (RDMA read/write):</strong> The magic. RDMA_WRITE shoves data into remote memory without the remote CPU knowing. RDMA_READ pulls data out. The remote application keeps running, oblivious. This is how you get no remote CPU involvement in the data movement.</p>
-<p>One-sided operations need the remote memory region's address and rkey. You typically exchange these out-of-band during connection setup.</p>
-<p>The gotcha: "oblivious" doesn't mean "safe." You're writing memory via DMA, not calling a function on the remote core. You still need a synchronization protocol (and careful ordering) so the remote side knows when it can read that memory.</p>
-<hr />
-<h2 id="who-validates-operations">who validates operations?</h2>
-<p>If the kernel isn't inspecting every packet, what stops bad memory accesses?</p>
-<p>The RNIC hardware takes over. The setup/transfer split:</p>
-<p><strong>Setup (kernel involved):</strong> When you call <code>ibv_reg_mr</code>, the kernel tells the hardware exactly which addresses are valid and what permissions apply. The hardware stores this.</p>
-<p><strong>Transfer (kernel asleep):</strong> During data movement, the RNIC checks every operation against those rules. If you mess up local registration/keys/permissions, you'll see local errors like <code>IBV_WC_LOC_PROT_ERR</code>. If the remote rejects the request (bad rkey/permissions or invalid remote address), you'll see a remote error like <code>IBV_WC_REM_ACCESS_ERR</code> or <code>IBV_WC_REM_INV_REQ_ERR</code>.</p>
-<p>The hardware also handles corruption. It checks CRCs, drops bad packets, requests retries. You get reliable delivery without TCP's overhead.</p>
-<hr />
-<h2 id="where-rdma-wins">where rdma wins</h2>
-<ul>
-<li><strong>Latency-critical paths:</strong> Sub-microsecond matters when you're doing millions of small operations per second.</li>
-<li><strong>High-throughput bulk transfers:</strong> The CPU isn't the bottleneck when the RNIC handles everything.</li>
-<li><strong>Memory disaggregation:</strong> Systems like Infiniswap swap pages to remote memory over RDMA. Works because you're paying microseconds over the fabric instead of milliseconds to disk.</li>
-<li><strong>Distributed databases and KV stores:</strong> RAMCloud, FaRM, and others build on RDMA for fast replication and reads.</li>
-</ul>
-<h2 id="where-it-hurts">where it hurts</h2>
-<ul>
-<li><strong>Programming complexity:</strong> The queue/completion model is harder than sockets. State machines, pinned memory, keys—there's a lot to get right.</li>
-<li><strong>Debugging is painful:</strong> Problems manifest as cryptic completion status codes. No tcpdump. Tools are improving but still rough.</li>
-<li><strong>Hardware cost:</strong> RNICs and InfiniBand switches aren't cheap. RoCE helps if you already have decent Ethernet.</li>
-<li><strong>Not worth it for large, infrequent transfers:</strong> If you're sending a few big blobs over slow intervals, TCP's overhead is negligible and the simplicity wins.</li>
-</ul>
+<h2 id="what-s-hard-about-it">what's hard about it</h2>
+<p>Debugging is not fun. Problems are completion queue errors with codes you have to look up. No tcpdump. When something breaks you look at hardware counters and guess.</p>
+<p>Before RDMA works, both sides exchange info. Queue pair numbers, memory keys, addresses. Usually you do this over TCP first. Extra complexity.</p>
+<p>Registered memory is pinned. Big registrations hit ulimit.</p>
+<p>For two-sided, receiver must post buffers before sender sends. If receiver runs out of buffers, sender operations fail.</p>
 <hr />
 <h2 id="notes">notes</h2>
 <ul>
-<li>Paper: <a rel="external" href="https://www.usenix.org/system/files/nsdi22-paper-reda_1.pdf">RDMA is Turing complete, we just did not know it yet!</a></li>
-<li>RDMA's "zero-copy" means the RNIC reads directly from your user-space buffer. No kernel buffer, no extra copy. The CPU does zero memory-copy work for the transfer itself.</li>
-<li>Memory registration (<code>ibv_reg_mr</code>) pins pages via the kernel/driver so the RNIC can DMA safely. Large registrations can hit <code>ulimit -l</code> / <code>RLIMIT_MEMLOCK</code> limits.</li>
-<li>QP state transitions are required because each state enables different capabilities and checks. You can't skip steps.</li>
-<li>Scatter/gather elements (SGEs) let you describe non-contiguous memory in a single work request. They always point to local memory.</li>
-<li>One application can have multiple QPs and CQs. CQs aren't 1:1 with queues—flexibility for different polling strategies.</li>
-<li>Atomic operations (compare-and-swap, fetch-and-add) are also available for lock-free distributed algorithms.</li>
-<li>libibverbs man pages: <a rel="external" href="https://github.com/linux-rdma/rdma-core/blob/master/libibverbs/man/ibv_create_qp.3">ibv_create_qp</a>, <a rel="external" href="https://github.com/linux-rdma/rdma-core/blob/master/libibverbs/man/ibv_reg_mr.3">ibv_reg_mr</a>, <a rel="external" href="https://github.com/linux-rdma/rdma-core/blob/master/libibverbs/man/ibv_create_cq.3">ibv_create_cq</a></li>
+<li>Verbs API is standard interface. libibverbs on Linux.</li>
+<li>Watch <code>ulimit -l</code> for locked memory limit.</li>
+<li>One app can have many queue pairs and completion queues. Common pattern is one QP per thread.</li>
+<li>Atomic ops: compare-and-swap, fetch-and-add. Support varies by hardware.</li>
+<li>Paper: <a rel="external" href="https://www.usenix.org/system/files/nsdi22-paper-reda_1.pdf">RDMA is Turing complete</a> (yes really)</li>
+<li>Man pages: <a rel="external" href="https://github.com/linux-rdma/rdma-core/blob/master/libibverbs/man/ibv_create_qp.3">ibv_create_qp</a>, <a rel="external" href="https://github.com/linux-rdma/rdma-core/blob/master/libibverbs/man/ibv_reg_mr.3">ibv_reg_mr</a>, <a rel="external" href="https://github.com/linux-rdma/rdma-core/blob/master/libibverbs/man/ibv_post_send.3">ibv_post_send</a></li>
+<li>Nvidia docs: <a rel="external" href="https://docs.nvidia.com/networking/display/RDMAAwareProgrammingv17">RDMA Aware Networks Programming User Manual</a></li>
 </ul>
   
 </article>
@@ -284,6 +247,7 @@
         
     </footer>
     
+
     <script>
         document.querySelectorAll("article img[srcset]").forEach((i) => {
             if (i.closest("a")) return;
@@ -302,6 +266,25 @@
             };
         });
     </script>
-    </body>
+    
+<button id="scroll-to-top" aria-label="Scroll to top" title="Scroll to top">↑</button>
+<script>
+    (function() {
+        var btn = document.getElementById("scroll-to-top");
+        if (btn) {
+            window.addEventListener("scroll", function() {
+                if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                    btn.classList.add("show");
+                } else {
+                    btn.classList.remove("show");
+                }
+            });
+            btn.addEventListener("click", function() {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        }
+    })();
+</script>
+</body>
 
 </html>

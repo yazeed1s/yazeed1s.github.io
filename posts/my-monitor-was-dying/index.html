@@ -5,91 +5,61 @@
 <meta charset="UTF-8" />
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="description" content="How an X11 composite shadow crossed monitor boundaries and looked like hardware failure." />
+<meta name="description" content="debugging what looked like panel failure, turned out to be a shadow from polybar crossing monitor boundaries." />
 <meta
     name="keywords"
     content="yazeed, blog, alharthi, yaz, yazeed1s"
 />
 <link rel="canonical" href="https://yazeed1s.github.io/posts/my-monitor-was-dying/" />
 
-<title>Debugged a Broken Monitor (It Was a Shadow) | Yazeed&#x27;s Blog</title>
+<title>My monitor was dying | Yazeed&#x27;s Blog</title>
 <meta property="og:site_name" content="Yazeed&#x27;s Blog" />
-<meta property="og:title" content="Debugged a Broken Monitor (It Was a Shadow) | Yazeed&#x27;s Blog" />
+<meta property="og:title" content="My monitor was dying | Yazeed&#x27;s Blog" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://yazeed1s.github.io/posts/my-monitor-was-dying/" />
-<meta property="og:description" content="How an X11 composite shadow crossed monitor boundaries and looked like hardware failure." />
+<meta property="og:description" content="debugging what looked like panel failure, turned out to be a shadow from polybar crossing monitor boundaries." />
 
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="Debugged a Broken Monitor (It Was a Shadow)" />
-<meta name="twitter:description" content="How an X11 composite shadow crossed monitor boundaries and looked like hardware failure." />
+<meta name="twitter:title" content="My monitor was dying" />
+<meta name="twitter:description" content="debugging what looked like panel failure, turned out to be a shadow from polybar crossing monitor boundaries." />
 
     <link rel="icon" href="&#x2F;favicon.ico" />
     
     <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
     <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
 
-                  
+           
+    
+    
+    
+
+          
+    
+    
+    
     <style>
         :root {
-            --nav-basis: 25
-
-            %;
-
-            --light-bg: #eae6deff
-
-            ;
-
-            --light-text: #1a1410
-
-            ;
-
-            --light-text-muted: #1a1410
-
-            ;
-
-            --light-accent: #9E4440
-
-            ;
-
-            --light-accent-hover: #7A3533
-
-            ;
-
-            --light-code-bg: #e1ded6ff
-
-            ;
-
-            --light-border: #abaaaaff
-
-            ;
-
-            --dark-bg: #303132
-
-            ;
-
-            --dark-text: #bebbb9ff
-
-            ;
-
-            --dark-text-muted: #d5d2cf
-
-            ;
-
-            --dark-accent: #e57665
-
-            ;
-
-            --dark-accent-hover: #888885
-
-            ;
-
-            --dark-code-bg: #282829
-
-            ;
-
-            --dark-border: #524f4c
-
-            ;
+            --nav-basis: 25%;
+            --light-bg: #eae6deff;
+            --light-text: #1a1410;
+            --light-text-muted: #1a1410;
+            --light-accent: #9E4440;
+            --light-accent-hover: #7A3533;
+            --light-code-bg: #e1ded6ff;
+            --light-border: #abaaaaff;
+            --light-bold: #1a1410;
+            --light-italic: #1a1410;
+            --light-headers: #1a1410;
+            --dark-bg: #303132;
+            --dark-text: #bebbb9ff;
+            --dark-text-muted: #d5d2cf;
+            --dark-accent: #e57665;
+            --dark-accent-hover: #888885;
+            --dark-code-bg: #282829;
+            --dark-border: #524f4c;
+            --dark-bold: #d5d2cf;
+            --dark-italic: #d5d2cf;
+            --dark-headers: #d5d2cf;
         }
     </style>
     <meta name="theme-color" id="tc" />
@@ -143,98 +113,52 @@
     <main id="main">
 <article>
     <header>
-        <h1>Debugged a Broken Monitor (It Was a Shadow)</h1>
+        <h1>My monitor was dying</h1>
         <div class="post-meta">
             <time datetime="2026-02-01">01 Feb 2026</time>
             
-            <span>How an X11 composite shadow crossed monitor boundaries and looked like hardware failure.</span>
+            <span>debugging what looked like panel failure, turned out to be a shadow from polybar crossing monitor boundaries.</span>
              
             <span class="post-tags">
                 <span class="post-tags-label">Tags: </span>
                 
-                <a href="https://yazeed1s.github.io/tags/linux">linux</a><span
+                <a href="https://yazeed1s.github.io/tags/linux">Linux</a><span
                     class="tag-comma">,</span> 
                 <a href="https://yazeed1s.github.io/tags/x11">x11</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/polybar">polybar</a><span
+                <a href="https://yazeed1s.github.io/tags/picom">Picom</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/picom">picom</a><span
-                    class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/debugging">debugging</a><span
-                    class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/window-manager">window manager</a>
+                <a href="https://yazeed1s.github.io/tags/debugging">Debugging</a>
             </span>
             
         </div>
     </header>
-     <p>I bought a new dell monitor. A few days in, I noticed a dim shadow in the top-left corner. Sometimes it stretched briefly on power-on.</p>
-<p>It looked <strong><em>physical</em></strong>. Like panel uniformity issues. Like backlight bleed. Like I bought a defective monitor.</p>
-<hr />
-<h2 id="hardware-spiral">hardware spiral</h2>
-<p>when you see a corner darkening, you blame everything physical:</p>
-<ul>
-<li>monitor arm (did i twist the panel?)</li>
-<li>backlight / diffuser</li>
-<li>cable / port</li>
-<li>the monitor itself</li>
-</ul>
-<p>I ran through the usual checks. built-in diagnostics were clean. different cables didn't help. the shadow just sat there, stable, looking like it belonged to the panel.</p>
-<hr />
+     <p>So I bought a new Dell monitor and a few days in I noticed this dim shadow in the top-left corner. Sometimes it would stretch briefly when the monitor powered on, and it just looked physical. Like backlight bleed, like panel uniformity issues, like I somehow bought a defective unit.</p>
+<h2 id="blaming-hardware">blaming hardware</h2>
+<p>When you see corner darkening the first thing you think is hardware. Monitor arm, maybe I twisted the panel when mounting it. Backlight diffuser issue. Bad cable or port. The monitor itself. So I ran through the usual checks, built-in diagnostics came back clean, and I also tried different cables and it changed nothing, the shadow just sat there looking like it belonged to the panel literally.</p>
 <h2 id="wrong-rabbit-hole">wrong rabbit hole</h2>
-<p>Same day this started, I was messing with <code>tlp</code> and <code>auto-cpufreq</code>.</p>
-<p>So naturally: "did I power-save my way into a broken display?". So I turned it all off. and the shadow stayed!!</p>
-<p>At least now I knew it wasn't some weird power profile.</p>
-<hr />
+<p>Same day this started I was messing with <code>tlp</code> and <code>auto-cpufreq</code> so naturally I thought maybe I power-saved my way into a broken display, which was silly of me, but I couldn't shake the thought. So I turned all of that off and the shadow stayed. At least now I knew it wasn't some weird power profile thing causing this.</p>
 <h2 id="software-suspects">software suspects</h2>
-<p>My stack started looking suspicious:</p>
-<ul>
-<li>custom window manager</li>
-<li>x11</li>
-<li>picom (shadows, damage tracking, the usual "maybe it's stale buffers")</li>
-</ul>
-<p>Nothing in that layer had changed recently though. No updates, no config changes. Not proof, but enough to stop me from rewriting compositor configs at 2am.</p>
-<hr />
-<h2 id="isolation">isolation</h2>
-<p>I logged into wayland. Shadow gone. same laptop. same cable. same monitor.</p>
-<p>That's when I stopped worrying about RMA. wayland wasn't "better" here, it was just a control group.</p>
-<hr />
+<p>At this point I was thinking okay if it's not hardware and it's not power management, what else could it be. I started looking at my stack: custom window manager that I wrote, x11, picom with shadows and damage tracking. But then I thought wait, nothing in that layer had changed recently, no updates, no config changes. Not proof of anything really but it was enough to stop me from rewriting compositor configs.</p>
+<h2 id="trying-wayland">trying wayland</h2>
+<p>So I was stuck and I thought maybe I should just try a completely different display stack to rule things out. I logged into wayland and the shadow was gone. Same laptop, same cable, same monitor. That's when it clicked, wayland wasn't "better" here, it was just a control group. If the shadow disappears when I switch display servers then the monitor is clearly fine, and this has to be something in my x11 setup.</p>
 <h2 id="bisect">bisect</h2>
-<p>Once I knew it was x11 and not the monitor, I thought about what actually changed.</p>
-<p>I had recently updated my window manager.
-Laziest possible bisect:</p>
-<ul>
-<li>switch to x11 -&gt; artifact returns</li>
-<li>roll back WM -&gt; artifact gone</li>
-</ul>
-<p>This was a regression I introduced.</p>
-<hr />
-<h2 id="the-reveal">the reveal</h2>
-<p>Turns out I didn't mess up stacking order, I actually implemented it correctly. EWMH says window types stack in a specific order, and <code>polybar</code> (type <code>_NET_WM_TYPE_DOCK</code>) now sat above basically everything.</p>
-<p>I run picom with shadows. polybar now had a shadow that landed on top of other windows.</p>
-<p>On firefox or any bright window near that corner, it looked exactly like panel dimming.</p>
-<p>The funniest thing is that the bar wasn't even on the external monitor. Only its shadow was.</p>
-<hr />
-<h2 id="why-the-shadow-landed-on-the-other-monitor">why the shadow landed on the other monitor</h2>
-<p>My laptop screen has polybar. External monitor doesn't.</p>
-<p>But x11 treats the desktop as one big coordinate space. Monitors are just rectangles inside it:</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);"><code data-lang="shellscript"><span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">$</span><span style="color: light-dark(#906E3A, #D8A657);"> xrandr</span><span style="color: light-dark(#8C5967, #D3869B);"> -</span><span style="color: light-dark(#8C5967, #D3869B);">-listmonitors</span></span>
-<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">Monitors:</span><span style="color: light-dark(#8C5967, #D3869B);"> 2</span></span>
-<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);"> 0:</span><span style="color: light-dark(#906E3A, #D8A657);"> +</span><span>*</span><span style="color: light-dark(#906E3A, #D8A657);">eDP</span><span style="color: light-dark(#906E3A, #D8A657);"> 1920/302x1200/189+0+0</span><span style="color: light-dark(#906E3A, #D8A657);">  eDP</span></span>
-<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);"> 1:</span><span style="color: light-dark(#906E3A, #D8A657);"> +DisplayPort-0</span><span style="color: light-dark(#906E3A, #D8A657);"> 2560/597x1440/336+1920+0</span><span style="color: light-dark(#906E3A, #D8A657);">  DisplayPort-0</span></span></code></pre>
-<p>external starts at <code>x = 1920</code>.</p>
-<p>shadows don't care about monitor boundaries. just pixels in global space. if you blur something near the right edge of the laptop screen, that blur can spill into the left edge of the external monitor.</p>
-<p>which is exactly where i was seeing the "hardware defect."</p>
-<hr />
-<h2 id="confirmation">confirmation</h2>
-<h2 id="killed-polybar-dimming-gone-instantly">Killed polybar. dimming gone instantly.</h2>
-<h2 id="the-fix">the fix</h2>
-<p>Make sure polybar doesn't cast shadows. Fake hardware defect never came back.</p>
-<hr />
-<h2 id="notes">notes</h2>
-<ul>
-<li>this doesn't generalize to "it's always software." panels do fail. but isolating layers beats spiraling.</li>
-<li>multi-monitor on x11 is one big canvas. effects don't stop at the seam unless you make them.</li>
-</ul>
+<p>Once I knew it was x11 and not the hardware I started thinking about what actually changed recently. I had updated my window manager a few days ago, right around when this started. So I thought let me try the laziest possible bisect: switch to x11 and check if the artifact returns, then roll back the WM changes and see if the artifact goes away. And that's exactly what happened. So this was a regression I introduced.</p>
+<h2 id="what-actually-happened">what actually happened</h2>
+<p>So I started killing things to see what makes the shadow disappear. I disabled all window shadows in picom and the artifact was gone. Okay so it's definitely a shadow from some window. I re-enabled shadows and started killing windows one by one, and when I killed polybar (which was on my laptop screen) the dimming disappeared instantly. So the shadow was coming from polybar!! wtf.</p>
+<p>But why was polybar casting a shadow that landed on my external monitor now? It wasn't doing this before my WM update. Then I thought about what I actually changed in that update. I had reimplemented the stacking order logic from scratch because the old code was a mess. And in the new implementation I correctly followed EWMH which says window types should stack in a specific order, and <code>_NET_WM_TYPE_DOCK</code> windows like polybar are supposed to sit above basically everything else. In my old WM code polybar wasn't stacked as high as it should have been, but now it was. And since I run picom with shadows enabled, polybar's shadow was now landing on top of other windows. On firefox or any bright window near that corner it looked exactly like panel dimming.</p>
+<p>The funny thing is polybar wasn't even on the external monitor, it was on my laptop screen, and I wasn't even looking at my laptop this whole time.</p>
+<h2 id="why-the-shadow-crossed-monitors">why the shadow crossed monitors</h2>
+<p>So I was thinking how is polybar's shadow even reaching the external monitor when polybar itself is only on my laptop screen. Then I remembered that x11 treats the whole desktop as one big coordinate space, monitors are just rectangles inside it:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="shellscript"><span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">$</span><span style="color: light-dark(#4A6934, #CB8B8B);"> xrandr</span><span style="color: light-dark(#784367, #CA9D7D);"> -</span><span style="color: light-dark(#784367, #CA9D7D);">-listmonitors</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">Monitors:</span><span style="color: light-dark(#784367, #CA9D7D);"> 2</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);"> 0:</span><span style="color: light-dark(#4A6934, #CB8B8B);"> +</span><span style="color: light-dark(#7D4242, #D4D4C0);">*</span><span style="color: light-dark(#4A6934, #CB8B8B);">eDP</span><span style="color: light-dark(#4A6934, #CB8B8B);"> 1920/302x1200/189+0+0</span><span style="color: light-dark(#4A6934, #CB8B8B);">  eDP</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);"> 1:</span><span style="color: light-dark(#4A6934, #CB8B8B);"> +DisplayPort-0</span><span style="color: light-dark(#4A6934, #CB8B8B);"> 2560/597x1440/336+1920+0</span><span style="color: light-dark(#4A6934, #CB8B8B);">  DisplayPort-0</span></span></code></pre>
+<p>The external monitor starts at <code>x = 1920</code>. Shadows don't care about monitor boundaries, they're just pixels in global space. If you blur something near the right edge of the laptop screen that blur can spill into the left edge of the external monitor, which is exactly where I was seeing the "hardware defect."</p>
+<h2 id="fix">fix</h2>
+<p>Killed polybar and the dimming was gone instantly. Made sure polybar doesn't cast shadows and the fake hardware defect never came back.</p>
+<h2 id="what-i-took-from-this">what I took from this</h2>
+<p>Panels do fail and this doesn't generalize to "it's always software" but isolating layers beats spiraling through hardware returns. Also multi-monitor on x11 is one big stupid canvas and effects don't stop at monitor seams unless you explicitly make them stop by padding between monitors or whatever.</p>
   
 </article>
 </main>
@@ -243,6 +167,7 @@ Laziest possible bisect:</p>
         
     </footer>
     
+
     <script>
         document.querySelectorAll("article img[srcset]").forEach((i) => {
             if (i.closest("a")) return;
@@ -261,6 +186,25 @@ Laziest possible bisect:</p>
             };
         });
     </script>
-    </body>
+    
+<button id="scroll-to-top" aria-label="Scroll to top" title="Scroll to top">↑</button>
+<script>
+    (function() {
+        var btn = document.getElementById("scroll-to-top");
+        if (btn) {
+            window.addEventListener("scroll", function() {
+                if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                    btn.classList.add("show");
+                } else {
+                    btn.classList.remove("show");
+                }
+            });
+            btn.addEventListener("click", function() {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        }
+    })();
+</script>
+</body>
 
 </html>

@@ -5,91 +5,61 @@
 <meta charset="UTF-8" />
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="description" content="CXL turns PCIe into a coherent memory link, enabling memory expansion and (eventually) pooling." />
+<meta name="description" content="CXL creates a memory tier between local DRAM and everything else." />
 <meta
     name="keywords"
     content="yazeed, blog, alharthi, yaz, yazeed1s"
 />
 <link rel="canonical" href="https://yazeed1s.github.io/posts/cxl/" />
 
-<title>CXL: Compute Express Link | Yazeed&#x27;s Blog</title>
+<title>CXL: Why Datacenter Memory is Getting a New Tier | Yazeed&#x27;s Blog</title>
 <meta property="og:site_name" content="Yazeed&#x27;s Blog" />
-<meta property="og:title" content="CXL: Compute Express Link | Yazeed&#x27;s Blog" />
+<meta property="og:title" content="CXL: Why Datacenter Memory is Getting a New Tier | Yazeed&#x27;s Blog" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://yazeed1s.github.io/posts/cxl/" />
-<meta property="og:description" content="CXL turns PCIe into a coherent memory link, enabling memory expansion and (eventually) pooling." />
+<meta property="og:description" content="CXL creates a memory tier between local DRAM and everything else." />
 
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="CXL: Compute Express Link" />
-<meta name="twitter:description" content="CXL turns PCIe into a coherent memory link, enabling memory expansion and (eventually) pooling." />
+<meta name="twitter:title" content="CXL: Why Datacenter Memory is Getting a New Tier" />
+<meta name="twitter:description" content="CXL creates a memory tier between local DRAM and everything else." />
 
     <link rel="icon" href="&#x2F;favicon.ico" />
     
     <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
     <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
 
-                  
+           
+    
+    
+    
+
+          
+    
+    
+    
     <style>
         :root {
-            --nav-basis: 25
-
-            %;
-
-            --light-bg: #eae6deff
-
-            ;
-
-            --light-text: #1a1410
-
-            ;
-
-            --light-text-muted: #1a1410
-
-            ;
-
-            --light-accent: #9E4440
-
-            ;
-
-            --light-accent-hover: #7A3533
-
-            ;
-
-            --light-code-bg: #e1ded6ff
-
-            ;
-
-            --light-border: #abaaaaff
-
-            ;
-
-            --dark-bg: #303132
-
-            ;
-
-            --dark-text: #bebbb9ff
-
-            ;
-
-            --dark-text-muted: #d5d2cf
-
-            ;
-
-            --dark-accent: #e57665
-
-            ;
-
-            --dark-accent-hover: #888885
-
-            ;
-
-            --dark-code-bg: #282829
-
-            ;
-
-            --dark-border: #524f4c
-
-            ;
+            --nav-basis: 25%;
+            --light-bg: #eae6deff;
+            --light-text: #1a1410;
+            --light-text-muted: #1a1410;
+            --light-accent: #9E4440;
+            --light-accent-hover: #7A3533;
+            --light-code-bg: #e1ded6ff;
+            --light-border: #abaaaaff;
+            --light-bold: #1a1410;
+            --light-italic: #1a1410;
+            --light-headers: #1a1410;
+            --dark-bg: #303132;
+            --dark-text: #bebbb9ff;
+            --dark-text-muted: #d5d2cf;
+            --dark-accent: #e57665;
+            --dark-accent-hover: #888885;
+            --dark-code-bg: #282829;
+            --dark-border: #524f4c;
+            --dark-bold: #d5d2cf;
+            --dark-italic: #d5d2cf;
+            --dark-headers: #d5d2cf;
         }
     </style>
     <meta name="theme-color" id="tc" />
@@ -143,101 +113,97 @@
     <main id="main">
 <article>
     <header>
-        <h1>CXL: Compute Express Link</h1>
+        <h1>CXL: Why Datacenter Memory is Getting a New Tier</h1>
         <div class="post-meta">
-            <time datetime="2026-01-12">12 Jan 2026</time>
+            <time datetime="2026-02-05">05 Feb 2026</time>
             
-            <span>CXL turns PCIe into a coherent memory link, enabling memory expansion and (eventually) pooling.</span>
+            <span>CXL creates a memory tier between local DRAM and everything else.</span>
              
             <span class="post-tags">
                 <span class="post-tags-label">Tags: </span>
                 
-                <a href="https://yazeed1s.github.io/tags/cxl">CXL</a><span
-                    class="tag-comma">,</span> 
                 <a href="https://yazeed1s.github.io/tags/memory">Memory</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/hardware">Hardware</a><span
+                <a href="https://yazeed1s.github.io/tags/cxl">CXL</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/pcie">PCIe</a><span
-                    class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/data-centers">Data Centers</a>
+                <a href="https://yazeed1s.github.io/tags/hardware">Hardware</a>
             </span>
             
         </div>
     </header>
      <hr />
-<p>CXL is the thing I keep seeing in memory disaggregation discussions that <em>isn't</em> RDMA.</p>
-<p>The core idea is simple:</p>
-<p><strong>CXL lets a CPU talk to devices over PCIe as if some of that device memory is just "more memory" (with cache coherence), not just DMA behind a driver.</strong></p>
-<p>That sounds like magic until you remember the trade-off: it's still farther than local DRAM. You're buying capacity (and sometimes sharing/pooling) by paying extra latency and giving the OS a harder placement problem.</p>
+<p>CXL keeps appearing everywhere I read about memory disaggregation. Every paper mentions it as <em>"the future"</em> of remote memory access. And I think I finally sat down to understand what it actually is.</p>
 <hr />
-<h2 id="what-cxl-actually-adds">what cxl actually adds</h2>
-<p>PCIe already lets devices do DMA. That's not the interesting part.</p>
-<p>The interesting part is <strong>coherence + memory semantics</strong>:</p>
-<ul>
-<li>With plain PCIe, the host talks to devices via MMIO, and devices talk to host memory via DMA. You can move bytes around, but it doesn't look like "shared memory" (and devices don't get to participate as coherent caching agents).</li>
-<li>With CXL, the link can carry transactions that participate in the host's coherency domain (depending on mode/device), so "who sees which bytes when" becomes something hardware can help enforce.</li>
-</ul>
-<p>This is why CXL is pitched as a <em>memory</em> interconnect, not just an I/O bus.</p>
+<h2 id="the-problem-it-s-solving">the problem it's solving</h2>
+<p>Memory is expensive, especially in datacenters. DRAM can be 50% of server cost. And it's wasted constantly. One machine thrashes while another sits at 30% usage. Many research papers have shown that memory usage is highly imbalanced across servers in a datacenter, and memory underutilization is 70% in some cases. So what do we do?</p>
+<p>The obvious fix is to let machines share memory. Pool it like storage. So instead of the memory setting idle in one server, it can be used by another server.</p>
+<p>But memory access is different from storage. Storage can tolerate milliseconds. Memory access happens in nanoseconds. A cache miss to DRAM is ~100ns. Going over the network adds orders of magnitude. RDMA gets you down to single-digit microseconds. Still 10-50x slower than local memory.</p>
+<p>CXL is supposed to close that gap.</p>
 <hr />
-<h2 id="the-three-protocols-the-only-ones-worth-remembering">the three protocols (the only ones worth remembering)</h2>
-<p>CXL isn't one protocol, it's three riding on top of PCIe:</p>
-<ul>
-<li><strong>CXL.io</strong>: the boring compatibility layer (enumeration, config space, interrupts). Basically "PCIe-like."</li>
-<li><strong>CXL.cache</strong>: lets a device cache host memory coherently (device acts like a coherent agent).</li>
-<li><strong>CXL.mem</strong>: lets the host access device-attached memory with load/store semantics (device memory looks like memory, not an I/O buffer).</li>
-</ul>
-<p>If you only care about memory expansion, <strong>CXL.mem</strong> is the star.</p>
+<h2 id="what-cxl-actually-is">what cxl actually is</h2>
+<p>CXL stands for Compute Express Link. It's a standard built on top of PCIe physical layer. You use the same cables and slots.</p>
+<p>The key thing: it's cache-coherent. The CPU can do normal load/store to CXL-attached memory. The memory controller handles it. No special APIs. No registration like RDMA. Just... memory.</p>
+<p>Three protocols in CXL:</p>
+<p><strong>CXL.io</strong> — basically PCIe. For discovery, configuration, interrupts. Boring stuff.</p>
+<p><strong>CXL.cache</strong> — lets devices cache host memory. Useful for accelerators that want to share data with the CPU without explicit copies.</p>
+<p><strong>CXL.mem</strong> — the interesting one. Lets the host access device-attached memory. The CPU sees it as another memory region. Different NUMA node, slower latency, but addressable like regular RAM.</p>
+<p>CXL 1.0/1.1 is mostly expansion cards. Plug a CXL card with extra DRAM into PCIe slot. Your system gets more memory. Latency is worse than local DIMMs (maybe 200-300ns instead of 100ns), but it's still memory, not storage.</p>
+<p>CXL 2.0 adds switching. Multiple hosts can connect to a shared memory pool. CXL 3.0 pushes this further with fabric.</p>
 <hr />
-<h2 id="device-types-why-type-3-shows-up-everywhere">device types (why "type 3" shows up everywhere)</h2>
-<p>The spec groups devices into types. You don't need the full taxonomy, just the mental model:</p>
-<ul>
-<li><strong>Type 1/2</strong>: accelerators that want coherency (think "devices that want to touch host memory without fighting the cache hierarchy").</li>
-<li><strong>Type 3</strong>: <strong>memory expanders</strong>. This is the disaggregation-adjacent one: plug more capacity behind the link and make it usable by the host.</li>
-</ul>
-<p>Type 3 is where the "add memory without adding sockets" story comes from.</p>
+<h2 id="mixing-memory-types">mixing memory types</h2>
+<p>This is the part that took me a while to get.</p>
+<p>Normally, your CPU's memory controller dictates what DRAM you use. DDR5 system? All your DIMMs are DDR5. Same speed, same density rules. You can't just plug DDR4 into a DDR5 slot.</p>
+<p>CXL breaks this. The CXL device has its own memory controller. It can use whatever DRAM it wants. DDR4, DDR5, older stuff, slower but denser chips. The CPU doesn't care. It just sees CXL memory at some address range.</p>
+<p>So you could have a system with local DDR5 for hot data, and a CXL card with cheaper DDR4 as a slower tier. Or high-capacity, high-density modules that wouldn't work in your native DIMM slots.</p>
+<p>This is interesting from a cost angle. You're not stuck with whatever generation your motherboard supports. Want to keep using old DRAM you already bought? Stick it behind CXL. Want the newest high-density stuff that doesn't fit your memory controller's timing specs? CXL device can handle it.</p>
+<p>The tradeoff is latency. CXL adds overhead. But if you're using it for capacity expansion (not latency-critical paths), maybe that's fine.</p>
 <hr />
-<h2 id="what-this-looks-like-to-software">what this looks like to software</h2>
-<p>If CXL is doing its job, <em>applications don't change</em>, but the OS has new headaches.</p>
-<p>In a typical "memory expansion" setup, CXL memory shows up as:</p>
-<ul>
-<li>a new pool of capacity the kernel can allocate from</li>
-<li>often with NUMA-like properties (different latency/bandwidth than local DRAM)</li>
-<li>sometimes managed as a lower tier (hot things stay local, colder things spill)</li>
-</ul>
-<p>So the system-level question becomes:</p>
-<blockquote>
-<p>"Which bytes should live in local DRAM, and which bytes can tolerate being slower?"</p>
-</blockquote>
-<p>If you let the OS guess, you get "it works, but sometimes it hurts." If you want predictable performance, you usually need policies: NUMA placement, tiering, explicit pinning, or application-level caching.</p>
+<h2 id="why-not-just-use-rdma">why not just use rdma</h2>
+<p>I kept wondering this. RDMA already gives you fast remote memory access. Infiniswap uses it. Works today.</p>
+<p>But RDMA is different:</p>
+<ol>
+<li>You need explicit verbs. Post work request, poll completion. Not load/store.</li>
+<li>Memory registration overhead. Pin pages, get keys, share keys.</li>
+<li>One-sided ops are async. CPU doesn't know when remote writes land unless you signal.</li>
+<li>~1-5μs latency. Fast for network, slow for memory.</li>
+</ol>
+<p>CXL is supposed to be ~200-500ns for pooled memory. Still slower than local, but closer. And it's transparent to software. Your malloc can return CXL memory. The app doesn't know.</p>
+<p>This is the promise anyway. Shipping hardware today is mostly local expansion, not pooled.</p>
 <hr />
-<h2 id="cxl-vs-rdma-why-they-feel-similar-and-why-they-re-not">cxl vs rdma (why they feel similar and why they're not)</h2>
-<p>Both get used to talk about "remote memory." The similarity ends there.</p>
-<ul>
-<li><strong>RDMA</strong>: you explicitly issue operations over the network (READ/WRITE/SEND). It's fast (microseconds), but it's still a network, and you still build protocols on top.</li>
-<li><strong>CXL</strong>: the CPU can issue load/stores into device memory, and hardware can help keep things coherent. It's closer to "NUMA, but farther."</li>
-</ul>
-<p>Also: CXL is a PCIe link/fabric. It's built for short-reach inside a server (and maybe rack-scale switching), not "put it on Ethernet and forget about it."</p>
-<p>RDMA is a way to move bytes fast. CXL is a way to make <em>some</em> bytes look like memory.</p>
+<h2 id="the-latency-question">the latency question</h2>
+<p>This is where I'm not fully convinced.</p>
+<p>Local DRAM: ~100ns. CXL local expansion: ~200-300ns. CXL pooled (through switch): ~500-1000ns.</p>
+<p>Okay so CXL pool is 5-10x slower than local. That's... a lot? For some workloads, maybe fine. For tight loops hitting memory constantly, this seems expensive.</p>
+<p>The pitch is: better than swapping to SSD (100μs) or going over RDMA. And you get more capacity.</p>
+<p>I think the mental model is tiering. Hot data in local DRAM. Warm data in CXL pool. Cold data in SSD or remote. The kernel or some runtime migrates pages between tiers based on access patterns.</p>
+<p>Linux already has this machinery. NUMA balancing, DAMON, tiered memory support merged recently. Whether it works well in practice is another question.</p>
 <hr />
-<h2 id="where-cxl-wins">where cxl wins</h2>
-<ul>
-<li><strong>Capacity expansion without a bigger server.</strong> You want more memory, but you don't want another socket just to get more DIMM slots.</li>
-<li><strong>Tiered memory.</strong> You have hot working sets and cold-but-still-useful data. CXL can be the "bigger, slower tier" that beats going to SSD.</li>
-<li><strong>Disaggregation building block.</strong> If you ever want pooled memory, you need something like CXL on the inside before you can make the outside story real.</li>
-</ul>
-<h2 id="where-it-hurts">where it hurts</h2>
-<ul>
-<li><strong>Latency-sensitive hot paths.</strong> If your workload is dominated by pointer-chasing and cache misses, adding a slower tier can destroy tail latency.</li>
-<li><strong>Bandwidth and congestion.</strong> It's easy to sell "more capacity." It's harder to deliver "more bandwidth" when many cores start leaning on the same link/switch.</li>
-<li><strong>Software maturity and policy.</strong> You can make it work without app changes, but getting good performance is a placement problem, and placement is where systems go to die.</li>
-</ul>
+<h2 id="cache-coherence-across-hosts">cache coherence across hosts</h2>
+<p>CXL 3.0 talks about shared memory. Multiple hosts access same bytes. Hardware maintains coherence.</p>
+<p>This sounds amazing and also scary.</p>
+<p>Cache coherence doesn't scale. We learned this from distributed shared memory systems in the 90s. Beyond a few nodes, the coherence traffic kills you.</p>
+<p>CXL spec people know this. The scope is limited. Maybe a rack. Maybe less. The vision isn't "coherent memory across datacenter." It's more like: within a pod or blade, you get shared memory semantics. Beyond that, you're back to message passing or RDMA-style access.</p>
+<p>Still, even rack-scale shared memory is interesting for some workloads. Databases that want to share buffer caches. ML jobs that share model weights.</p>
+<hr />
+<h2 id="what-s-shipping">what's shipping</h2>
+<p>CXL 1.1 devices exist. Samsung, SK Hynix, others have memory expanders. Mostly used to add capacity to memory-hungry workloads. Intel Sapphire Rapids supports CXL.</p>
+<p>CXL switches are... not really there yet. Some prototypes. Production deployments of pooled CXL memory are probably 2-3 years out.</p>
+<p>So when papers say "CXL will enable this", they're often talking about future hardware. The concepts matter but the ecosystem is young.</p>
+<hr />
+<h2 id="what-i-m-still-unsure-about">what i'm still unsure about</h2>
+<p><strong>Is the latency worth it?</strong> 5-10x slower than local. Yes better than SSD. But memory-intensive apps might just thrash the CXL tier. Need tiering policies that actually work.</p>
+<p><strong>Will the ecosystem mature?</strong> RDMA took years to get right. CXL is newer. Drivers, kernel support, allocation policies, debugging tools. All need to catch up.</p>
+<p><strong>Who actually benefits?</strong> Big cloud providers with massive memory imbalance probably. Smaller deployments might not see ROI with current hardware costs.</p>
 <hr />
 <h2 id="notes">notes</h2>
 <ul>
-<li>If you remember one sentence: CXL is "PCIe, but with coherence and memory semantics."</li>
-<li>CXL doesn't eliminate NUMA; it gives you a new kind of NUMA-shaped problem.</li>
-<li>The exciting part (pooling/sharing across a fabric) is also the part with the most sharp edges: security, isolation, failure handling, and who gets to be coherent with whom.</li>
+<li>CXL consortium: Intel, AMD, ARM, NVIDIA, Samsung, etc.</li>
+<li>Built on PCIe 5.0/6.0 physical layer. Same slots and cables.</li>
+<li>Latency estimates vary by source. Local expansion seems around 200-300ns. Pooled depends heavily on topology.</li>
+<li>Linux kernel CXL support: drivers/cxl/. Device enumeration works. Memory tiering still evolving.</li>
+<li>Related specs: Gen-Z (dead?), CCIX (absorbed into CXL)</li>
+<li>Good overview: <a rel="external" href="https://www.computeexpresslink.org/">CXL Consortium spec</a></li>
+<li>For memory disaggregation context: Aguilera et al., "Memory disaggregation: why now and what are the challenges"</li>
 </ul>
   
 </article>
@@ -247,6 +213,7 @@
         
     </footer>
     
+
     <script>
         document.querySelectorAll("article img[srcset]").forEach((i) => {
             if (i.closest("a")) return;
@@ -265,6 +232,25 @@
             };
         });
     </script>
-    </body>
+    
+<button id="scroll-to-top" aria-label="Scroll to top" title="Scroll to top">↑</button>
+<script>
+    (function() {
+        var btn = document.getElementById("scroll-to-top");
+        if (btn) {
+            window.addEventListener("scroll", function() {
+                if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                    btn.classList.add("show");
+                } else {
+                    btn.classList.remove("show");
+                }
+            });
+            btn.addEventListener("click", function() {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        }
+    })();
+</script>
+</body>
 
 </html>

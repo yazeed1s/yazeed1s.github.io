@@ -28,68 +28,38 @@
     <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
     <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
 
-                  
+           
+    
+    
+    
+
+          
+    
+    
+    
     <style>
         :root {
-            --nav-basis: 25
-
-            %;
-
-            --light-bg: #eae6deff
-
-            ;
-
-            --light-text: #1a1410
-
-            ;
-
-            --light-text-muted: #1a1410
-
-            ;
-
-            --light-accent: #9E4440
-
-            ;
-
-            --light-accent-hover: #7A3533
-
-            ;
-
-            --light-code-bg: #e1ded6ff
-
-            ;
-
-            --light-border: #abaaaaff
-
-            ;
-
-            --dark-bg: #303132
-
-            ;
-
-            --dark-text: #bebbb9ff
-
-            ;
-
-            --dark-text-muted: #d5d2cf
-
-            ;
-
-            --dark-accent: #e57665
-
-            ;
-
-            --dark-accent-hover: #888885
-
-            ;
-
-            --dark-code-bg: #282829
-
-            ;
-
-            --dark-border: #524f4c
-
-            ;
+            --nav-basis: 25%;
+            --light-bg: #eae6deff;
+            --light-text: #1a1410;
+            --light-text-muted: #1a1410;
+            --light-accent: #9E4440;
+            --light-accent-hover: #7A3533;
+            --light-code-bg: #e1ded6ff;
+            --light-border: #abaaaaff;
+            --light-bold: #1a1410;
+            --light-italic: #1a1410;
+            --light-headers: #1a1410;
+            --dark-bg: #303132;
+            --dark-text: #bebbb9ff;
+            --dark-text-muted: #d5d2cf;
+            --dark-accent: #e57665;
+            --dark-accent-hover: #888885;
+            --dark-code-bg: #282829;
+            --dark-border: #524f4c;
+            --dark-bold: #d5d2cf;
+            --dark-italic: #d5d2cf;
+            --dark-headers: #d5d2cf;
         }
     </style>
     <meta name="theme-color" id="tc" />
@@ -166,81 +136,81 @@
 <hr />
 <h2 id="the-problem">The Problem</h2>
 <p>Standard cleanup at the end of main only works if your program exits normally. If it crashes (e.g., a null pointer dereference), the OS raises SIGSEGV and your program dies immediately. Your cleanup code never runs.</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">#</span><span style="color: light-dark(#955F3C, #E08F5A);">include</span><span style="color: light-dark(#685C52, #9C8B7C);"> &lt;</span><span style="color: light-dark(#906E3A, #D8A657);">stdio.h</span><span style="color: light-dark(#685C52, #9C8B7C);">&gt;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">#</span><span style="color: light-dark(#955F3C, #E08F5A);">include</span><span style="color: light-dark(#685C52, #9C8B7C);"> &lt;</span><span style="color: light-dark(#906E3A, #D8A657);">stdlib.h</span><span style="color: light-dark(#685C52, #9C8B7C);">&gt;</span></span>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">#</span><span style="color: light-dark(#784367, #CA9D7D);">include</span><span style="color: light-dark(#4B4B48, #7F7C77);"> &lt;</span><span style="color: light-dark(#4A6934, #CB8B8B);">stdio.h</span><span style="color: light-dark(#4B4B48, #7F7C77);">&gt;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">#</span><span style="color: light-dark(#784367, #CA9D7D);">include</span><span style="color: light-dark(#4B4B48, #7F7C77);"> &lt;</span><span style="color: light-dark(#4A6934, #CB8B8B);">stdlib.h</span><span style="color: light-dark(#4B4B48, #7F7C77);">&gt;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">char</span><span style="color: light-dark(#9C4641, #EA6962);"> *</span><span>buffer </span><span style="color: light-dark(#9C4641, #EA6962);">=</span><span style="color: light-dark(#8C5967, #D3869B);"> NULL</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">char</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>buffer </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#784367, #CA9D7D);"> NULL</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">int</span><span style="color: light-dark(#707943, #A9B665);"> main</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span style="color: light-dark(#9C4641, #EA6962);">void</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);"> {</span></span>
-<span class="giallo-l"><span>    buffer </span><span style="color: light-dark(#9C4641, #EA6962);">=</span><span style="color: light-dark(#707943, #A9B665);"> malloc</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span style="color: light-dark(#8C5967, #D3869B);">500</span><span style="color: light-dark(#9C4641, #EA6962);"> *</span><span style="color: light-dark(#8C5967, #D3869B);"> 1024</span><span style="color: light-dark(#9C4641, #EA6962);"> *</span><span style="color: light-dark(#8C5967, #D3869B);"> 1024</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> //</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> 500 MB</span></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">    if</span><span style="color: light-dark(#685C52, #9C8B7C);"> (</span><span>buffer </span><span style="color: light-dark(#9C4641, #EA6962);">==</span><span style="color: light-dark(#8C5967, #D3869B);"> NULL</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);"> {</span></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">        return</span><span> EXIT_FAILURE</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">    }</span></span>
-<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">    printf</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span style="color: light-dark(#685C52, #9C8B7C);">&quot;</span><span style="color: light-dark(#906E3A, #D8A657);">Allocated 500 MB</span><span style="color: light-dark(#8C5967, #D3869B);">\n</span><span style="color: light-dark(#685C52, #9C8B7C);">&quot;</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">int</span><span style="color: light-dark(#3C6362, #A2BD90);"> main</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span>    buffer </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#3C6362, #A2BD90);"> malloc</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #CA9D7D);">500</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#784367, #CA9D7D);"> 1024</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#784367, #CA9D7D);"> 1024</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> 500 MB</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>buffer </span><span style="color: light-dark(#4B4B48, #CB8B8B);">==</span><span style="color: light-dark(#784367, #CA9D7D);"> NULL</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">        return</span><span> EXIT_FAILURE</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    }</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    printf</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#4B4B48, #7F7C77);">&quot;</span><span style="color: light-dark(#4A6934, #CB8B8B);">Allocated 500 MB</span><span style="color: light-dark(#784367, #CA9D7D);">\n</span><span style="color: light-dark(#4B4B48, #7F7C77);">&quot;</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#928374, #7C6F64);font-style: italic;">    //</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> oops</span></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">    char</span><span style="color: light-dark(#9C4641, #EA6962);"> *</span><span>invalid_ptr </span><span style="color: light-dark(#9C4641, #EA6962);">=</span><span style="color: light-dark(#8C5967, #D3869B);"> NULL</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">    *</span><span>invalid_ptr </span><span style="color: light-dark(#9C4641, #EA6962);">=</span><span style="color: light-dark(#685C52, #9C8B7C);"> &#39;</span><span style="color: light-dark(#906E3A, #D8A657);">x</span><span style="color: light-dark(#685C52, #9C8B7C);">&#39;</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> //</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> SIGSEGV here</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> oops</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    char</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>invalid_ptr </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#784367, #CA9D7D);"> NULL</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #CB8B8B);">    *</span><span>invalid_ptr </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#4B4B48, #7F7C77);"> &#39;</span><span style="color: light-dark(#4A6934, #CB8B8B);">x</span><span style="color: light-dark(#4B4B48, #7F7C77);">&#39;</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> SIGSEGV here</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#928374, #7C6F64);font-style: italic;">    //</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> never reached</span></span>
-<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">    printf</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span style="color: light-dark(#685C52, #9C8B7C);">&quot;</span><span style="color: light-dark(#906E3A, #D8A657);">About to cleanup...</span><span style="color: light-dark(#8C5967, #D3869B);">\n</span><span style="color: light-dark(#685C52, #9C8B7C);">&quot;</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">    free</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span>buffer</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">    return</span><span style="color: light-dark(#8C5967, #D3869B);"> 0</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">}</span></span></code></pre>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> never reached</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    printf</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#4B4B48, #7F7C77);">&quot;</span><span style="color: light-dark(#4A6934, #CB8B8B);">About to cleanup...</span><span style="color: light-dark(#784367, #CA9D7D);">\n</span><span style="color: light-dark(#4B4B48, #7F7C77);">&quot;</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    free</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>buffer</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    return</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre>
 <p>Output:</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);"><code data-lang="shellscript"><span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">$</span><span style="color: light-dark(#906E3A, #D8A657);"> gcc</span><span style="color: light-dark(#906E3A, #D8A657);"> crash.c</span><span style="color: light-dark(#8C5967, #D3869B);"> -</span><span style="color: light-dark(#8C5967, #D3869B);">o</span><span style="color: light-dark(#906E3A, #D8A657);"> crash</span><span style="color: light-dark(#685C52, #9C8B7C);"> &amp;&amp;</span><span style="color: light-dark(#707943, #A9B665);"> ./crash</span></span>
-<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">Allocated</span><span style="color: light-dark(#8C5967, #D3869B);"> 500</span><span style="color: light-dark(#906E3A, #D8A657);"> MB</span></span>
-<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">Segmentation</span><span style="color: light-dark(#906E3A, #D8A657);"> fault</span><span> (core</span><span style="color: light-dark(#906E3A, #D8A657);"> dumped</span><span>)</span></span></code></pre>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="shellscript"><span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">$</span><span style="color: light-dark(#4A6934, #CB8B8B);"> gcc</span><span style="color: light-dark(#4A6934, #CB8B8B);"> crash.c</span><span style="color: light-dark(#784367, #CA9D7D);"> -</span><span style="color: light-dark(#784367, #CA9D7D);">o</span><span style="color: light-dark(#4A6934, #CB8B8B);"> crash</span><span style="color: light-dark(#4B4B48, #7F7C77);"> &amp;&amp;</span><span style="color: light-dark(#3C6362, #A2BD90);"> ./crash</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">Allocated</span><span style="color: light-dark(#784367, #CA9D7D);"> 500</span><span style="color: light-dark(#4A6934, #CB8B8B);"> MB</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">Segmentation</span><span style="color: light-dark(#4A6934, #CB8B8B);"> fault</span><span> (core</span><span style="color: light-dark(#4A6934, #CB8B8B);"> dumped</span><span>)</span></span></code></pre>
 <p>The <code>free(buffer)</code> never runs.</p>
 <h2 id="first-thought-atexit">First Thought: atexit()</h2>
 <p>You might think <code>atexit()</code> solves this:</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">void</span><span style="color: light-dark(#707943, #A9B665);"> cleanup</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span style="color: light-dark(#9C4641, #EA6962);">void</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);"> {</span></span>
-<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">    free</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span>buffer</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">}</span></span>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#3C6362, #A2BD90);"> cleanup</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    free</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>buffer</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">int</span><span style="color: light-dark(#707943, #A9B665);"> main</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span style="color: light-dark(#9C4641, #EA6962);">void</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);"> {</span></span>
-<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">    atexit</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span>cleanup</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#928374, #7C6F64);font-style: italic;">    //</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> ...</span></span>
-<span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">}</span></span></code></pre>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">int</span><span style="color: light-dark(#3C6362, #A2BD90);"> main</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    atexit</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>cleanup</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> ...</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre>
 <p>But <code>atexit()</code> handlers only run on <strong>normal</strong> exit, when main returns or when you call <code>exit()</code>. A signal like SIGSEGV bypasses atexit entirely.</p>
 <h2 id="the-solution-signal-handlers">The Solution: Signal Handlers</h2>
 <p>To run cleanup code on crash, you register a signal handler:</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">#</span><span style="color: light-dark(#955F3C, #E08F5A);">include</span><span style="color: light-dark(#685C52, #9C8B7C);"> &lt;</span><span style="color: light-dark(#906E3A, #D8A657);">signal.h</span><span style="color: light-dark(#685C52, #9C8B7C);">&gt;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">#</span><span style="color: light-dark(#955F3C, #E08F5A);">include</span><span style="color: light-dark(#685C52, #9C8B7C);"> &lt;</span><span style="color: light-dark(#906E3A, #D8A657);">stdio.h</span><span style="color: light-dark(#685C52, #9C8B7C);">&gt;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">#</span><span style="color: light-dark(#955F3C, #E08F5A);">include</span><span style="color: light-dark(#685C52, #9C8B7C);"> &lt;</span><span style="color: light-dark(#906E3A, #D8A657);">stdlib.h</span><span style="color: light-dark(#685C52, #9C8B7C);">&gt;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">#</span><span style="color: light-dark(#955F3C, #E08F5A);">include</span><span style="color: light-dark(#685C52, #9C8B7C);"> &lt;</span><span style="color: light-dark(#906E3A, #D8A657);">unistd.h</span><span style="color: light-dark(#685C52, #9C8B7C);">&gt;</span></span>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">#</span><span style="color: light-dark(#784367, #CA9D7D);">include</span><span style="color: light-dark(#4B4B48, #7F7C77);"> &lt;</span><span style="color: light-dark(#4A6934, #CB8B8B);">signal.h</span><span style="color: light-dark(#4B4B48, #7F7C77);">&gt;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">#</span><span style="color: light-dark(#784367, #CA9D7D);">include</span><span style="color: light-dark(#4B4B48, #7F7C77);"> &lt;</span><span style="color: light-dark(#4A6934, #CB8B8B);">stdio.h</span><span style="color: light-dark(#4B4B48, #7F7C77);">&gt;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">#</span><span style="color: light-dark(#784367, #CA9D7D);">include</span><span style="color: light-dark(#4B4B48, #7F7C77);"> &lt;</span><span style="color: light-dark(#4A6934, #CB8B8B);">stdlib.h</span><span style="color: light-dark(#4B4B48, #7F7C77);">&gt;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">#</span><span style="color: light-dark(#784367, #CA9D7D);">include</span><span style="color: light-dark(#4B4B48, #7F7C77);"> &lt;</span><span style="color: light-dark(#4A6934, #CB8B8B);">unistd.h</span><span style="color: light-dark(#4B4B48, #7F7C77);">&gt;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">char</span><span style="color: light-dark(#9C4641, #EA6962);"> *</span><span>buffer </span><span style="color: light-dark(#9C4641, #EA6962);">=</span><span style="color: light-dark(#8C5967, #D3869B);"> NULL</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">char</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>buffer </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#784367, #CA9D7D);"> NULL</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">void</span><span style="color: light-dark(#707943, #A9B665);"> cleanup_handler</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span style="color: light-dark(#9C4641, #EA6962);">int</span><span> sig</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);"> {</span></span>
-<span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">    (</span><span style="color: light-dark(#9C4641, #EA6962);">void</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span>sig</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#928374, #7C6F64);font-style: italic;">    //</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> Note: using write() instead of printf() - see below</span></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">    const</span><span style="color: light-dark(#9C4641, #EA6962);"> char</span><span> msg</span><span style="color: light-dark(#9C4641, #EA6962);">[]</span><span style="color: light-dark(#9C4641, #EA6962);"> =</span><span style="color: light-dark(#685C52, #9C8B7C);"> &quot;</span><span style="color: light-dark(#906E3A, #D8A657);">Caught signal, exiting...</span><span style="color: light-dark(#8C5967, #D3869B);">\n</span><span style="color: light-dark(#685C52, #9C8B7C);">&quot;</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">    write</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span>STDERR_FILENO</span><span style="color: light-dark(#685C52, #9C8B7C);">,</span><span> msg</span><span style="color: light-dark(#685C52, #9C8B7C);">,</span><span style="color: light-dark(#9C4641, #EA6962);"> sizeof</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span>msg</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#9C4641, #EA6962);"> -</span><span style="color: light-dark(#8C5967, #D3869B);"> 1</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#3C6362, #A2BD90);"> cleanup_handler</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">int</span><span style="color: light-dark(#7D4242, #D4D4C0);"> sig</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    (</span><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span>sig</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> Note: using write() instead of printf() - see below</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    const</span><span style="color: light-dark(#784367, #D4B399);"> char</span><span> msg</span><span style="color: light-dark(#784367, #D4B399);">[]</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> =</span><span style="color: light-dark(#4B4B48, #7F7C77);"> &quot;</span><span style="color: light-dark(#4A6934, #CB8B8B);">Caught signal, exiting...</span><span style="color: light-dark(#784367, #CA9D7D);">\n</span><span style="color: light-dark(#4B4B48, #7F7C77);">&quot;</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    write</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>STDERR_FILENO</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> msg</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> sizeof</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>msg</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> -</span><span style="color: light-dark(#784367, #CA9D7D);"> 1</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#928374, #7C6F64);font-style: italic;">    //</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> For crash signals, keep the handler minimal. Most cleanup is not</span></span>
-<span class="giallo-l"><span style="color: light-dark(#928374, #7C6F64);font-style: italic;">    //</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> async-signal-safe, and the kernel will reclaim process memory anyway.</span></span>
-<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">    _exit</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span style="color: light-dark(#8C5967, #D3869B);">1</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> //</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> use _exit, not exit()</span></span>
-<span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">}</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> For crash signals, keep the handler minimal. Most cleanup is not</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> async-signal-safe, and the kernel will reclaim process memory anyway.</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    _exit</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #CA9D7D);">1</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> use _exit, not exit()</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">int</span><span style="color: light-dark(#707943, #A9B665);"> main</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span style="color: light-dark(#9C4641, #EA6962);">void</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);"> {</span></span>
-<span class="giallo-l"><span style="color: light-dark(#928374, #7C6F64);font-style: italic;">    //</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> register handler for crash signals</span></span>
-<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">    signal</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span>SIGSEGV</span><span style="color: light-dark(#685C52, #9C8B7C);">,</span><span> cleanup_handler</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">    signal</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span>SIGABRT</span><span style="color: light-dark(#685C52, #9C8B7C);">,</span><span> cleanup_handler</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">    signal</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span>SIGINT</span><span style="color: light-dark(#685C52, #9C8B7C);">,</span><span> cleanup_handler</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;">  //</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> Ctrl+C</span></span>
-<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">    signal</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span>SIGTERM</span><span style="color: light-dark(#685C52, #9C8B7C);">,</span><span> cleanup_handler</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> //</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> kill command</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">int</span><span style="color: light-dark(#3C6362, #A2BD90);"> main</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> register handler for crash signals</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    signal</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>SIGSEGV</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> cleanup_handler</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    signal</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>SIGABRT</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> cleanup_handler</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    signal</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>SIGINT</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> cleanup_handler</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">  //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> Ctrl+C</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    signal</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>SIGTERM</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> cleanup_handler</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> kill command</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span>    buffer </span><span style="color: light-dark(#9C4641, #EA6962);">=</span><span style="color: light-dark(#707943, #A9B665);"> malloc</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span style="color: light-dark(#8C5967, #D3869B);">500</span><span style="color: light-dark(#9C4641, #EA6962);"> *</span><span style="color: light-dark(#8C5967, #D3869B);"> 1024</span><span style="color: light-dark(#9C4641, #EA6962);"> *</span><span style="color: light-dark(#8C5967, #D3869B);"> 1024</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">    if</span><span style="color: light-dark(#685C52, #9C8B7C);"> (</span><span>buffer </span><span style="color: light-dark(#9C4641, #EA6962);">==</span><span style="color: light-dark(#8C5967, #D3869B);"> NULL</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);"> {</span></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">        return</span><span> EXIT_FAILURE</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">    }</span></span>
-<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">    printf</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span style="color: light-dark(#685C52, #9C8B7C);">&quot;</span><span style="color: light-dark(#906E3A, #D8A657);">Allocated 500 MB</span><span style="color: light-dark(#8C5967, #D3869B);">\n</span><span style="color: light-dark(#685C52, #9C8B7C);">&quot;</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
+<span class="giallo-l"><span>    buffer </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#3C6362, #A2BD90);"> malloc</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #CA9D7D);">500</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#784367, #CA9D7D);"> 1024</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#784367, #CA9D7D);"> 1024</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>buffer </span><span style="color: light-dark(#4B4B48, #CB8B8B);">==</span><span style="color: light-dark(#784367, #CA9D7D);"> NULL</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">        return</span><span> EXIT_FAILURE</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    }</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    printf</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#4B4B48, #7F7C77);">&quot;</span><span style="color: light-dark(#4A6934, #CB8B8B);">Allocated 500 MB</span><span style="color: light-dark(#784367, #CA9D7D);">\n</span><span style="color: light-dark(#4B4B48, #7F7C77);">&quot;</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">    char</span><span style="color: light-dark(#9C4641, #EA6962);"> *</span><span>invalid_ptr </span><span style="color: light-dark(#9C4641, #EA6962);">=</span><span style="color: light-dark(#8C5967, #D3869B);"> NULL</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">    *</span><span>invalid_ptr </span><span style="color: light-dark(#9C4641, #EA6962);">=</span><span style="color: light-dark(#685C52, #9C8B7C);"> &#39;</span><span style="color: light-dark(#906E3A, #D8A657);">x</span><span style="color: light-dark(#685C52, #9C8B7C);">&#39;</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> //</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> triggers SIGSEGV -&gt; cleanup_handler runs</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    char</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>invalid_ptr </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#784367, #CA9D7D);"> NULL</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #CB8B8B);">    *</span><span>invalid_ptr </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#4B4B48, #7F7C77);"> &#39;</span><span style="color: light-dark(#4A6934, #CB8B8B);">x</span><span style="color: light-dark(#4B4B48, #7F7C77);">&#39;</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> triggers SIGSEGV -&gt; cleanup_handler runs</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">    return</span><span style="color: light-dark(#8C5967, #D3869B);"> 0</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">}</span></span></code></pre>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    return</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre>
 <p>Now when the program crashes, the handler runs first.</p>
 <h2 id="important-async-signal-safety">Important: Async-Signal-Safety</h2>
 <p>There's a catch. Signal handlers can interrupt your program at any point, even in the middle of malloc or printf. If your handler then calls malloc or printf, you can deadlock or corrupt memory.</p>
@@ -252,23 +222,23 @@
 </ul>
 <p><code>free()</code> is <strong>not</strong> async-signal-safe. It might "work" in a toy program, and then deadlock in production because the signal interrupted malloc/free internals. Don't rely on it.</p>
 <p>A safer pattern is to set a flag and let the main program handle cleanup:</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">volatile</span><span style="color: light-dark(#576E65, #83A598);"> sig_atomic_t</span><span> got_signal </span><span style="color: light-dark(#9C4641, #EA6962);">=</span><span style="color: light-dark(#8C5967, #D3869B);"> 0</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">volatile</span><span style="color: light-dark(#855959, #A6BCAD);"> sig_atomic_t</span><span> got_signal </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">void</span><span style="color: light-dark(#707943, #A9B665);"> handler</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span style="color: light-dark(#9C4641, #EA6962);">int</span><span> sig</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);"> {</span></span>
-<span class="giallo-l"><span>    got_signal </span><span style="color: light-dark(#9C4641, #EA6962);">=</span><span> sig</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">}</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#3C6362, #A2BD90);"> handler</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">int</span><span style="color: light-dark(#7D4242, #D4D4C0);"> sig</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span>    got_signal </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span> sig</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">int</span><span style="color: light-dark(#707943, #A9B665);"> main</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span style="color: light-dark(#9C4641, #EA6962);">void</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);"> {</span></span>
-<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">    signal</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span>SIGINT</span><span style="color: light-dark(#685C52, #9C8B7C);">,</span><span> handler</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">int</span><span style="color: light-dark(#3C6362, #A2BD90);"> main</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    signal</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>SIGINT</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> handler</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">    while</span><span style="color: light-dark(#685C52, #9C8B7C);"> (</span><span style="color: light-dark(#9C4641, #EA6962);">!</span><span>got_signal</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);"> {</span></span>
-<span class="giallo-l"><span style="color: light-dark(#928374, #7C6F64);font-style: italic;">        //</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> do work</span></span>
-<span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">    }</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    while</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#4B4B48, #CB8B8B);">!</span><span>got_signal</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">        //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> do work</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    }</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#928374, #7C6F64);font-style: italic;">    //</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> cleanup here, in normal context</span></span>
-<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">    cleanup</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">    return</span><span style="color: light-dark(#8C5967, #D3869B);"> 0</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">}</span></span></code></pre>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> cleanup here, in normal context</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    cleanup</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    return</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre>
 <p>But for crash signals (SIGSEGV, SIGABRT), you can't return to normal execution, the program is already broken. So you do what cleanup you can in the handler and exit.</p>
 <h2 id="wait-doesn-t-the-os-clean-up-anyway">Wait, Doesn't the OS Clean Up Anyway?</h2>
 <p>Yes. On any modern OS (Linux, macOS, Windows), when your process terminates (normally or not), the kernel reclaims all its resources:</p>
@@ -302,26 +272,26 @@
 <li>Signal handlers are useful for shared resources and external state</li>
 </ul>
 <p>The pattern I use in practice:</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">volatile</span><span style="color: light-dark(#576E65, #83A598);"> sig_atomic_t</span><span> should_exit </span><span style="color: light-dark(#9C4641, #EA6962);">=</span><span style="color: light-dark(#8C5967, #D3869B);"> 0</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">volatile</span><span style="color: light-dark(#855959, #A6BCAD);"> sig_atomic_t</span><span> should_exit </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">void</span><span style="color: light-dark(#707943, #A9B665);"> signal_handler</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span style="color: light-dark(#9C4641, #EA6962);">int</span><span> sig</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);"> {</span></span>
-<span class="giallo-l"><span>    should_exit </span><span style="color: light-dark(#9C4641, #EA6962);">=</span><span style="color: light-dark(#8C5967, #D3869B);"> 1</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#928374, #7C6F64);font-style: italic;">    //</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> minimal cleanup for shared resources only</span></span>
-<span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">}</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#3C6362, #A2BD90);"> signal_handler</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">int</span><span style="color: light-dark(#7D4242, #D4D4C0);"> sig</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span>    should_exit </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#784367, #CA9D7D);"> 1</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> minimal cleanup for shared resources only</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">int</span><span style="color: light-dark(#707943, #A9B665);"> main</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span style="color: light-dark(#9C4641, #EA6962);">void</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);"> {</span></span>
-<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">    signal</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span>SIGINT</span><span style="color: light-dark(#685C52, #9C8B7C);">,</span><span> signal_handler</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">    signal</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span>SIGTERM</span><span style="color: light-dark(#685C52, #9C8B7C);">,</span><span> signal_handler</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">int</span><span style="color: light-dark(#3C6362, #A2BD90);"> main</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    signal</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>SIGINT</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> signal_handler</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    signal</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>SIGTERM</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> signal_handler</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#928374, #7C6F64);font-style: italic;">    //</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> main loop checks should_exit</span></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">    while</span><span style="color: light-dark(#685C52, #9C8B7C);"> (</span><span style="color: light-dark(#9C4641, #EA6962);">!</span><span>should_exit</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);"> {</span></span>
-<span class="giallo-l"><span style="color: light-dark(#928374, #7C6F64);font-style: italic;">        //</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> work</span></span>
-<span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">    }</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> main loop checks should_exit</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    while</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#4B4B48, #CB8B8B);">!</span><span>should_exit</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">        //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> work</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    }</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#928374, #7C6F64);font-style: italic;">    //</span><span style="color: light-dark(#928374, #7C6F64);font-style: italic;"> full cleanup runs here on graceful exit</span></span>
-<span class="giallo-l"><span style="color: light-dark(#707943, #A9B665);">    cleanup</span><span style="color: light-dark(#685C52, #9C8B7C);">(</span><span style="color: light-dark(#685C52, #9C8B7C);">)</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#9C4641, #EA6962);">    return</span><span style="color: light-dark(#8C5967, #D3869B);"> 0</span><span style="color: light-dark(#685C52, #9C8B7C);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#685C52, #9C8B7C);">}</span></span></code></pre>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> full cleanup runs here on graceful exit</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    cleanup</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    return</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre>
 <p>For SIGSEGV/SIGABRT, I mostly just let it crash and let the OS clean up. Unless there's shared state that needs explicit cleanup, adding a handler for crash signals just complicates things without much benefit.</p>
   
 </article>
@@ -331,6 +301,7 @@
         
     </footer>
     
+
     <script>
         document.querySelectorAll("article img[srcset]").forEach((i) => {
             if (i.closest("a")) return;
@@ -349,6 +320,25 @@
             };
         });
     </script>
-    </body>
+    
+<button id="scroll-to-top" aria-label="Scroll to top" title="Scroll to top">↑</button>
+<script>
+    (function() {
+        var btn = document.getElementById("scroll-to-top");
+        if (btn) {
+            window.addEventListener("scroll", function() {
+                if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                    btn.classList.add("show");
+                } else {
+                    btn.classList.remove("show");
+                }
+            });
+            btn.addEventListener("click", function() {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        }
+    })();
+</script>
+</body>
 
 </html>

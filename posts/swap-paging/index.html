@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="How the OS shuffles memory between RAM and disk." />
+<meta
+    name="keywords"
+    content="yazeed, blog, alharthi, yaz, yazeed1s"
+/>
+<link rel="canonical" href="https://yazeed1s.github.io/posts/swap-paging/" />
+
+<title>Swap and Paging: What Actually Happens When Memory Fills Up | Yazeed&#x27;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
+<meta property="og:title" content="Swap and Paging: What Actually Happens When Memory Fills Up | Yazeed&#x27;s Blog" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://yazeed1s.github.io/posts/swap-paging/" />
+<meta property="og:description" content="How the OS shuffles memory between RAM and disk." />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Swap and Paging: What Actually Happens When Memory Fills Up" />
+<meta name="twitter:description" content="How the OS shuffles memory between RAM and disk." />
+
+    <link rel="icon" href="&#x2F;favicon.ico" />
+    
+    <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
+    <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+
+           
+    
+    
+    
+
+          
+    
+    
+    
+    <style>
+        :root {
+            --nav-basis: 25%;
+            --light-bg: #eae6deff;
+            --light-text: #1a1410;
+            --light-text-muted: #1a1410;
+            --light-accent: #9E4440;
+            --light-accent-hover: #7A3533;
+            --light-code-bg: #e1ded6ff;
+            --light-border: #abaaaaff;
+            --light-bold: #1a1410;
+            --light-italic: #1a1410;
+            --light-headers: #1a1410;
+            --dark-bg: #303132;
+            --dark-text: #bebbb9ff;
+            --dark-text-muted: #d5d2cf;
+            --dark-accent: #e57665;
+            --dark-accent-hover: #888885;
+            --dark-code-bg: #282829;
+            --dark-border: #524f4c;
+            --dark-bold: #d5d2cf;
+            --dark-italic: #d5d2cf;
+            --dark-headers: #d5d2cf;
+        }
+    </style>
+    <meta name="theme-color" id="tc" />
+    <script>
+        (function () {
+            var m = matchMedia("(prefers-color-scheme:dark)"),
+                t = localStorage.theme || (m.matches ? "dark" : "light"),
+                h = document.documentElement,
+                c = document.getElementById("tc");
+            h.className = t;
+            function u() {
+                c.content = getComputedStyle(h).getPropertyValue("--tc");
+            }
+            u();
+            window.T = function () {
+                t = t === "dark" ? "light" : "dark";
+                localStorage.theme = t;
+                h.className = t;
+                u();
+            };
+        })();
+    </script>
+    
+</head>
+
+<body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><symbol id="light" viewBox="0 0 32 32"><rect x="15" y="2" width="2" height="5"/><rect x="21.6675" y="6.8536" width="4.958" height="1.9998" transform="translate(1.5191 19.3744) rotate(-45)"/><rect x="25" y="15" width="5" height="2"/><rect x="23.1466" y="21.6675" width="1.9998" height="4.958" transform="translate(-10.0018 24.1465) rotate(-45)"/><rect x="15" y="25" width="2" height="5"/><rect x="5.3745" y="23.1466" width="4.958" height="1.9998" transform="translate(-14.7739 12.6256) rotate(-45)"/><rect x="2" y="15" width="5" height="2"/><rect x="6.8536" y="5.3745" width="1.9998" height="4.958" transform="translate(-3.253 7.8535) rotate(-45)"/><path d="M16,12a4,4,0,1,1-4,4,4.0045,4.0045,0,0,1,4-4m0-2a6,6,0,1,0,6,6,6,6,0,0,0-6-6Z"/></symbol>
+<symbol id="asleep" viewBox="0 0 32 32"><path d="M13.5025,5.4136A15.0755,15.0755,0,0,0,25.096,23.6082a11.1134,11.1134,0,0,1-7.9749,3.3893c-.1385,0-.2782.0051-.4178,0A11.0944,11.0944,0,0,1,13.5025,5.4136M14.98,3a1.0024,1.0024,0,0,0-.1746.0156A13.0959,13.0959,0,0,0,16.63,28.9973c.1641.006.3282,0,.4909,0a13.0724,13.0724,0,0,0,10.702-5.5556,1.0094,1.0094,0,0,0-.7833-1.5644A13.08,13.08,0,0,1,15.8892,4.38,1.0149,1.0149,0,0,0,14.98,3Z"/></symbol>
+<symbol id="rss" viewBox="0 0 32 32"><path d="M8,18c-3.3,0-6,2.7-6,6s2.7,6,6,6s6-2.7,6-6C14,20.7,11.3,18,8,18z M8,28c-2.2,0-4-1.8-4-4s1.8-4,4-4s4,1.8,4,4C12,26.2,10.2,28,8,28z"/><path d="M30,24h-2C28,13,19,4,8,4V2C20.1,2,30,11.9,30,24z"/><path d="M22,24h-2c0-6.6-5.4-12-12-12v-2C15.7,10,22,16.3,22,24z"/></symbol>
+</svg>
+
+    <header id="site-header">
+        <div>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <nav>
+                <a href="https://yazeed1s.github.io/" >Home</a>
+                <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
+                <a href="https://yazeed1s.github.io/projects/" >Projects</a>
+                <a href="https://yazeed1s.github.io/tags/" >Tags</a>
+                </nav>
+            <a href="#" onclick="
+                        T();
+                        return false;
+                    " class="theme" aria-label="Toggle theme" title="Toggle theme">
+<svg><use href="#light"/></svg>
+<svg><use href="#asleep"/></svg></a>
+        </div>
+    </header>
+    <hr class="site-sep" />
+    <main id="main">
+<article>
+    <header>
+        <h1>Swap and Paging: What Actually Happens When Memory Fills Up</h1>
+        <div class="post-meta">
+            <time datetime="2025-12-05">05 Dec 2025</time>
+            
+            <span>How the OS shuffles memory between RAM and disk.</span>
+             
+            <span class="post-tags">
+                <span class="post-tags-label">Tags: </span>
+                
+                <a href="https://yazeed1s.github.io/tags/operating-systems">Operating Systems</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/memory">Memory</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/linux">Linux</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/paging">Paging</a>
+            </span>
+            
+        </div>
+    </header>
+     <hr />
+<p>I kept hitting concepts like "page fault" and "swap" while reading memory disaggregation papers. Figured I should actually understand what these mean at a low level before going further.</p>
+<hr />
+<h2 id="what-swap-is">what swap is</h2>
+<p>Swap is disk space that acts as overflow for RAM. When physical memory fills up, the kernel moves some data to swap. Later, if that data is needed again, it gets loaded back.</p>
+<p>That's sort of it. The complication is in the details.</p>
+<hr />
+<h2 id="pages">pages</h2>
+<p>The kernel doesn't manage memory byte by byte. Too much bookkeeping. Instead it works in fixed-size chunks called <strong>pages</strong>. Usually 4KB.</p>
+<p>When you allocate memory, you get pages. When data moves to disk, it moves as pages. The physical counterpart is called a <strong>frame</strong>. Same size, different name. Pages are virtual, frames are physical.</p>
+<p>8GB of RAM = roughly 2 million frames. A process might think it has way more pages than that. Most aren't backed by physical memory until used.</p>
+<hr />
+<h2 id="page-tables-and-the-mmu">page tables and the mmu</h2>
+<p>The CPU doesn't know about virtual addresses on its own. There's a <strong>Memory Management Unit (MMU)</strong> that translates virtual addresses to physical ones.</p>
+<p>How does it know the mapping? <strong>Page tables</strong>. Data structures the kernel maintains. The MMU walks these to find where a virtual page actually lives (which physical frame, or if it's not in RAM at all).</p>
+<p>Walking page tables on every memory access would be slow. So the MMU has a cache called the <strong>TLB (Translation Lookaside Buffer)</strong>. Recent translations are stored there. Hit the TLB = fast. Miss = pay for the walk.</p>
+<p>Most accesses hit the TLB. That's what makes virtual memory practical.</p>
+<hr />
+<h2 id="page-faults">page faults</h2>
+<p>Program accesses a virtual address. MMU checks: is this page in RAM? If not, you get a <strong>page fault</strong>.</p>
+<p>Not an error. Just the kernel saying "hold on, I need to go get that."</p>
+<ol>
+<li>Program accesses memory</li>
+<li>MMU finds page isn't resident</li>
+<li>CPU traps to kernel</li>
+<li>Kernel figures out where page lives (swap, file, or nowhere)</li>
+<li>Kernel loads it into a frame</li>
+<li>Page table updated</li>
+<li>Program resumes</li>
+</ol>
+<p>Two kinds:</p>
+<p><strong>Minor fault.</strong> Page is already somewhere in memory (page cache, shared mapping). Kernel just fixes the page table. Fast.</p>
+<p><strong>Major fault.</strong> Page has to be read from disk. Slow. Really slow.</p>
+<p>Some faults are expected:</p>
+<ul>
+<li><strong>Lazy allocation.</strong> Kernel doesn't back memory until you touch it. First access = minor fault.</li>
+<li><strong>Copy-on-write.</strong> Shared pages aren't copied until someone writes.</li>
+<li><strong>Swapping.</strong> Page was evicted earlier and now needed again.</li>
+</ul>
+<p>Others mean bugs. Accessing garbage address = SIGSEGV.</p>
+<hr />
+<h2 id="paging-in-and-out">paging in and out</h2>
+<p><strong>Page in</strong> = loading a page from disk into RAM.</p>
+<p><strong>Page out</strong> = moving a page from RAM to disk to free space.</p>
+<p>RAM full. New page needed. Kernel picks a <strong>victim</strong> (some page not accessed recently). If it's dirty (modified since loaded), kernel writes it to swap first. If it's clean, kernel just drops it and reloads later if needed.</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="plain"><span class="giallo-l"><span>Before:</span></span>
+<span class="giallo-l"><span>RAM:  [A][B][C][D] ← full</span></span>
+<span class="giallo-l"><span>Swap: [empty]</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>Need page E. Pick B as victim.</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>After:</span></span>
+<span class="giallo-l"><span>RAM:  [A][E][C][D]</span></span>
+<span class="giallo-l"><span>Swap: [B]</span></span></code></pre>
+<p>If B is accessed again? Major fault. Load B. Evict something else. This happens constantly under memory pressure.</p>
+<hr />
+<h2 id="the-dirty-bit">the dirty bit</h2>
+<p>Each page has a <strong>dirty bit</strong>. Set if the page has been modified since it was loaded.</p>
+<p>Why it matters: clean pages can be dropped. Kernel can reload from file or wherever. Dirty pages can't. Kernel has to write them somewhere first.</p>
+<p>Anonymous memory (heap, stack) that's dirty goes to swap. File-backed memory that's modified goes back to the file (or swap, depends).</p>
+<hr />
+<h2 id="why-disk-access-hurts">why disk access hurts</h2>
+<table><thead><tr><th>Access</th><th>Latency</th></tr></thead><tbody>
+<tr><td>RAM</td><td>~100 nanoseconds</td></tr>
+<tr><td>SSD</td><td>~100 microseconds</td></tr>
+<tr><td>HDD</td><td>~10 milliseconds</td></tr>
+</tbody></table>
+<p>SSD is 1,000× slower than RAM. HDD is 100,000× slower.</p>
+<p>Major fault = disk access = program stalls for eternity in CPU time.</p>
+<p>One major fault, who cares. Hundred per second, app feels sluggish. Thousand, system unusable.</p>
+<hr />
+<h2 id="thrashing">thrashing</h2>
+<p><strong>Thrashing</strong> is what happens when working set doesn't fit in RAM.</p>
+<p>Working set = the memory you're actively using right now. Bigger than RAM? Kernel constantly swapping pages in and out. Every page you load evicts something you need again soon.</p>
+<ol>
+<li>Need page A -&gt; fault, load A, evict B</li>
+<li>Need page B -&gt; fault, load B, evict A</li>
+<li>Need page A -&gt; fault, load A, evict B</li>
+<li>Forever</li>
+</ol>
+<p>System spends 99% of time moving data. 1% doing work. Disk light stuck on. Mouse barely moves.</p>
+<p>This is the performance cliff. Not gradual slowdown. Death spiral.</p>
+<hr />
+<h2 id="lru-picking-victims">lru: picking victims</h2>
+<p>How does kernel decide which page to evict?</p>
+<p>Ideal: evict the one that won't be needed soonest. Can't predict future. So kernel approximates with <strong>LRU (Least Recently Used)</strong>. Pages not accessed in a while are good candidates.</p>
+<p>Linux maintains active/inactive lists. Pages accessed recently go to active. Cold pages drift to inactive. Reclaim takes from inactive first.</p>
+<p>True LRU would track exact access times for every page. Too expensive. Linux settles for "recently used" vs "not recently used."</p>
+<hr />
+<h2 id="swappiness">swappiness</h2>
+<p>Linux doesn't wait until RAM is completely full to start swapping. There's a knob called <strong>swappiness</strong>.</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="shellscript"><span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">$</span><span style="color: light-dark(#4A6934, #CB8B8B);"> cat</span><span style="color: light-dark(#4A6934, #CB8B8B);"> /proc/sys/vm/swappiness</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">60</span></span></code></pre>
+<p>Range is 0-200. Affects how willing kernel is to swap anonymous memory vs reclaim file cache.</p>
+<ul>
+<li><strong>0</strong> = Avoid swapping. Hold app memory, sacrifice cache.</li>
+<li><strong>60</strong> = Default. Balanced.</li>
+<li><strong>100+</strong> = Swap more. Keep cache warm.</li>
+</ul>
+<p>No universal right answer. Depends on workload.</p>
+<hr />
+<h2 id="what-can-t-be-swapped">what can't be swapped</h2>
+<p>Not everything can go to disk.</p>
+<p><strong>Kernel memory.</strong> Page tables, process descriptors, driver state. Must stay in RAM. If kernel got paged out, who pages it back in?</p>
+<p><strong>Pinned memory.</strong> Memory explicitly locked by application (mlock). Used by RDMA, databases, etc.</p>
+<p>Kernel memory leaks are dangerous. That memory is gone until reboot.</p>
+<hr />
+<h2 id="overcommit">overcommit</h2>
+<p>Linux lets you allocate more memory than exists. <code>malloc(1GB)</code> succeeds even with 512MB free.</p>
+<p>Intentional. Called <strong>overcommit</strong>. Most programs allocate more than they use. Sparse arrays. Forked processes before exec. Refusing would break software.</p>
+<p>Downside: actually use all that memory? OOM killer fires. Allocation succeeded, using it didn't.</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="shellscript"><span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">$</span><span style="color: light-dark(#4A6934, #CB8B8B);"> cat</span><span style="color: light-dark(#4A6934, #CB8B8B);"> /proc/sys/vm/overcommit_memory</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">0</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">  #</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> heuristic (default)</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">#</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> 0 = guess what&#39;s safe</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">#</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> 1 = always allow (yolo)</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">#</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> 2 = strict (refuse if exceeds limit)</span></span></code></pre>
+<p>Mode 2 is safer but breaks things. Mode 1 is living dangerously.</p>
+<hr />
+<h2 id="why-this-matters-for-remote-memory">why this matters for remote memory</h2>
+<p>Main problem: disk is slow. 1,000-100,000× slower than RAM.</p>
+<p>Systems like Infiniswap replace swap with network access to remote memory. RDMA gives single-digit microsecond latency. Still slower than local RAM. But 10-1000× faster than disk.</p>
+<p>Keep the paging model. Replace the slow part. Cliff becomes slope.</p>
+<p>The interesting thing: Linux has a <strong>frontswap</strong> interface. It's a hook that lets you intercept pages before they go to disk. Implement a few callbacks and your module becomes an alternative swap backend. That's how Infiniswap plugs into the kernel. Pages that would go to disk get redirected over the network instead.</p>
+<p>I want to look at this interface in more detail later. How frontswap works, what the callbacks look like, and what's involved in building something like Infiniswap. Different post.</p>
+<hr />
+<h2 id="notes">notes</h2>
+<ul>
+<li>Page size usually 4KB. Huge pages exist (2MB, 1GB) to reduce TLB pressure.</li>
+<li>"Anonymous memory" = heap, stack (no backing file). "File-backed" = mmap'd files, page cache.</li>
+<li><code>vmstat</code>, <code>sar</code>, <code>/proc/meminfo</code> for monitoring paging activity.</li>
+<li>Swap on SSD helps. Swap on HDD is pain.</li>
+<li>zswap = compressed swap cache in RAM. Buys time before hitting disk.</li>
+</ul>
+  
+</article>
+</main>
+    <hr class="site-sep bottom-sep" />
+    <footer class="s">
+        
+    </footer>
+    
+
+    <script>
+        document.querySelectorAll("article img[srcset]").forEach((i) => {
+            if (i.closest("a")) return;
+            i.style.cursor = "pointer";
+            i.onclick = () => {
+                let d = document.createElement("div"),
+                    s = i.srcset.split(",").pop().trim().split(" ")[0];
+                d.className = "lb";
+                d.innerHTML = '<img src="' + s + '">';
+                document.body.style.overflow = "hidden";
+                d.onclick = () => {
+                    d.remove();
+                    document.body.style.overflow = "";
+                };
+                document.body.appendChild(d);
+            };
+        });
+    </script>
+    
+<button id="scroll-to-top" aria-label="Scroll to top" title="Scroll to top">↑</button>
+<script>
+    (function() {
+        var btn = document.getElementById("scroll-to-top");
+        if (btn) {
+            window.addEventListener("scroll", function() {
+                if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                    btn.classList.add("show");
+                } else {
+                    btn.classList.remove("show");
+                }
+            });
+            btn.addEventListener("click", function() {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        }
+    })();
+</script>
+</body>
+
+</html>

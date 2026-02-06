@@ -5,10 +5,165 @@
     <link rel="self" type="application/atom+xml" href="https://yazeed1s.github.io/tags/linux/atom.xml"/>
     <link rel="alternate" type="text/html" href="https://yazeed1s.github.io"/>
     <generator uri="https://www.getzola.org/">Zola</generator>
-    <updated>2026-02-01T00:00:00+00:00</updated>
+    <updated>2026-02-06T00:00:00+00:00</updated>
     <id>https://yazeed1s.github.io/tags/linux/atom.xml</id>
     <entry xml:lang="en">
-        <title>Debugged a Broken Monitor (It Was a Shadow)</title>
+        <title>What a Process Really Owns</title>
+        <published>2026-02-06T00:00:00+00:00</published>
+        <updated>2026-02-06T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/what-a-process-owns/"/>
+        <id>https://yazeed1s.github.io/posts/what-a-process-owns/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/what-a-process-owns/">&lt;p&gt;I wanted to think through what a process actually &quot;owns&quot; because I realized I had a fuzzy picture of it. We throw around words like &quot;process&quot;, &quot;thread&quot;, &quot;address space&quot; but I wanted to be more concrete about what the kernel actually tracks.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-short-version&quot;&gt;the short version&lt;&#x2F;h2&gt;
+&lt;p&gt;A process owns:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Its own virtual address space&lt;&#x2F;li&gt;
+&lt;li&gt;File descriptors&lt;&#x2F;li&gt;
+&lt;li&gt;Signal handlers&lt;&#x2F;li&gt;
+&lt;li&gt;Resource limits&lt;&#x2F;li&gt;
+&lt;li&gt;A process ID and various metadata&lt;&#x2F;li&gt;
+&lt;li&gt;One or more threads of execution&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;When you fork(), the child gets copies of most of these. When you exec(), most of it gets replaced with fresh stuff for the new program.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;address-space&quot;&gt;address space&lt;&#x2F;h2&gt;
+&lt;p&gt;This is the big one. Every process gets its own virtual address space. On a 64-bit system that&#x27;s a huge range of addresses (48 bits usable on x86-64, so 256 TB of virtual space).&lt;&#x2F;p&gt;
+&lt;p&gt;The address space contains:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Text segment&lt;&#x2F;strong&gt;: the executable code, usually read-only&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Data segment&lt;&#x2F;strong&gt;: initialized global&#x2F;static variables&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;BSS&lt;&#x2F;strong&gt;: uninitialized globals (zeroed on startup)&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Heap&lt;&#x2F;strong&gt;: dynamic allocations (malloc, new)&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Stack&lt;&#x2F;strong&gt;: function call frames, local variables&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Memory-mapped regions&lt;&#x2F;strong&gt;: shared libraries, mmap&#x27;d files, anonymous mappings&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;The kernel tracks all this in data structures (on Linux, the &lt;code&gt;mm_struct&lt;&#x2F;code&gt; and a tree of &lt;code&gt;vm_area_struct&lt;&#x2F;code&gt;). Each region has permissions (read&#x2F;write&#x2F;execute) and backing (file, anonymous, shared, private).&lt;&#x2F;p&gt;
+&lt;p&gt;You can see your process&#x27;s memory map in &lt;code&gt;&#x2F;proc&#x2F;self&#x2F;maps&lt;&#x2F;code&gt;:&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; cat&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; &#x2F;proc&#x2F;self&#x2F;maps&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;55a4c8a00000-55a4c8a02000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; r--p&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 00000000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 08:01&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1234567&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;  &#x2F;usr&#x2F;bin&#x2F;cat&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;55a4c8a02000-55a4c8a06000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; r-xp&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 00002000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 08:01&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1234567&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;  &#x2F;usr&#x2F;bin&#x2F;cat&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;55a4c8a06000-55a4c8a09000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; r--p&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 00006000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 08:01&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1234567&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;  &#x2F;usr&#x2F;bin&#x2F;cat&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;.&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;7f8c12000000-7f8c12021000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; rw-p&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 00000000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 00:00&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;7ffd5c9e0000-7ffd5ca01000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; rw-p&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 00000000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 00:00&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;span&gt;        [stack&lt;&#x2F;span&gt;&lt;span&gt;]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Each line is a region with its address range, permissions, offset, device, inode, and path.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;file-descriptors&quot;&gt;file descriptors&lt;&#x2F;h2&gt;
+&lt;p&gt;A process has a table of open file descriptors. These are just small integers (0, 1, 2, 3, ...) that refer to open files, pipes, sockets, devices, whatever.&lt;&#x2F;p&gt;
+&lt;p&gt;By convention:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;0 = stdin&lt;&#x2F;li&gt;
+&lt;li&gt;1 = stdout&lt;&#x2F;li&gt;
+&lt;li&gt;2 = stderr&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;When you open() a file, you get the lowest available fd number. When you fork(), the child inherits copies of the parent&#x27;s fd table (pointing to the same underlying file objects, so they share the file offset).&lt;&#x2F;p&gt;
+&lt;p&gt;The kernel tracks this in a &lt;code&gt;files_struct&lt;&#x2F;code&gt;. Each fd points to a &lt;code&gt;file&lt;&#x2F;code&gt; object which points to an inode.&lt;&#x2F;p&gt;
+&lt;p&gt;You can see a process&#x27;s fds in &lt;code&gt;&#x2F;proc&#x2F;[pid]&#x2F;fd&#x2F;&lt;&#x2F;code&gt;:&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; ls&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;la&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; &#x2F;proc&#x2F;self&#x2F;fd&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;lrwx------&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; user&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; user&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 64&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; Jan&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;  1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 00:00&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;span&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; &#x2F;dev&#x2F;pts&#x2F;0&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;lrwx------&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; user&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; user&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 64&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; Jan&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;  1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 00:00&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1&lt;&#x2F;span&gt;&lt;span&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; &#x2F;dev&#x2F;pts&#x2F;0&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;lrwx------&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; user&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; user&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 64&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; Jan&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;  1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 00:00&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 2&lt;&#x2F;span&gt;&lt;span&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; &#x2F;dev&#x2F;pts&#x2F;0&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;lr-x------&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; user&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; user&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 64&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; Jan&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;  1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 00:00&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 3&lt;&#x2F;span&gt;&lt;span&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; &#x2F;proc&#x2F;12345&#x2F;fd&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;&lt;h2 id=&quot;credentials-and-ids&quot;&gt;credentials and IDs&lt;&#x2F;h2&gt;
+&lt;p&gt;A process has:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;PID&lt;&#x2F;strong&gt;: unique process ID&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;PPID&lt;&#x2F;strong&gt;: parent process ID&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;UID&#x2F;GID&lt;&#x2F;strong&gt;: user and group IDs (real, effective, saved)&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Process group and session IDs&lt;&#x2F;strong&gt;: for job control&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;The UID&#x2F;GID stuff is more complicated than I expected. There&#x27;s the real UID (who you actually are), effective UID (what permissions you&#x27;re currently using), and saved UID (so you can drop and regain privileges). This is how setuid programs work.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;signal-handling&quot;&gt;signal handling&lt;&#x2F;h2&gt;
+&lt;p&gt;A process has a table of signal handlers. Each signal (SIGINT, SIGTERM, SIGSEGV, etc.) can have:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Default action (terminate, ignore, stop, etc.)&lt;&#x2F;li&gt;
+&lt;li&gt;A custom handler function&lt;&#x2F;li&gt;
+&lt;li&gt;Ignored&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;Plus there&#x27;s a signal mask (which signals are currently blocked) and pending signals (delivered but not yet handled).&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;resource-limits&quot;&gt;resource limits&lt;&#x2F;h2&gt;
+&lt;p&gt;Every process has limits on things like:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Maximum file size it can create&lt;&#x2F;li&gt;
+&lt;li&gt;Number of open files&lt;&#x2F;li&gt;
+&lt;li&gt;Stack size&lt;&#x2F;li&gt;
+&lt;li&gt;CPU time&lt;&#x2F;li&gt;
+&lt;li&gt;Memory&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;You can see these with &lt;code&gt;ulimit -a&lt;&#x2F;code&gt; in bash. The kernel enforces these.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;threads&quot;&gt;threads&lt;&#x2F;h2&gt;
+&lt;p&gt;Here&#x27;s where it gets a bit confusing. On Linux, threads are really just processes that share stuff. When you create a thread (via clone() with the right flags), the new &quot;thread&quot; shares the address space, file descriptors, signal handlers, etc. with the parent.&lt;&#x2F;p&gt;
+&lt;p&gt;So a &quot;process&quot; might have multiple threads, and they all share most of the resources I listed above. But each thread has its own:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Thread ID&lt;&#x2F;li&gt;
+&lt;li&gt;Stack&lt;&#x2F;li&gt;
+&lt;li&gt;Register state&lt;&#x2F;li&gt;
+&lt;li&gt;Signal mask&lt;&#x2F;li&gt;
+&lt;li&gt;errno&lt;&#x2F;li&gt;
+&lt;li&gt;Thread-local storage&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;The kernel calls these &quot;tasks&quot; internally. A process is really a group of tasks that share an address space.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;pcb-and-tcb&quot;&gt;PCB and TCB&lt;&#x2F;h2&gt;
+&lt;p&gt;So all this stuff I&#x27;ve been talking about, the kernel has to store it somewhere. That&#x27;s where the Process Control Block (PCB) and Thread Control Block (TCB) come in.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Process Control Block (PCB)&lt;&#x2F;strong&gt; is a kernel data structure that holds everything about a process. On Linux this is the &lt;code&gt;task_struct&lt;&#x2F;code&gt; (confusingly named since it&#x27;s used for both processes and threads). It contains:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Process state (running, sleeping, stopped, zombie)&lt;&#x2F;li&gt;
+&lt;li&gt;PID, PPID, credentials&lt;&#x2F;li&gt;
+&lt;li&gt;Pointers to the memory management structures (&lt;code&gt;mm_struct&lt;&#x2F;code&gt;)&lt;&#x2F;li&gt;
+&lt;li&gt;Pointer to the file descriptor table (&lt;code&gt;files_struct&lt;&#x2F;code&gt;)&lt;&#x2F;li&gt;
+&lt;li&gt;Signal handling info&lt;&#x2F;li&gt;
+&lt;li&gt;Scheduling info (priority, time slice, CPU affinity)&lt;&#x2F;li&gt;
+&lt;li&gt;Accounting info (CPU time used, etc.)&lt;&#x2F;li&gt;
+&lt;li&gt;Pointers to parent, children, siblings in the process tree&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;When the scheduler picks a process to run, it reads from the PCB to restore the process&#x27;s context. When the kernel needs to check permissions or deliver a signal, it looks at the PCB.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Thread Control Block (TCB)&lt;&#x2F;strong&gt; stores the execution context for a specific thread. On Linux this is also in &lt;code&gt;task_struct&lt;&#x2F;code&gt; since threads and processes use the same structure. But the thread-specific stuff includes:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Register state (saved during context switch)&lt;&#x2F;li&gt;
+&lt;li&gt;Stack pointer&lt;&#x2F;li&gt;
+&lt;li&gt;Thread ID&lt;&#x2F;li&gt;
+&lt;li&gt;Signal mask (which signals this thread blocks)&lt;&#x2F;li&gt;
+&lt;li&gt;Thread-local storage pointer&lt;&#x2F;li&gt;
+&lt;li&gt;errno location&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;The key difference is that multiple TCBs (threads) can point to the same memory management structures and file descriptor tables, while separate PCBs (processes) have their own.&lt;&#x2F;p&gt;
+&lt;p&gt;When you do a context switch, the kernel saves the current thread&#x27;s register state into its TCB, then loads the next thread&#x27;s state from its TCB. If the threads belong to different processes, it also has to switch page tables (which is the expensive part).&lt;&#x2F;p&gt;
+&lt;p&gt;You can think of it like this: the PCB holds &quot;what resources does this process own&quot; while the TCB holds &quot;where is this thread in its execution&quot;. A single-threaded process has one PCB and effectively one TCB. A multi-threaded process has one PCB (shared resources) and multiple TCBs (one per thread).&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-happens-on-fork&quot;&gt;what happens on fork()&lt;&#x2F;h2&gt;
+&lt;p&gt;When you fork():&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Address space is copied (or copy-on-write, so it&#x27;s cheap until you modify things)&lt;&#x2F;li&gt;
+&lt;li&gt;File descriptors are copied (but point to the same file objects)&lt;&#x2F;li&gt;
+&lt;li&gt;Signal handlers are copied&lt;&#x2F;li&gt;
+&lt;li&gt;The child gets a new PID&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;The child is almost identical to the parent at the moment of fork. This is why fork+exec is the traditional Unix way to spawn programs: fork copies everything, then exec replaces it all with a new program.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-i-find-interesting&quot;&gt;what I find interesting&lt;&#x2F;h2&gt;
+&lt;p&gt;The address space isolation is the core thing. That&#x27;s what makes a process a process. Everything else (fds, credentials, signals) is just bookkeeping.&lt;&#x2F;p&gt;
+&lt;p&gt;Threads share the address space but are otherwise separate schedulable entities. This is why data races are possible with threads but not between processes (unless you explicitly share memory).&lt;&#x2F;p&gt;
+&lt;p&gt;The &#x2F;proc filesystem is amazing for introspection. You can see almost everything about a running process without any special tools. Just cat files.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;On Linux, look at &lt;code&gt;task_struct&lt;&#x2F;code&gt; in the kernel source to see what the kernel tracks per task&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;mm_struct&lt;&#x2F;code&gt; holds the memory management info&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;files_struct&lt;&#x2F;code&gt; holds the fd table&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;signal_struct&lt;&#x2F;code&gt; and &lt;code&gt;sighand_struct&lt;&#x2F;code&gt; handle signals&lt;&#x2F;li&gt;
+&lt;li&gt;The clone() syscall lets you pick exactly what to share between parent and child, which is how threads are implemented&lt;&#x2F;li&gt;
+&lt;li&gt;cgroups and namespaces add more layers of isolation on top of this (for containers)&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;If you want to poke around a running process, check &lt;code&gt;&#x2F;proc&#x2F;[pid]&#x2F;status&lt;&#x2F;code&gt; (state, memory, threads), &lt;code&gt;&#x2F;proc&#x2F;[pid]&#x2F;maps&lt;&#x2F;code&gt; (memory map), &lt;code&gt;&#x2F;proc&#x2F;[pid]&#x2F;fd&lt;&#x2F;code&gt; (open file descriptors), &lt;code&gt;&#x2F;proc&#x2F;[pid]&#x2F;limits&lt;&#x2F;code&gt; (resource limits), &lt;code&gt;&#x2F;proc&#x2F;[pid]&#x2F;task&#x2F;&lt;&#x2F;code&gt; (threads). Also &lt;code&gt;ulimit -a&lt;&#x2F;code&gt; for your shell&#x27;s limits and &lt;code&gt;grep ctxt &#x2F;proc&#x2F;self&#x2F;status&lt;&#x2F;code&gt; for context switch counts.&lt;&#x2F;p&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>My monitor was dying</title>
         <published>2026-02-01T00:00:00+00:00</published>
         <updated>2026-02-01T00:00:00+00:00</updated>
         
@@ -23,79 +178,37 @@
         <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/my-monitor-was-dying/"/>
         <id>https://yazeed1s.github.io/posts/my-monitor-was-dying/</id>
         
-        <content type="html" xml:base="https://yazeed1s.github.io/posts/my-monitor-was-dying/">&lt;p&gt;I bought a new dell monitor. A few days in, I noticed a dim shadow in the top-left corner. Sometimes it stretched briefly on power-on.&lt;&#x2F;p&gt;
-&lt;p&gt;It looked &lt;strong&gt;&lt;em&gt;physical&lt;&#x2F;em&gt;&lt;&#x2F;strong&gt;. Like panel uniformity issues. Like backlight bleed. Like I bought a defective monitor.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;hardware-spiral&quot;&gt;hardware spiral&lt;&#x2F;h2&gt;
-&lt;p&gt;when you see a corner darkening, you blame everything physical:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;monitor arm (did i twist the panel?)&lt;&#x2F;li&gt;
-&lt;li&gt;backlight &#x2F; diffuser&lt;&#x2F;li&gt;
-&lt;li&gt;cable &#x2F; port&lt;&#x2F;li&gt;
-&lt;li&gt;the monitor itself&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;I ran through the usual checks. built-in diagnostics were clean. different cables didn&#x27;t help. the shadow just sat there, stable, looking like it belonged to the panel.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/my-monitor-was-dying/">&lt;p&gt;So I bought a new Dell monitor and a few days in I noticed this dim shadow in the top-left corner. Sometimes it would stretch briefly when the monitor powered on, and it just looked physical. Like backlight bleed, like panel uniformity issues, like I somehow bought a defective unit.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;blaming-hardware&quot;&gt;blaming hardware&lt;&#x2F;h2&gt;
+&lt;p&gt;When you see corner darkening the first thing you think is hardware. Monitor arm, maybe I twisted the panel when mounting it. Backlight diffuser issue. Bad cable or port. The monitor itself. So I ran through the usual checks, built-in diagnostics came back clean, and I also tried different cables and it changed nothing, the shadow just sat there looking like it belonged to the panel literally.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;wrong-rabbit-hole&quot;&gt;wrong rabbit hole&lt;&#x2F;h2&gt;
-&lt;p&gt;Same day this started, I was messing with &lt;code&gt;tlp&lt;&#x2F;code&gt; and &lt;code&gt;auto-cpufreq&lt;&#x2F;code&gt;.&lt;&#x2F;p&gt;
-&lt;p&gt;So naturally: &quot;did I power-save my way into a broken display?&quot;. So I turned it all off. and the shadow stayed!!&lt;&#x2F;p&gt;
-&lt;p&gt;At least now I knew it wasn&#x27;t some weird power profile.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
+&lt;p&gt;Same day this started I was messing with &lt;code&gt;tlp&lt;&#x2F;code&gt; and &lt;code&gt;auto-cpufreq&lt;&#x2F;code&gt; so naturally I thought maybe I power-saved my way into a broken display, which was silly of me, but I couldn&#x27;t shake the thought. So I turned all of that off and the shadow stayed. At least now I knew it wasn&#x27;t some weird power profile thing causing this.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;software-suspects&quot;&gt;software suspects&lt;&#x2F;h2&gt;
-&lt;p&gt;My stack started looking suspicious:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;custom window manager&lt;&#x2F;li&gt;
-&lt;li&gt;x11&lt;&#x2F;li&gt;
-&lt;li&gt;picom (shadows, damage tracking, the usual &quot;maybe it&#x27;s stale buffers&quot;)&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;Nothing in that layer had changed recently though. No updates, no config changes. Not proof, but enough to stop me from rewriting compositor configs at 2am.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;isolation&quot;&gt;isolation&lt;&#x2F;h2&gt;
-&lt;p&gt;I logged into wayland. Shadow gone. same laptop. same cable. same monitor.&lt;&#x2F;p&gt;
-&lt;p&gt;That&#x27;s when I stopped worrying about RMA. wayland wasn&#x27;t &quot;better&quot; here, it was just a control group.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
+&lt;p&gt;At this point I was thinking okay if it&#x27;s not hardware and it&#x27;s not power management, what else could it be. I started looking at my stack: custom window manager that I wrote, x11, picom with shadows and damage tracking. But then I thought wait, nothing in that layer had changed recently, no updates, no config changes. Not proof of anything really but it was enough to stop me from rewriting compositor configs.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;trying-wayland&quot;&gt;trying wayland&lt;&#x2F;h2&gt;
+&lt;p&gt;So I was stuck and I thought maybe I should just try a completely different display stack to rule things out. I logged into wayland and the shadow was gone. Same laptop, same cable, same monitor. That&#x27;s when it clicked, wayland wasn&#x27;t &quot;better&quot; here, it was just a control group. If the shadow disappears when I switch display servers then the monitor is clearly fine, and this has to be something in my x11 setup.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;bisect&quot;&gt;bisect&lt;&#x2F;h2&gt;
-&lt;p&gt;Once I knew it was x11 and not the monitor, I thought about what actually changed.&lt;&#x2F;p&gt;
-&lt;p&gt;I had recently updated my window manager.
-Laziest possible bisect:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;switch to x11 -&amp;gt; artifact returns&lt;&#x2F;li&gt;
-&lt;li&gt;roll back WM -&amp;gt; artifact gone&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;This was a regression I introduced.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;the-reveal&quot;&gt;the reveal&lt;&#x2F;h2&gt;
-&lt;p&gt;Turns out I didn&#x27;t mess up stacking order, I actually implemented it correctly. EWMH says window types stack in a specific order, and &lt;code&gt;polybar&lt;&#x2F;code&gt; (type &lt;code&gt;_NET_WM_TYPE_DOCK&lt;&#x2F;code&gt;) now sat above basically everything.&lt;&#x2F;p&gt;
-&lt;p&gt;I run picom with shadows. polybar now had a shadow that landed on top of other windows.&lt;&#x2F;p&gt;
-&lt;p&gt;On firefox or any bright window near that corner, it looked exactly like panel dimming.&lt;&#x2F;p&gt;
-&lt;p&gt;The funniest thing is that the bar wasn&#x27;t even on the external monitor. Only its shadow was.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;why-the-shadow-landed-on-the-other-monitor&quot;&gt;why the shadow landed on the other monitor&lt;&#x2F;h2&gt;
-&lt;p&gt;My laptop screen has polybar. External monitor doesn&#x27;t.&lt;&#x2F;p&gt;
-&lt;p&gt;But x11 treats the desktop as one big coordinate space. Monitors are just rectangles inside it:&lt;&#x2F;p&gt;
-&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; xrandr&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt;-listmonitors&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;Monitors:&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; 2&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt; 0:&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; +&lt;&#x2F;span&gt;&lt;span&gt;*&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;eDP&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; 1920&#x2F;302x1200&#x2F;189+0+0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;  eDP&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt; 1:&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; +DisplayPort-0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; 2560&#x2F;597x1440&#x2F;336+1920+0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;  DisplayPort-0&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;external starts at &lt;code&gt;x = 1920&lt;&#x2F;code&gt;.&lt;&#x2F;p&gt;
-&lt;p&gt;shadows don&#x27;t care about monitor boundaries. just pixels in global space. if you blur something near the right edge of the laptop screen, that blur can spill into the left edge of the external monitor.&lt;&#x2F;p&gt;
-&lt;p&gt;which is exactly where i was seeing the &quot;hardware defect.&quot;&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;confirmation&quot;&gt;confirmation&lt;&#x2F;h2&gt;
-&lt;h2 id=&quot;killed-polybar-dimming-gone-instantly&quot;&gt;Killed polybar. dimming gone instantly.&lt;&#x2F;h2&gt;
-&lt;h2 id=&quot;the-fix&quot;&gt;the fix&lt;&#x2F;h2&gt;
-&lt;p&gt;Make sure polybar doesn&#x27;t cast shadows. Fake hardware defect never came back.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;this doesn&#x27;t generalize to &quot;it&#x27;s always software.&quot; panels do fail. but isolating layers beats spiraling.&lt;&#x2F;li&gt;
-&lt;li&gt;multi-monitor on x11 is one big canvas. effects don&#x27;t stop at the seam unless you make them.&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
+&lt;p&gt;Once I knew it was x11 and not the hardware I started thinking about what actually changed recently. I had updated my window manager a few days ago, right around when this started. So I thought let me try the laziest possible bisect: switch to x11 and check if the artifact returns, then roll back the WM changes and see if the artifact goes away. And that&#x27;s exactly what happened. So this was a regression I introduced.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-actually-happened&quot;&gt;what actually happened&lt;&#x2F;h2&gt;
+&lt;p&gt;So I started killing things to see what makes the shadow disappear. I disabled all window shadows in picom and the artifact was gone. Okay so it&#x27;s definitely a shadow from some window. I re-enabled shadows and started killing windows one by one, and when I killed polybar (which was on my laptop screen) the dimming disappeared instantly. So the shadow was coming from polybar!! wtf.&lt;&#x2F;p&gt;
+&lt;p&gt;But why was polybar casting a shadow that landed on my external monitor now? It wasn&#x27;t doing this before my WM update. Then I thought about what I actually changed in that update. I had reimplemented the stacking order logic from scratch because the old code was a mess. And in the new implementation I correctly followed EWMH which says window types should stack in a specific order, and &lt;code&gt;_NET_WM_TYPE_DOCK&lt;&#x2F;code&gt; windows like polybar are supposed to sit above basically everything else. In my old WM code polybar wasn&#x27;t stacked as high as it should have been, but now it was. And since I run picom with shadows enabled, polybar&#x27;s shadow was now landing on top of other windows. On firefox or any bright window near that corner it looked exactly like panel dimming.&lt;&#x2F;p&gt;
+&lt;p&gt;The funny thing is polybar wasn&#x27;t even on the external monitor, it was on my laptop screen, and I wasn&#x27;t even looking at my laptop this whole time.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;why-the-shadow-crossed-monitors&quot;&gt;why the shadow crossed monitors&lt;&#x2F;h2&gt;
+&lt;p&gt;So I was thinking how is polybar&#x27;s shadow even reaching the external monitor when polybar itself is only on my laptop screen. Then I remembered that x11 treats the whole desktop as one big coordinate space, monitors are just rectangles inside it:&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; xrandr&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;-listmonitors&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;Monitors:&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 2&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt; 0:&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; +&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7D4242, #D4D4C0);&quot;&gt;*&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;eDP&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 1920&#x2F;302x1200&#x2F;189+0+0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;  eDP&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt; 1:&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; +DisplayPort-0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 2560&#x2F;597x1440&#x2F;336+1920+0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;  DisplayPort-0&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;The external monitor starts at &lt;code&gt;x = 1920&lt;&#x2F;code&gt;. Shadows don&#x27;t care about monitor boundaries, they&#x27;re just pixels in global space. If you blur something near the right edge of the laptop screen that blur can spill into the left edge of the external monitor, which is exactly where I was seeing the &quot;hardware defect.&quot;&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;fix&quot;&gt;fix&lt;&#x2F;h2&gt;
+&lt;p&gt;Killed polybar and the dimming was gone instantly. Made sure polybar doesn&#x27;t cast shadows and the fake hardware defect never came back.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-i-took-from-this&quot;&gt;what I took from this&lt;&#x2F;h2&gt;
+&lt;p&gt;Panels do fail and this doesn&#x27;t generalize to &quot;it&#x27;s always software&quot; but isolating layers beats spiraling through hardware returns. Also multi-monitor on x11 is one big stupid canvas and effects don&#x27;t stop at monitor seams unless you explicitly make them stop by padding between monitors or whatever.&lt;&#x2F;p&gt;
 </content>
         
     </entry>
     <entry xml:lang="en">
-        <title>Infiniswap: Remote Memory Paging Over RDMA</title>
+        <title>Infiniswap</title>
         <published>2026-01-18T00:00:00+00:00</published>
         <updated>2026-01-18T00:00:00+00:00</updated>
         
@@ -110,50 +223,44 @@ Laziest possible bisect:&lt;&#x2F;p&gt;
         <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/infiniswap/"/>
         <id>https://yazeed1s.github.io/posts/infiniswap/</id>
         
-        <content type="html" xml:base="https://yazeed1s.github.io/posts/infiniswap/">&lt;hr &#x2F;&gt;
-&lt;p&gt;I came across this paper while looking into memory disaggregation. The idea is deceptively simple: when a machine runs out of RAM, instead of paging to disk, page to another machine&#x27;s unused memory over the network.&lt;&#x2F;p&gt;
-&lt;p&gt;What caught my attention is &lt;em&gt;how&lt;&#x2F;em&gt; they pulled it off; no application changes, no core kernel patching. It&#x27;s a kernel module that hooks into Linux&#x27;s swap path and uses remote RAM as the fast tier, with disk as fallback.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;the-core-idea&quot;&gt;the core idea&lt;&#x2F;h2&gt;
-&lt;p&gt;Production clusters waste a lot of memory. Some machines are memory-starved while others sit idle. The 99th percentile machine often uses 2-3× more memory than the median. Meanwhile, over half the cluster&#x27;s aggregate memory goes unused.&lt;&#x2F;p&gt;
-&lt;p&gt;When applications can&#x27;t fit their working set in RAM, performance falls off a cliff. VoltDB drops from 95K TPS to 4K TPS. Memcached&#x27;s tail latency shoots up 21×. Disk is too slow to help (1000× slower than memory).&lt;&#x2F;p&gt;
-&lt;p&gt;Infiniswap&#x27;s insight: RDMA networks give you single-digit microsecond latencies. That&#x27;s fast enough to make remote memory a viable swap target. Instead of page -&amp;gt; disk, you do page -&amp;gt; remote RAM over RDMA. The remote CPU stays out of the data movement; the RNIC does the DMA.&lt;&#x2F;p&gt;
-&lt;p&gt;The result: swap that looks normal to Linux, but is backed by slabs of remote memory scattered across the cluster.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;what-s-clever&quot;&gt;what&#x27;s clever&lt;&#x2F;h2&gt;
-&lt;p&gt;A few design choices stood out:&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Using swap as the integration point.&lt;&#x2F;strong&gt; Instead of modifying the kernel&#x27;s page fault handler or remapping virtual memory, Infiniswap plugs into Linux&#x27;s existing swap subsystem. The kernel already knows how to page out and page back in. Infiniswap just changes where those swapped pages live. The trade-off is you&#x27;re still going through the swap path (page faults, context switches, the whole thing) but you get deployment simplicity.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;One-sided RDMA.&lt;&#x2F;strong&gt; Traditional network block devices (like Mellanox&#x27;s nbdX) use send&#x2F;recv semantics. The remote CPU has to wake up, copy data, respond. Infiniswap uses RDMA_READ and RDMA_WRITE (the RNIC directly accesses remote memory without running remote code on the critical path). The paper shows nbdX burns multiple vCPUs on the remote side; Infiniswap largely avoids that.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Slab-based design.&lt;&#x2F;strong&gt; Pages are grouped into 1GB slabs. Each slab maps to one remote machine. This keeps the metadata manageable (tracking millions of individual 4KB pages across the cluster would be expensive). When a slab gets &quot;hot&quot; (&amp;gt;20 page I&#x2F;O ops&#x2F;sec), it gets mapped to remote memory. Cold slabs stay on disk.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;where-it-works&quot;&gt;where it works&lt;&#x2F;h2&gt;
-&lt;p&gt;Memory-bound workloads see big wins. Memcached stays nearly flat even when only 50% of the working set fits in memory. PowerGraph runs 6.5× faster. VoltDB, while CPU-heavy, still sees 15× throughput improvement over disk.&lt;&#x2F;p&gt;
-&lt;p&gt;The cluster memory utilization goes from 40% to 60% (that&#x27;s 47% more effective use of RAM, with minimal network overhead (&amp;lt;1% of capacity)).&lt;&#x2F;p&gt;
-&lt;h2 id=&quot;where-it-doesn-t&quot;&gt;where it doesn&#x27;t&lt;&#x2F;h2&gt;
-&lt;p&gt;CPU-bound workloads don&#x27;t benefit as much. VoltDB and Spark already run at high CPU utilization. Adding paging overhead (context switches, TLB flushes, page table walks) eats into that. Spark at 50% memory thrashes so badly it doesn&#x27;t complete.&lt;&#x2F;p&gt;
-&lt;p&gt;The fundamental limit: this isn&#x27;t local memory. Page faults still happen. You&#x27;re masking latency, not eliminating it. For workloads where microseconds matter deterministically, that&#x27;s a problem.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/infiniswap/">&lt;p&gt;I found this paper while reading about memory disaggregation. The idea is simple: when a machine runs out of RAM, page to another machine&#x27;s unused memory instead of disk.&lt;&#x2F;p&gt;
+&lt;p&gt;What caught my attention is how they did it. No application changes. No core kernel patching. It&#x27;s a kernel module that hooks into Linux&#x27;s swap path. Remote RAM becomes the fast tier. Disk is just the fallback.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-problem-they-re-solving&quot;&gt;the problem they&#x27;re solving&lt;&#x2F;h2&gt;
+&lt;p&gt;Production clusters waste a lot of memory. Some machines are memory-starved while others sit idle. The 99th percentile machine uses 2-3× more memory than the median. Over half the cluster&#x27;s aggregate memory goes unused.&lt;&#x2F;p&gt;
+&lt;p&gt;When apps can&#x27;t fit their working set in RAM, performance falls off a cliff. VoltDB drops from 95K TPS to 4K TPS. Memcached&#x27;s tail latency shoots up 21×. Disk is just too slow (like 1000× slower than memory).&lt;&#x2F;p&gt;
+&lt;p&gt;So they thought: RDMA gives single-digit microsecond latencies. That&#x27;s fast enough to make remote memory a viable swap target. Pages go to remote RAM over RDMA instead of disk. The remote CPU stays out of the data movement entirely since the RNIC does the DMA.&lt;&#x2F;p&gt;
+&lt;p&gt;Result: swap that looks normal to Linux but is backed by slabs of remote memory scattered across the cluster.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-i-thought-was-clever&quot;&gt;what I thought was clever&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;strong&gt;Using swap as the integration point.&lt;&#x2F;strong&gt; Instead of modifying the page fault handler or remapping virtual memory, they plug into Linux&#x27;s swap subsystem. The kernel already knows how to page out and page in. Infiniswap just changes where those pages live. The trade-off is you still go through the swap path (page faults, context switches). But you get deployment simplicity because everything else just works.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;One-sided RDMA.&lt;&#x2F;strong&gt; Traditional network block devices like Mellanox&#x27;s nbdX use send&#x2F;recv. Remote CPU wakes up, copies data, responds. Infiniswap uses RDMA_READ and RDMA_WRITE. The RNIC accesses remote memory directly without running any code on the remote side. nbdX burns multiple vCPUs on the remote machine. Infiniswap doesn&#x27;t touch the remote CPU at all.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Slab-based design.&lt;&#x2F;strong&gt; Pages are grouped into 1GB slabs. Each slab maps to one remote machine. This keeps metadata manageable. Tracking millions of 4KB pages across the cluster would be expensive. Hot slabs (more than 20 page I&#x2F;O ops&#x2F;sec) get mapped to remote memory. Cold slabs stay on disk.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;where-it-works-well&quot;&gt;where it works well&lt;&#x2F;h2&gt;
+&lt;p&gt;Memory-bound workloads see big wins. Memcached stays nearly flat even when only 50% of the working set fits in memory. PowerGraph runs 6.5× faster. VoltDB sees 15× throughput improvement over disk.&lt;&#x2F;p&gt;
+&lt;p&gt;Cluster memory utilization: goes from 40% to 60%. That&#x27;s 47% more effective use of RAM. Network overhead is less than 1% of capacity.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;where-it-doesn-t-work&quot;&gt;where it doesn&#x27;t work&lt;&#x2F;h2&gt;
+&lt;p&gt;CPU-bound workloads don&#x27;t benefit much. VoltDB and Spark already run at high CPU utilization. Adding paging overhead (context switches, TLB flushes, page table walks) eats into that. Spark at 50% memory thrashes so badly it doesn&#x27;t complete.&lt;&#x2F;p&gt;
+&lt;p&gt;There&#x27;s a fundamental limit here: this isn&#x27;t local memory. Page faults still happen. You&#x27;re masking latency, not eliminating it. For workloads where microseconds matter deterministically, that&#x27;s still a problem.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
 &lt;ul&gt;
 &lt;li&gt;Paper: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;www.usenix.org&#x2F;system&#x2F;files&#x2F;conference&#x2F;nsdi17&#x2F;nsdi17-gu.pdf&quot;&gt;Gu et al., &quot;Efficient Memory Disaggregation with Infiniswap&quot;, NSDI 2017&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
 &lt;li&gt;Tested on 32 machines, 56 Gbps Infiniband, 64GB RAM each&lt;&#x2F;li&gt;
-&lt;li&gt;Slab placement uses &quot;power of two choices&quot; (pick two random machines, query free memory, map to the one with more headroom)&lt;&#x2F;li&gt;
-&lt;li&gt;Slab eviction queries E+5 machines, evicts the coldest from that set (~363μs median)&lt;&#x2F;li&gt;
+&lt;li&gt;Slab placement uses &quot;power of two choices&quot; (pick two random machines, query free memory, use the one with more headroom)&lt;&#x2F;li&gt;
+&lt;li&gt;Slab eviction queries E+5 machines, evicts coldest (~363μs median)&lt;&#x2F;li&gt;
 &lt;li&gt;Page-out: synchronous RDMA_WRITE + async disk write (disk is fallback if remote crashes)&lt;&#x2F;li&gt;
-&lt;li&gt;Page-in: check bitmap -&amp;gt; RDMA_READ if remote, else read from disk&lt;&#x2F;li&gt;
+&lt;li&gt;Page-in: check bitmap → RDMA_READ if remote, else disk&lt;&#x2F;li&gt;
 &lt;li&gt;Slab remapping after failure takes ~54ms (Infiniband memory registration)&lt;&#x2F;li&gt;
 &lt;li&gt;Default headroom threshold: 8GB per machine&lt;&#x2F;li&gt;
 &lt;li&gt;Hot slab threshold: 20 page I&#x2F;O ops&#x2F;sec (EWMA, α=0.2)&lt;&#x2F;li&gt;
-&lt;li&gt;Compared to: nbdX (Mellanox), Fastswap (kernel modification), LegoOS (full OS redesign)&lt;&#x2F;li&gt;
-&lt;li&gt;Code available on GitHub &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;SymbioticLab&#x2F;Infiniswap&quot;&gt;SymbioticLab&#x2F;infiniswap&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
+&lt;li&gt;Compared against nbdX (Mellanox), Fastswap, LegoOS&lt;&#x2F;li&gt;
+&lt;li&gt;Code: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;SymbioticLab&#x2F;Infiniswap&quot;&gt;SymbioticLab&#x2F;infiniswap&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
 &lt;&#x2F;ul&gt;
 </content>
         
     </entry>
     <entry xml:lang="en">
-        <title>What Linux Does When Memory Runs Out</title>
-        <published>2025-12-15T00:00:00+00:00</published>
-        <updated>2025-12-15T00:00:00+00:00</updated>
+        <title>Swap and Paging: What Actually Happens When Memory Fills Up</title>
+        <published>2025-12-05T00:00:00+00:00</published>
+        <updated>2025-12-05T00:00:00+00:00</updated>
         
         <author>
           <name>
@@ -163,176 +270,142 @@ Laziest possible bisect:&lt;&#x2F;p&gt;
           </name>
         </author>
         
-        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/linux-memory-pressure/"/>
-        <id>https://yazeed1s.github.io/posts/linux-memory-pressure/</id>
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/swap-paging/"/>
+        <id>https://yazeed1s.github.io/posts/swap-paging/</id>
         
-        <content type="html" xml:base="https://yazeed1s.github.io/posts/linux-memory-pressure/">&lt;hr &#x2F;&gt;
-&lt;p&gt;When you&#x27;re out of RAM and swap is filling up, Linux has to make hard choices. This post is about what those choices are and why they sometimes end with your process getting killed.&lt;&#x2F;p&gt;
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/swap-paging/">&lt;hr &#x2F;&gt;
+&lt;p&gt;I kept hitting concepts like &quot;page fault&quot; and &quot;swap&quot; while reading memory disaggregation papers. Figured I should actually understand what these mean at a low level before going further.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;page-replacement&quot;&gt;page replacement&lt;&#x2F;h2&gt;
-&lt;p&gt;When RAM is full and something new needs to come in, something else has to go out. Linux uses LRU lists (active&#x2F;inactive), split for anonymous memory (heap&#x2F;stack) and file-backed pages (page cache). The mental model is the same:&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Active list.&lt;&#x2F;strong&gt; Pages that have been accessed recently. These are &quot;hot&quot; (probably still in use).&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Inactive list.&lt;&#x2F;strong&gt; Pages that haven&#x27;t been touched in a while. These are candidates for eviction.&lt;&#x2F;p&gt;
-&lt;p&gt;New pages usually start inactive. If they get accessed again, they get promoted to active. Reclaim prefers victims from inactive.&lt;&#x2F;p&gt;
-&lt;p&gt;This is a rough approximation of LRU (Least Recently Used). True LRU would track exact access times for every page, which is too expensive. Linux settles for &quot;recently used&quot; versus &quot;not recently used.&quot;&lt;&#x2F;p&gt;
-&lt;p&gt;When memory pressure rises, the kernel scans pages on the inactive list, looking for victims. Clean pages (unchanged since loaded) can be dropped immediately. Dirty pages have to be written to disk first.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-swap-is&quot;&gt;what swap is&lt;&#x2F;h2&gt;
+&lt;p&gt;Swap is disk space that acts as overflow for RAM. When physical memory fills up, the kernel moves some data to swap. Later, if that data is needed again, it gets loaded back.&lt;&#x2F;p&gt;
+&lt;p&gt;That&#x27;s sort of it. The complication is in the details.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;swap-behavior&quot;&gt;swap behavior&lt;&#x2F;h2&gt;
-&lt;p&gt;Swap is the overflow area (disk space where evicted pages go).&lt;&#x2F;p&gt;
-&lt;p&gt;Linux doesn&#x27;t wait until RAM is completely full to start swapping. It swaps based on a tunable called &lt;strong&gt;swappiness&lt;&#x2F;strong&gt; (0-200). Roughly, it&#x27;s a knob for how willing the kernel is to swap anonymous memory versus reclaim file cache.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;pages&quot;&gt;pages&lt;&#x2F;h2&gt;
+&lt;p&gt;The kernel doesn&#x27;t manage memory byte by byte. Too much bookkeeping. Instead it works in fixed-size chunks called &lt;strong&gt;pages&lt;&#x2F;strong&gt;. Usually 4KB.&lt;&#x2F;p&gt;
+&lt;p&gt;When you allocate memory, you get pages. When data moves to disk, it moves as pages. The physical counterpart is called a &lt;strong&gt;frame&lt;&#x2F;strong&gt;. Same size, different name. Pages are virtual, frames are physical.&lt;&#x2F;p&gt;
+&lt;p&gt;8GB of RAM = roughly 2 million frames. A process might think it has way more pages than that. Most aren&#x27;t backed by physical memory until used.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;page-tables-and-the-mmu&quot;&gt;page tables and the mmu&lt;&#x2F;h2&gt;
+&lt;p&gt;The CPU doesn&#x27;t know about virtual addresses on its own. There&#x27;s a &lt;strong&gt;Memory Management Unit (MMU)&lt;&#x2F;strong&gt; that translates virtual addresses to physical ones.&lt;&#x2F;p&gt;
+&lt;p&gt;How does it know the mapping? &lt;strong&gt;Page tables&lt;&#x2F;strong&gt;. Data structures the kernel maintains. The MMU walks these to find where a virtual page actually lives (which physical frame, or if it&#x27;s not in RAM at all).&lt;&#x2F;p&gt;
+&lt;p&gt;Walking page tables on every memory access would be slow. So the MMU has a cache called the &lt;strong&gt;TLB (Translation Lookaside Buffer)&lt;&#x2F;strong&gt;. Recent translations are stored there. Hit the TLB = fast. Miss = pay for the walk.&lt;&#x2F;p&gt;
+&lt;p&gt;Most accesses hit the TLB. That&#x27;s what makes virtual memory practical.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;page-faults&quot;&gt;page faults&lt;&#x2F;h2&gt;
+&lt;p&gt;Program accesses a virtual address. MMU checks: is this page in RAM? If not, you get a &lt;strong&gt;page fault&lt;&#x2F;strong&gt;.&lt;&#x2F;p&gt;
+&lt;p&gt;Not an error. Just the kernel saying &quot;hold on, I need to go get that.&quot;&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;Program accesses memory&lt;&#x2F;li&gt;
+&lt;li&gt;MMU finds page isn&#x27;t resident&lt;&#x2F;li&gt;
+&lt;li&gt;CPU traps to kernel&lt;&#x2F;li&gt;
+&lt;li&gt;Kernel figures out where page lives (swap, file, or nowhere)&lt;&#x2F;li&gt;
+&lt;li&gt;Kernel loads it into a frame&lt;&#x2F;li&gt;
+&lt;li&gt;Page table updated&lt;&#x2F;li&gt;
+&lt;li&gt;Program resumes&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;p&gt;Two kinds:&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Minor fault.&lt;&#x2F;strong&gt; Page is already somewhere in memory (page cache, shared mapping). Kernel just fixes the page table. Fast.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Major fault.&lt;&#x2F;strong&gt; Page has to be read from disk. Slow. Really slow.&lt;&#x2F;p&gt;
+&lt;p&gt;Some faults are expected:&lt;&#x2F;p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;0&lt;&#x2F;strong&gt; = Avoid swapping anonymous memory unless you have to&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;60&lt;&#x2F;strong&gt; = Default-ish, balanced&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;100+&lt;&#x2F;strong&gt; = Swap more aggressively to keep RAM free for file cache&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Lazy allocation.&lt;&#x2F;strong&gt; Kernel doesn&#x27;t back memory until you touch it. First access = minor fault.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Copy-on-write.&lt;&#x2F;strong&gt; Shared pages aren&#x27;t copied until someone writes.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Swapping.&lt;&#x2F;strong&gt; Page was evicted earlier and now needed again.&lt;&#x2F;li&gt;
 &lt;&#x2F;ul&gt;
-&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; cat&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; &#x2F;proc&#x2F;sys&#x2F;vm&#x2F;swappiness&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;60&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;Higher swappiness means Linux will push application pages to swap earlier to keep more room for file system cache. Lower swappiness keeps your applications in RAM longer but may hurt cache performance.&lt;&#x2F;p&gt;
-&lt;p&gt;There&#x27;s no universally right answer. It depends on whether your workload benefits more from cached file data or from keeping application memory resident.&lt;&#x2F;p&gt;
+&lt;p&gt;Others mean bugs. Accessing garbage address = SIGSEGV.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;paging-in-and-out&quot;&gt;paging in and out&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;strong&gt;Page in&lt;&#x2F;strong&gt; = loading a page from disk into RAM.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Page out&lt;&#x2F;strong&gt; = moving a page from RAM to disk to free space.&lt;&#x2F;p&gt;
+&lt;p&gt;RAM full. New page needed. Kernel picks a &lt;strong&gt;victim&lt;&#x2F;strong&gt; (some page not accessed recently). If it&#x27;s dirty (modified since loaded), kernel writes it to swap first. If it&#x27;s clean, kernel just drops it and reloads later if needed.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Before:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;RAM:  [A][B][C][D] ← full&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Swap: [empty]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Need page E. Pick B as victim.&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;After:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;RAM:  [A][E][C][D]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Swap: [B]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;If B is accessed again? Major fault. Load B. Evict something else. This happens constantly under memory pressure.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;the-dirty-bit&quot;&gt;the dirty bit&lt;&#x2F;h2&gt;
+&lt;p&gt;Each page has a &lt;strong&gt;dirty bit&lt;&#x2F;strong&gt;. Set if the page has been modified since it was loaded.&lt;&#x2F;p&gt;
+&lt;p&gt;Why it matters: clean pages can be dropped. Kernel can reload from file or wherever. Dirty pages can&#x27;t. Kernel has to write them somewhere first.&lt;&#x2F;p&gt;
+&lt;p&gt;Anonymous memory (heap, stack) that&#x27;s dirty goes to swap. File-backed memory that&#x27;s modified goes back to the file (or swap, depends).&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;why-disk-access-hurts&quot;&gt;why disk access hurts&lt;&#x2F;h2&gt;
+&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Access&lt;&#x2F;th&gt;&lt;th&gt;Latency&lt;&#x2F;th&gt;&lt;&#x2F;tr&gt;&lt;&#x2F;thead&gt;&lt;tbody&gt;
+&lt;tr&gt;&lt;td&gt;RAM&lt;&#x2F;td&gt;&lt;td&gt;~100 nanoseconds&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;SSD&lt;&#x2F;td&gt;&lt;td&gt;~100 microseconds&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;HDD&lt;&#x2F;td&gt;&lt;td&gt;~10 milliseconds&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;&#x2F;tbody&gt;&lt;&#x2F;table&gt;
+&lt;p&gt;SSD is 1,000× slower than RAM. HDD is 100,000× slower.&lt;&#x2F;p&gt;
+&lt;p&gt;Major fault = disk access = program stalls for eternity in CPU time.&lt;&#x2F;p&gt;
+&lt;p&gt;One major fault, who cares. Hundred per second, app feels sluggish. Thousand, system unusable.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;thrashing&quot;&gt;thrashing&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;strong&gt;Thrashing&lt;&#x2F;strong&gt; is what happens when working set doesn&#x27;t fit in RAM.&lt;&#x2F;p&gt;
+&lt;p&gt;Working set = the memory you&#x27;re actively using right now. Bigger than RAM? Kernel constantly swapping pages in and out. Every page you load evicts something you need again soon.&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;Need page A -&amp;gt; fault, load A, evict B&lt;&#x2F;li&gt;
+&lt;li&gt;Need page B -&amp;gt; fault, load B, evict A&lt;&#x2F;li&gt;
+&lt;li&gt;Need page A -&amp;gt; fault, load A, evict B&lt;&#x2F;li&gt;
+&lt;li&gt;Forever&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;p&gt;System spends 99% of time moving data. 1% doing work. Disk light stuck on. Mouse barely moves.&lt;&#x2F;p&gt;
+&lt;p&gt;This is the performance cliff. Not gradual slowdown. Death spiral.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;lru-picking-victims&quot;&gt;lru: picking victims&lt;&#x2F;h2&gt;
+&lt;p&gt;How does kernel decide which page to evict?&lt;&#x2F;p&gt;
+&lt;p&gt;Ideal: evict the one that won&#x27;t be needed soonest. Can&#x27;t predict future. So kernel approximates with &lt;strong&gt;LRU (Least Recently Used)&lt;&#x2F;strong&gt;. Pages not accessed in a while are good candidates.&lt;&#x2F;p&gt;
+&lt;p&gt;Linux maintains active&#x2F;inactive lists. Pages accessed recently go to active. Cold pages drift to inactive. Reclaim takes from inactive first.&lt;&#x2F;p&gt;
+&lt;p&gt;True LRU would track exact access times for every page. Too expensive. Linux settles for &quot;recently used&quot; vs &quot;not recently used.&quot;&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;swappiness&quot;&gt;swappiness&lt;&#x2F;h2&gt;
+&lt;p&gt;Linux doesn&#x27;t wait until RAM is completely full to start swapping. There&#x27;s a knob called &lt;strong&gt;swappiness&lt;&#x2F;strong&gt;.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; cat&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; &#x2F;proc&#x2F;sys&#x2F;vm&#x2F;swappiness&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;60&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Range is 0-200. Affects how willing kernel is to swap anonymous memory vs reclaim file cache.&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;0&lt;&#x2F;strong&gt; = Avoid swapping. Hold app memory, sacrifice cache.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;60&lt;&#x2F;strong&gt; = Default. Balanced.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;100+&lt;&#x2F;strong&gt; = Swap more. Keep cache warm.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;No universal right answer. Depends on workload.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;what-can-t-be-swapped&quot;&gt;what can&#x27;t be swapped&lt;&#x2F;h2&gt;
-&lt;p&gt;Not all memory can go to disk.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Kernel memory can&#x27;t be swapped.&lt;&#x2F;strong&gt; The kernel&#x27;s own data structures (page tables, process descriptors, driver state) must stay in RAM. If the kernel itself got paged out, who would page it back in?&lt;&#x2F;p&gt;
-&lt;p&gt;Specifically, a lot of kernel allocations live in the direct map (the linear mapping of physical memory into kernel virtual addresses). It&#x27;s still mapped via page tables, but it&#x27;s not pageable like user memory.&lt;&#x2F;p&gt;
-&lt;p&gt;This is why memory leaks in kernel code are especially dangerous. That memory is gone until reboot.&lt;&#x2F;p&gt;
+&lt;p&gt;Not everything can go to disk.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Kernel memory.&lt;&#x2F;strong&gt; Page tables, process descriptors, driver state. Must stay in RAM. If kernel got paged out, who pages it back in?&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Pinned memory.&lt;&#x2F;strong&gt; Memory explicitly locked by application (mlock). Used by RDMA, databases, etc.&lt;&#x2F;p&gt;
+&lt;p&gt;Kernel memory leaks are dangerous. That memory is gone until reboot.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;the-oom-killer&quot;&gt;the oom killer&lt;&#x2F;h2&gt;
-&lt;p&gt;When both RAM and swap are full and the kernel can&#x27;t reclaim any more memory, Linux invokes the &lt;strong&gt;OOM Killer&lt;&#x2F;strong&gt; (Out Of Memory Killer).&lt;&#x2F;p&gt;
-&lt;p&gt;It picks a process and terminates it. No negotiation. Just dead.&lt;&#x2F;p&gt;
-&lt;p&gt;How it chooses:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Memory usage.&lt;&#x2F;strong&gt; Bigger hogs are more likely targets.&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;OOM score.&lt;&#x2F;strong&gt; Each process has a computed score, plus a tunable adjustment, that influences selection.&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; Check a process&amp;#39;s OOM score&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; cat&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; &#x2F;proc&#x2F;1234&#x2F;oom_score&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;582&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;h2 id=&quot;overcommit&quot;&gt;overcommit&lt;&#x2F;h2&gt;
+&lt;p&gt;Linux lets you allocate more memory than exists. &lt;code&gt;malloc(1GB)&lt;&#x2F;code&gt; succeeds even with 512MB free.&lt;&#x2F;p&gt;
+&lt;p&gt;Intentional. Called &lt;strong&gt;overcommit&lt;&#x2F;strong&gt;. Most programs allocate more than they use. Sparse arrays. Forked processes before exec. Refusing would break software.&lt;&#x2F;p&gt;
+&lt;p&gt;Downside: actually use all that memory? OOM killer fires. Allocation succeeded, using it didn&#x27;t.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; cat&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; &#x2F;proc&#x2F;sys&#x2F;vm&#x2F;overcommit_memory&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;  #&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; heuristic (default)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; Protect important processes&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; echo&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt;1000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt; &amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; &#x2F;proc&#x2F;1234&#x2F;oom_score_adj&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;Setting &lt;code&gt;oom_score_adj&lt;&#x2F;code&gt; to -1000 makes a process essentially unkillable by the global OOM killer. Set it to +1000 and it becomes a preferred target.&lt;&#x2F;p&gt;
-&lt;p&gt;The OOM killer exists because the alternative is worse. Without it, the system would deadlock (no memory to allocate, no way to free any). At least killing one process gives everything else a chance to survive.&lt;&#x2F;p&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; 0 = guess what&amp;#39;s safe&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; 1 = always allow (yolo)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; 2 = strict (refuse if exceeds limit)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Mode 2 is safer but breaks things. Mode 1 is living dangerously.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;why-linux-overcommits&quot;&gt;why linux overcommits&lt;&#x2F;h2&gt;
-&lt;p&gt;By default, Linux allows you to allocate more memory than exists. &lt;code&gt;malloc(1GB)&lt;&#x2F;code&gt; succeeds even if you only have 512MB free.&lt;&#x2F;p&gt;
-&lt;p&gt;This is &lt;strong&gt;overcommit&lt;&#x2F;strong&gt;, and it&#x27;s intentional. Most programs allocate way more memory than they use. Sparse arrays, buffers &quot;just in case,&quot; forked processes before exec. If Linux refused these allocations, lots of software would break.&lt;&#x2F;p&gt;
-&lt;p&gt;The downside: if you actually try to use all that memory you allocated, you trigger the OOM killer. The allocation succeeded, but using it didn&#x27;t.&lt;&#x2F;p&gt;
-&lt;p&gt;You can tune this behavior:&lt;&#x2F;p&gt;
-&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; Check current mode&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; cat&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; &#x2F;proc&#x2F;sys&#x2F;vm&#x2F;overcommit_memory&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;  #&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; heuristic (default)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; Options:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; 0 = heuristic overcommit (kernel guesses what&amp;#39;s safe)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; 1 = always overcommit (never refuse malloc)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; 2 = strict (refuse if total committed memory would exceed a commit limit derived from RAM, swap, and vm.overcommit_ratio &#x2F; vm.overcommit_kbytes)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;Mode 2 is safer but breaks more software. Mode 0 is a compromise. Mode 1 is living dangerously.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;why-this-matters-for-remote-memory&quot;&gt;why this matters for remote memory&lt;&#x2F;h2&gt;
+&lt;p&gt;Main problem: disk is slow. 1,000-100,000× slower than RAM.&lt;&#x2F;p&gt;
+&lt;p&gt;Systems like Infiniswap replace swap with network access to remote memory. RDMA gives single-digit microsecond latency. Still slower than local RAM. But 10-1000× faster than disk.&lt;&#x2F;p&gt;
+&lt;p&gt;Keep the paging model. Replace the slow part. Cliff becomes slope.&lt;&#x2F;p&gt;
+&lt;p&gt;The interesting thing: Linux has a &lt;strong&gt;frontswap&lt;&#x2F;strong&gt; interface. It&#x27;s a hook that lets you intercept pages before they go to disk. Implement a few callbacks and your module becomes an alternative swap backend. That&#x27;s how Infiniswap plugs into the kernel. Pages that would go to disk get redirected over the network instead.&lt;&#x2F;p&gt;
+&lt;p&gt;I want to look at this interface in more detail later. How frontswap works, what the callbacks look like, and what&#x27;s involved in building something like Infiniswap. Different post.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;what-this-means-practically&quot;&gt;what this means practically&lt;&#x2F;h2&gt;
-&lt;p&gt;&lt;strong&gt;Mysterious crashes.&lt;&#x2F;strong&gt; If your process dies with no explanation, check &lt;code&gt;dmesg&lt;&#x2F;code&gt; for OOM killer messages. It might not be your bug (Linux might have killed you to save the system).&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Server planning.&lt;&#x2F;strong&gt; On production servers, monitor swap usage. If you&#x27;re consistently in swap, you&#x27;re consistently slow. If swap fills up, the OOM killer is coming.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Memory limits.&lt;&#x2F;strong&gt; Use cgroups to limit how much memory a process can use. Better to have one application fail cleanly than to have the OOM killer pick arbitrarily.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Kernel memory matters.&lt;&#x2F;strong&gt; If kernel memory grows unbounded (driver bug, leak in a module), you can&#x27;t swap it out. Eventually, OOM. Unlike user-space leaks, you can&#x27;t just kill the offending process.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;the-reality&quot;&gt;the reality&lt;&#x2F;h2&gt;
-&lt;p&gt;Linux&#x27;s memory management is a set of tradeoffs, not solutions.&lt;&#x2F;p&gt;
-&lt;p&gt;Swappiness lets you trade application responsiveness for cache performance. Overcommit lets you trade guaranteed allocation for flexibility. The OOM killer trades one process&#x27;s life for system stability.&lt;&#x2F;p&gt;
-&lt;p&gt;None of these are free. The system is designed to keep running as long as possible, even when resources are exhausted. But &quot;running&quot; under memory pressure doesn&#x27;t mean &quot;running well.&quot;&lt;&#x2F;p&gt;
-&lt;p&gt;When you see the OOM killer fire, it&#x27;s not a bug. It&#x27;s the kernel doing exactly what it&#x27;s designed to do: making a hard choice so you don&#x27;t have to reboot.&lt;&#x2F;p&gt;
-</content>
-        
-    </entry>
-    <entry xml:lang="en">
-        <title>OS Context Switching: What Happens When Processes Switch</title>
-        <published>2025-11-28T00:00:00+00:00</published>
-        <updated>2025-11-28T00:00:00+00:00</updated>
-        
-        <author>
-          <name>
-            
-              Unknown
-            
-          </name>
-        </author>
-        
-        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/context-switching/"/>
-        <id>https://yazeed1s.github.io/posts/context-switching/</id>
-        
-        <content type="html" xml:base="https://yazeed1s.github.io/posts/context-switching/">&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;introduction&quot;&gt;Introduction&lt;&#x2F;h2&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
 &lt;ul&gt;
-&lt;li&gt;What is a context switch?&lt;&#x2F;li&gt;
-&lt;li&gt;Why context switches are necessary&lt;&#x2F;li&gt;
-&lt;li&gt;The cost of switching&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;what-gets-saved&quot;&gt;What Gets Saved&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;CPU registers (general purpose, special)&lt;&#x2F;li&gt;
-&lt;li&gt;Program counter&lt;&#x2F;li&gt;
-&lt;li&gt;Stack pointer&lt;&#x2F;li&gt;
-&lt;li&gt;Floating point &#x2F; SIMD state&lt;&#x2F;li&gt;
-&lt;li&gt;Memory mappings (page table pointer)&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;triggers-for-context-switch&quot;&gt;Triggers for Context Switch&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Timer interrupt (preemption)&lt;&#x2F;li&gt;
-&lt;li&gt;System calls&lt;&#x2F;li&gt;
-&lt;li&gt;I&#x2F;O blocking&lt;&#x2F;li&gt;
-&lt;li&gt;Voluntary yield&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;the-context-switch-process&quot;&gt;The Context Switch Process&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Step-by-step walkthrough&lt;&#x2F;li&gt;
-&lt;li&gt;Kernel mode transition&lt;&#x2F;li&gt;
-&lt;li&gt;Saving old state&lt;&#x2F;li&gt;
-&lt;li&gt;Loading new state&lt;&#x2F;li&gt;
-&lt;li&gt;Return to user mode&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;linux-implementation&quot;&gt;Linux Implementation&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;task_struct&lt;&#x2F;code&gt;&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;code&gt;switch_to()&lt;&#x2F;code&gt; macro&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;code&gt;schedule()&lt;&#x2F;code&gt; function&lt;&#x2F;li&gt;
-&lt;li&gt;Where the actual switch happens&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;performance-impact&quot;&gt;Performance Impact&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Direct costs (saving&#x2F;restoring registers)&lt;&#x2F;li&gt;
-&lt;li&gt;Indirect costs (cache pollution, TLB flush)&lt;&#x2F;li&gt;
-&lt;li&gt;Measuring context switch overhead&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;reducing-context-switches&quot;&gt;Reducing Context Switches&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;User-space threading (green threads)&lt;&#x2F;li&gt;
-&lt;li&gt;Async I&#x2F;O (epoll, io_uring)&lt;&#x2F;li&gt;
-&lt;li&gt;CPU affinity&lt;&#x2F;li&gt;
-&lt;li&gt;Batching work&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;diagram-ideas&quot;&gt;Diagram Ideas&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Context switch flow&lt;&#x2F;li&gt;
-&lt;li&gt;State saved&#x2F;restored&lt;&#x2F;li&gt;
-&lt;li&gt;Timeline of a switch&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Context switches are unavoidable but can be minimized&lt;&#x2F;li&gt;
-&lt;li&gt;Tradeoffs between responsiveness and throughput&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;references&quot;&gt;References&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Linux kernel source (kernel&#x2F;sched&#x2F;)&lt;&#x2F;li&gt;
-&lt;li&gt;Operating systems textbooks&lt;&#x2F;li&gt;
-&lt;li&gt;Performance measurement tools (perf, ftrace)&lt;&#x2F;li&gt;
+&lt;li&gt;Page size usually 4KB. Huge pages exist (2MB, 1GB) to reduce TLB pressure.&lt;&#x2F;li&gt;
+&lt;li&gt;&quot;Anonymous memory&quot; = heap, stack (no backing file). &quot;File-backed&quot; = mmap&#x27;d files, page cache.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;vmstat&lt;&#x2F;code&gt;, &lt;code&gt;sar&lt;&#x2F;code&gt;, &lt;code&gt;&#x2F;proc&#x2F;meminfo&lt;&#x2F;code&gt; for monitoring paging activity.&lt;&#x2F;li&gt;
+&lt;li&gt;Swap on SSD helps. Swap on HDD is pain.&lt;&#x2F;li&gt;
+&lt;li&gt;zswap = compressed swap cache in RAM. Buys time before hitting disk.&lt;&#x2F;li&gt;
 &lt;&#x2F;ul&gt;
 </content>
         
@@ -358,81 +431,81 @@ Laziest possible bisect:&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;the-problem&quot;&gt;The Problem&lt;&#x2F;h2&gt;
 &lt;p&gt;Standard cleanup at the end of main only works if your program exits normally. If it crashes (e.g., a null pointer dereference), the OS raises SIGSEGV and your program dies immediately. Your cleanup code never runs.&lt;&#x2F;p&gt;
-&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;c&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#955F3C, #E08F5A);&quot;&gt;include&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt; &amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;stdio.h&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#955F3C, #E08F5A);&quot;&gt;include&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt; &amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;stdlib.h&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;c&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;include&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; &amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;stdio.h&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;include&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; &amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;stdlib.h&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;char&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt; *&lt;&#x2F;span&gt;&lt;span&gt;buffer &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; NULL&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;char&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt; *&lt;&#x2F;span&gt;&lt;span&gt;buffer &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; NULL&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;int&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt; main&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    buffer &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt; malloc&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt;500&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt; *&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; 1024&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt; *&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; 1024&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; 500 MB&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;    if&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt; (&lt;&#x2F;span&gt;&lt;span&gt;buffer &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;==&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; NULL&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;        return&lt;&#x2F;span&gt;&lt;span&gt; EXIT_FAILURE&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;    }&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;    printf&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;Allocated 500 MB&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt;\n&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;int&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt; main&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    buffer &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt; malloc&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;500&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt; *&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1024&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt; *&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1024&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; 500 MB&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;    if&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; (&lt;&#x2F;span&gt;&lt;span&gt;buffer &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;==&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; NULL&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;        return&lt;&#x2F;span&gt;&lt;span&gt; EXIT_FAILURE&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;    }&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;    printf&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;Allocated 500 MB&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;\n&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;    &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; oops&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;    char&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt; *&lt;&#x2F;span&gt;&lt;span&gt;invalid_ptr &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; NULL&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;    *&lt;&#x2F;span&gt;&lt;span&gt;invalid_ptr &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt; &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;x&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; SIGSEGV here&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;    &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; oops&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;    char&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt; *&lt;&#x2F;span&gt;&lt;span&gt;invalid_ptr &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; NULL&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;    *&lt;&#x2F;span&gt;&lt;span&gt;invalid_ptr &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;x&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; SIGSEGV here&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;    &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; never reached&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;    printf&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;About to cleanup...&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt;\n&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;    free&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;buffer&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;    return&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;    &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; never reached&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;    printf&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;About to cleanup...&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;\n&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;    free&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;buffer&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;    return&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
 &lt;p&gt;Output:&lt;&#x2F;p&gt;
-&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; gcc&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; crash.c&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt;o&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; crash&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt; &amp;amp;&amp;amp;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt; .&#x2F;crash&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;Allocated&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; 500&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; MB&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;Segmentation&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; fault&lt;&#x2F;span&gt;&lt;span&gt; (core&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt; dumped&lt;&#x2F;span&gt;&lt;span&gt;)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; gcc&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; crash.c&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;o&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; crash&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; &amp;amp;&amp;amp;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt; .&#x2F;crash&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;Allocated&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 500&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; MB&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;Segmentation&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; fault&lt;&#x2F;span&gt;&lt;span&gt; (core&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; dumped&lt;&#x2F;span&gt;&lt;span&gt;)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
 &lt;p&gt;The &lt;code&gt;free(buffer)&lt;&#x2F;code&gt; never runs.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;first-thought-atexit&quot;&gt;First Thought: atexit()&lt;&#x2F;h2&gt;
 &lt;p&gt;You might think &lt;code&gt;atexit()&lt;&#x2F;code&gt; solves this:&lt;&#x2F;p&gt;
-&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;c&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt; cleanup&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;    free&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;buffer&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;c&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt; cleanup&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;    free&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;buffer&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;int&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt; main&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;    atexit&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;cleanup&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;    &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; ...&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;int&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt; main&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;    atexit&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;cleanup&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;    &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; ...&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
 &lt;p&gt;But &lt;code&gt;atexit()&lt;&#x2F;code&gt; handlers only run on &lt;strong&gt;normal&lt;&#x2F;strong&gt; exit, when main returns or when you call &lt;code&gt;exit()&lt;&#x2F;code&gt;. A signal like SIGSEGV bypasses atexit entirely.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;the-solution-signal-handlers&quot;&gt;The Solution: Signal Handlers&lt;&#x2F;h2&gt;
 &lt;p&gt;To run cleanup code on crash, you register a signal handler:&lt;&#x2F;p&gt;
-&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;c&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#955F3C, #E08F5A);&quot;&gt;include&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt; &amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;signal.h&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#955F3C, #E08F5A);&quot;&gt;include&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt; &amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;stdio.h&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#955F3C, #E08F5A);&quot;&gt;include&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt; &amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;stdlib.h&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#955F3C, #E08F5A);&quot;&gt;include&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt; &amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;unistd.h&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;c&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;include&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; &amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;signal.h&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;include&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; &amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;stdio.h&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;include&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; &amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;stdlib.h&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;include&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; &amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;unistd.h&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;char&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt; *&lt;&#x2F;span&gt;&lt;span&gt;buffer &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; NULL&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;char&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt; *&lt;&#x2F;span&gt;&lt;span&gt;buffer &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; NULL&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt; cleanup_handler&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;int&lt;&#x2F;span&gt;&lt;span&gt; sig&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;    (&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span&gt;sig&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;    &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; Note: using write() instead of printf() - see below&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;    const&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt; char&lt;&#x2F;span&gt;&lt;span&gt; msg&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;[]&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt; =&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt; &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;Caught signal, exiting...&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt;\n&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;    write&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;STDERR_FILENO&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; msg&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt; sizeof&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;msg&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; 1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt; cleanup_handler&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;int&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7D4242, #D4D4C0);&quot;&gt; sig&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;    (&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span&gt;sig&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;    &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; Note: using write() instead of printf() - see below&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;    const&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt; char&lt;&#x2F;span&gt;&lt;span&gt; msg&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;[]&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt; =&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; &amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;Caught signal, exiting...&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;\n&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;    write&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;STDERR_FILENO&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; msg&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt; sizeof&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;msg&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;    &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; For crash signals, keep the handler minimal. Most cleanup is not&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;    &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; async-signal-safe, and the kernel will reclaim process memory anyway.&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;    _exit&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt;1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; use _exit, not exit()&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;    &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; For crash signals, keep the handler minimal. Most cleanup is not&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;    &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; async-signal-safe, and the kernel will reclaim process memory anyway.&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;    _exit&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; use _exit, not exit()&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;int&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt; main&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;    &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; register handler for crash signals&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;    signal&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;SIGSEGV&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; cleanup_handler&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;    signal&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;SIGABRT&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; cleanup_handler&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;    signal&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;SIGINT&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; cleanup_handler&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;  &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; Ctrl+C&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;    signal&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;SIGTERM&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; cleanup_handler&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; kill command&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;int&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt; main&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;    &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; register handler for crash signals&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;    signal&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;SIGSEGV&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; cleanup_handler&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;    signal&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;SIGABRT&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; cleanup_handler&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;    signal&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;SIGINT&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; cleanup_handler&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;  &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; Ctrl+C&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;    signal&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;SIGTERM&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; cleanup_handler&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; kill command&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    buffer &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt; malloc&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt;500&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt; *&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; 1024&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt; *&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; 1024&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;    if&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt; (&lt;&#x2F;span&gt;&lt;span&gt;buffer &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;==&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; NULL&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;        return&lt;&#x2F;span&gt;&lt;span&gt; EXIT_FAILURE&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;    }&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;    printf&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;Allocated 500 MB&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt;\n&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    buffer &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt; malloc&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;500&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt; *&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1024&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt; *&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1024&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;    if&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; (&lt;&#x2F;span&gt;&lt;span&gt;buffer &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;==&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; NULL&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;        return&lt;&#x2F;span&gt;&lt;span&gt; EXIT_FAILURE&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;    }&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;    printf&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;Allocated 500 MB&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;\n&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;    char&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt; *&lt;&#x2F;span&gt;&lt;span&gt;invalid_ptr &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; NULL&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;    *&lt;&#x2F;span&gt;&lt;span&gt;invalid_ptr &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt; &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#906E3A, #D8A657);&quot;&gt;x&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; triggers SIGSEGV -&amp;gt; cleanup_handler runs&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;    char&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt; *&lt;&#x2F;span&gt;&lt;span&gt;invalid_ptr &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; NULL&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;    *&lt;&#x2F;span&gt;&lt;span&gt;invalid_ptr &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; &amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;x&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; triggers SIGSEGV -&amp;gt; cleanup_handler runs&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;    return&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;    return&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
 &lt;p&gt;Now when the program crashes, the handler runs first.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;important-async-signal-safety&quot;&gt;Important: Async-Signal-Safety&lt;&#x2F;h2&gt;
 &lt;p&gt;There&#x27;s a catch. Signal handlers can interrupt your program at any point, even in the middle of malloc or printf. If your handler then calls malloc or printf, you can deadlock or corrupt memory.&lt;&#x2F;p&gt;
@@ -444,23 +517,23 @@ Laziest possible bisect:&lt;&#x2F;p&gt;
 &lt;&#x2F;ul&gt;
 &lt;p&gt;&lt;code&gt;free()&lt;&#x2F;code&gt; is &lt;strong&gt;not&lt;&#x2F;strong&gt; async-signal-safe. It might &quot;work&quot; in a toy program, and then deadlock in production because the signal interrupted malloc&#x2F;free internals. Don&#x27;t rely on it.&lt;&#x2F;p&gt;
 &lt;p&gt;A safer pattern is to set a flag and let the main program handle cleanup:&lt;&#x2F;p&gt;
-&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;c&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;volatile&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#576E65, #83A598);&quot;&gt; sig_atomic_t&lt;&#x2F;span&gt;&lt;span&gt; got_signal &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;c&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;volatile&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#855959, #A6BCAD);&quot;&gt; sig_atomic_t&lt;&#x2F;span&gt;&lt;span&gt; got_signal &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt; handler&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;int&lt;&#x2F;span&gt;&lt;span&gt; sig&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    got_signal &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; sig&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt; handler&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;int&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7D4242, #D4D4C0);&quot;&gt; sig&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    got_signal &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; sig&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;int&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt; main&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;    signal&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;SIGINT&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; handler&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;int&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt; main&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;    signal&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;SIGINT&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; handler&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;    while&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;!&lt;&#x2F;span&gt;&lt;span&gt;got_signal&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;        &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; do work&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;    }&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;    while&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;!&lt;&#x2F;span&gt;&lt;span&gt;got_signal&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;        &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; do work&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;    }&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;    &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; cleanup here, in normal context&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;    cleanup&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;    return&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;    &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; cleanup here, in normal context&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;    cleanup&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;    return&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
 &lt;p&gt;But for crash signals (SIGSEGV, SIGABRT), you can&#x27;t return to normal execution, the program is already broken. So you do what cleanup you can in the handler and exit.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;wait-doesn-t-the-os-clean-up-anyway&quot;&gt;Wait, Doesn&#x27;t the OS Clean Up Anyway?&lt;&#x2F;h2&gt;
 &lt;p&gt;Yes. On any modern OS (Linux, macOS, Windows), when your process terminates (normally or not), the kernel reclaims all its resources:&lt;&#x2F;p&gt;
@@ -494,26 +567,26 @@ Laziest possible bisect:&lt;&#x2F;p&gt;
 &lt;li&gt;Signal handlers are useful for shared resources and external state&lt;&#x2F;li&gt;
 &lt;&#x2F;ul&gt;
 &lt;p&gt;The pattern I use in practice:&lt;&#x2F;p&gt;
-&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#3C3836, #D3C6AA); background-color: light-dark(#151515, #202020);&quot;&gt;&lt;code data-lang=&quot;c&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;volatile&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#576E65, #83A598);&quot;&gt; sig_atomic_t&lt;&#x2F;span&gt;&lt;span&gt; should_exit &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;c&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;volatile&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#855959, #A6BCAD);&quot;&gt; sig_atomic_t&lt;&#x2F;span&gt;&lt;span&gt; should_exit &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt; signal_handler&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;int&lt;&#x2F;span&gt;&lt;span&gt; sig&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    should_exit &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; 1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;    &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; minimal cleanup for shared resources only&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt; signal_handler&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;int&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7D4242, #D4D4C0);&quot;&gt; sig&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    should_exit &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;    &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; minimal cleanup for shared resources only&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;int&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt; main&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;    signal&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;SIGINT&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; signal_handler&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;    signal&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;SIGTERM&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; signal_handler&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;int&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt; main&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;    signal&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;SIGINT&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; signal_handler&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;    signal&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;SIGTERM&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; signal_handler&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;    &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; main loop checks should_exit&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;    while&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;!&lt;&#x2F;span&gt;&lt;span&gt;should_exit&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;        &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; work&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;    }&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;    &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; main loop checks should_exit&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;    while&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;!&lt;&#x2F;span&gt;&lt;span&gt;should_exit&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;        &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; work&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;    }&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt;    &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#928374, #7C6F64);font-style: italic;&quot;&gt; full cleanup runs here on graceful exit&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#707943, #A9B665);&quot;&gt;    cleanup&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#9C4641, #EA6962);&quot;&gt;    return&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#8C5967, #D3869B);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#685C52, #9C8B7C);&quot;&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;    &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; full cleanup runs here on graceful exit&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;    cleanup&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;    return&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
 &lt;p&gt;For SIGSEGV&#x2F;SIGABRT, I mostly just let it crash and let the OS clean up. Unless there&#x27;s shared state that needs explicit cleanup, adding a handler for crash signals just complicates things without much benefit.&lt;&#x2F;p&gt;
 </content>
         

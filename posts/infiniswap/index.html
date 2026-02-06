@@ -12,15 +12,15 @@
 />
 <link rel="canonical" href="https://yazeed1s.github.io/posts/infiniswap/" />
 
-<title>Infiniswap: Remote Memory Paging Over RDMA | Yazeed&#x27;s Blog</title>
+<title>Infiniswap | Yazeed&#x27;s Blog</title>
 <meta property="og:site_name" content="Yazeed&#x27;s Blog" />
-<meta property="og:title" content="Infiniswap: Remote Memory Paging Over RDMA | Yazeed&#x27;s Blog" />
+<meta property="og:title" content="Infiniswap | Yazeed&#x27;s Blog" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://yazeed1s.github.io/posts/infiniswap/" />
 <meta property="og:description" content="How Infiniswap uses RDMA to swap pages to remote memory instead of disk." />
 
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="Infiniswap: Remote Memory Paging Over RDMA" />
+<meta name="twitter:title" content="Infiniswap" />
 <meta name="twitter:description" content="How Infiniswap uses RDMA to swap pages to remote memory instead of disk." />
 
     <link rel="icon" href="&#x2F;favicon.ico" />
@@ -28,68 +28,38 @@
     <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
     <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
 
-                  
+           
+    
+    
+    
+
+          
+    
+    
+    
     <style>
         :root {
-            --nav-basis: 25
-
-            %;
-
-            --light-bg: #eae6deff
-
-            ;
-
-            --light-text: #1a1410
-
-            ;
-
-            --light-text-muted: #1a1410
-
-            ;
-
-            --light-accent: #9E4440
-
-            ;
-
-            --light-accent-hover: #7A3533
-
-            ;
-
-            --light-code-bg: #e1ded6ff
-
-            ;
-
-            --light-border: #abaaaaff
-
-            ;
-
-            --dark-bg: #303132
-
-            ;
-
-            --dark-text: #bebbb9ff
-
-            ;
-
-            --dark-text-muted: #d5d2cf
-
-            ;
-
-            --dark-accent: #e57665
-
-            ;
-
-            --dark-accent-hover: #888885
-
-            ;
-
-            --dark-code-bg: #282829
-
-            ;
-
-            --dark-border: #524f4c
-
-            ;
+            --nav-basis: 25%;
+            --light-bg: #eae6deff;
+            --light-text: #1a1410;
+            --light-text-muted: #1a1410;
+            --light-accent: #9E4440;
+            --light-accent-hover: #7A3533;
+            --light-code-bg: #e1ded6ff;
+            --light-border: #abaaaaff;
+            --light-bold: #1a1410;
+            --light-italic: #1a1410;
+            --light-headers: #1a1410;
+            --dark-bg: #303132;
+            --dark-text: #bebbb9ff;
+            --dark-text-muted: #d5d2cf;
+            --dark-accent: #e57665;
+            --dark-accent-hover: #888885;
+            --dark-code-bg: #282829;
+            --dark-border: #524f4c;
+            --dark-bold: #d5d2cf;
+            --dark-italic: #d5d2cf;
+            --dark-headers: #d5d2cf;
         }
     </style>
     <meta name="theme-color" id="tc" />
@@ -143,7 +113,7 @@
     <main id="main">
 <article>
     <header>
-        <h1>Infiniswap: Remote Memory Paging Over RDMA</h1>
+        <h1>Infiniswap</h1>
         <div class="post-meta">
             <time datetime="2026-01-18">18 Jan 2026</time>
             
@@ -158,49 +128,41 @@
                     class="tag-comma">,</span> 
                 <a href="https://yazeed1s.github.io/tags/paging">Paging</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/distributed-systems">Distributed Systems</a><span
-                    class="tag-comma">,</span> 
                 <a href="https://yazeed1s.github.io/tags/linux">Linux</a>
             </span>
             
         </div>
     </header>
-     <hr />
-<p>I came across this paper while looking into memory disaggregation. The idea is deceptively simple: when a machine runs out of RAM, instead of paging to disk, page to another machine's unused memory over the network.</p>
-<p>What caught my attention is <em>how</em> they pulled it off; no application changes, no core kernel patching. It's a kernel module that hooks into Linux's swap path and uses remote RAM as the fast tier, with disk as fallback.</p>
-<hr />
-<h2 id="the-core-idea">the core idea</h2>
-<p>Production clusters waste a lot of memory. Some machines are memory-starved while others sit idle. The 99th percentile machine often uses 2-3× more memory than the median. Meanwhile, over half the cluster's aggregate memory goes unused.</p>
-<p>When applications can't fit their working set in RAM, performance falls off a cliff. VoltDB drops from 95K TPS to 4K TPS. Memcached's tail latency shoots up 21×. Disk is too slow to help (1000× slower than memory).</p>
-<p>Infiniswap's insight: RDMA networks give you single-digit microsecond latencies. That's fast enough to make remote memory a viable swap target. Instead of page -&gt; disk, you do page -&gt; remote RAM over RDMA. The remote CPU stays out of the data movement; the RNIC does the DMA.</p>
-<p>The result: swap that looks normal to Linux, but is backed by slabs of remote memory scattered across the cluster.</p>
-<hr />
-<h2 id="what-s-clever">what's clever</h2>
-<p>A few design choices stood out:</p>
-<p><strong>Using swap as the integration point.</strong> Instead of modifying the kernel's page fault handler or remapping virtual memory, Infiniswap plugs into Linux's existing swap subsystem. The kernel already knows how to page out and page back in. Infiniswap just changes where those swapped pages live. The trade-off is you're still going through the swap path (page faults, context switches, the whole thing) but you get deployment simplicity.</p>
-<p><strong>One-sided RDMA.</strong> Traditional network block devices (like Mellanox's nbdX) use send/recv semantics. The remote CPU has to wake up, copy data, respond. Infiniswap uses RDMA_READ and RDMA_WRITE (the RNIC directly accesses remote memory without running remote code on the critical path). The paper shows nbdX burns multiple vCPUs on the remote side; Infiniswap largely avoids that.</p>
-<p><strong>Slab-based design.</strong> Pages are grouped into 1GB slabs. Each slab maps to one remote machine. This keeps the metadata manageable (tracking millions of individual 4KB pages across the cluster would be expensive). When a slab gets "hot" (&gt;20 page I/O ops/sec), it gets mapped to remote memory. Cold slabs stay on disk.</p>
-<hr />
-<h2 id="where-it-works">where it works</h2>
-<p>Memory-bound workloads see big wins. Memcached stays nearly flat even when only 50% of the working set fits in memory. PowerGraph runs 6.5× faster. VoltDB, while CPU-heavy, still sees 15× throughput improvement over disk.</p>
-<p>The cluster memory utilization goes from 40% to 60% (that's 47% more effective use of RAM, with minimal network overhead (&lt;1% of capacity)).</p>
-<h2 id="where-it-doesn-t">where it doesn't</h2>
-<p>CPU-bound workloads don't benefit as much. VoltDB and Spark already run at high CPU utilization. Adding paging overhead (context switches, TLB flushes, page table walks) eats into that. Spark at 50% memory thrashes so badly it doesn't complete.</p>
-<p>The fundamental limit: this isn't local memory. Page faults still happen. You're masking latency, not eliminating it. For workloads where microseconds matter deterministically, that's a problem.</p>
-<hr />
+     <p>I found this paper while reading about memory disaggregation. The idea is simple: when a machine runs out of RAM, page to another machine's unused memory instead of disk.</p>
+<p>What caught my attention is how they did it. No application changes. No core kernel patching. It's a kernel module that hooks into Linux's swap path. Remote RAM becomes the fast tier. Disk is just the fallback.</p>
+<h2 id="the-problem-they-re-solving">the problem they're solving</h2>
+<p>Production clusters waste a lot of memory. Some machines are memory-starved while others sit idle. The 99th percentile machine uses 2-3× more memory than the median. Over half the cluster's aggregate memory goes unused.</p>
+<p>When apps can't fit their working set in RAM, performance falls off a cliff. VoltDB drops from 95K TPS to 4K TPS. Memcached's tail latency shoots up 21×. Disk is just too slow (like 1000× slower than memory).</p>
+<p>So they thought: RDMA gives single-digit microsecond latencies. That's fast enough to make remote memory a viable swap target. Pages go to remote RAM over RDMA instead of disk. The remote CPU stays out of the data movement entirely since the RNIC does the DMA.</p>
+<p>Result: swap that looks normal to Linux but is backed by slabs of remote memory scattered across the cluster.</p>
+<h2 id="what-i-thought-was-clever">what I thought was clever</h2>
+<p><strong>Using swap as the integration point.</strong> Instead of modifying the page fault handler or remapping virtual memory, they plug into Linux's swap subsystem. The kernel already knows how to page out and page in. Infiniswap just changes where those pages live. The trade-off is you still go through the swap path (page faults, context switches). But you get deployment simplicity because everything else just works.</p>
+<p><strong>One-sided RDMA.</strong> Traditional network block devices like Mellanox's nbdX use send/recv. Remote CPU wakes up, copies data, responds. Infiniswap uses RDMA_READ and RDMA_WRITE. The RNIC accesses remote memory directly without running any code on the remote side. nbdX burns multiple vCPUs on the remote machine. Infiniswap doesn't touch the remote CPU at all.</p>
+<p><strong>Slab-based design.</strong> Pages are grouped into 1GB slabs. Each slab maps to one remote machine. This keeps metadata manageable. Tracking millions of 4KB pages across the cluster would be expensive. Hot slabs (more than 20 page I/O ops/sec) get mapped to remote memory. Cold slabs stay on disk.</p>
+<h2 id="where-it-works-well">where it works well</h2>
+<p>Memory-bound workloads see big wins. Memcached stays nearly flat even when only 50% of the working set fits in memory. PowerGraph runs 6.5× faster. VoltDB sees 15× throughput improvement over disk.</p>
+<p>Cluster memory utilization: goes from 40% to 60%. That's 47% more effective use of RAM. Network overhead is less than 1% of capacity.</p>
+<h2 id="where-it-doesn-t-work">where it doesn't work</h2>
+<p>CPU-bound workloads don't benefit much. VoltDB and Spark already run at high CPU utilization. Adding paging overhead (context switches, TLB flushes, page table walks) eats into that. Spark at 50% memory thrashes so badly it doesn't complete.</p>
+<p>There's a fundamental limit here: this isn't local memory. Page faults still happen. You're masking latency, not eliminating it. For workloads where microseconds matter deterministically, that's still a problem.</p>
 <h2 id="notes">notes</h2>
 <ul>
 <li>Paper: <a rel="external" href="https://www.usenix.org/system/files/conference/nsdi17/nsdi17-gu.pdf">Gu et al., "Efficient Memory Disaggregation with Infiniswap", NSDI 2017</a></li>
 <li>Tested on 32 machines, 56 Gbps Infiniband, 64GB RAM each</li>
-<li>Slab placement uses "power of two choices" (pick two random machines, query free memory, map to the one with more headroom)</li>
-<li>Slab eviction queries E+5 machines, evicts the coldest from that set (~363μs median)</li>
+<li>Slab placement uses "power of two choices" (pick two random machines, query free memory, use the one with more headroom)</li>
+<li>Slab eviction queries E+5 machines, evicts coldest (~363μs median)</li>
 <li>Page-out: synchronous RDMA_WRITE + async disk write (disk is fallback if remote crashes)</li>
-<li>Page-in: check bitmap -&gt; RDMA_READ if remote, else read from disk</li>
+<li>Page-in: check bitmap → RDMA_READ if remote, else disk</li>
 <li>Slab remapping after failure takes ~54ms (Infiniband memory registration)</li>
 <li>Default headroom threshold: 8GB per machine</li>
 <li>Hot slab threshold: 20 page I/O ops/sec (EWMA, α=0.2)</li>
-<li>Compared to: nbdX (Mellanox), Fastswap (kernel modification), LegoOS (full OS redesign)</li>
-<li>Code available on GitHub <a rel="external" href="https://github.com/SymbioticLab/Infiniswap">SymbioticLab/infiniswap</a></li>
+<li>Compared against nbdX (Mellanox), Fastswap, LegoOS</li>
+<li>Code: <a rel="external" href="https://github.com/SymbioticLab/Infiniswap">SymbioticLab/infiniswap</a></li>
 </ul>
   
 </article>
@@ -210,6 +172,7 @@
         
     </footer>
     
+
     <script>
         document.querySelectorAll("article img[srcset]").forEach((i) => {
             if (i.closest("a")) return;
@@ -228,6 +191,25 @@
             };
         });
     </script>
-    </body>
+    
+<button id="scroll-to-top" aria-label="Scroll to top" title="Scroll to top">↑</button>
+<script>
+    (function() {
+        var btn = document.getElementById("scroll-to-top");
+        if (btn) {
+            window.addEventListener("scroll", function() {
+                if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                    btn.classList.add("show");
+                } else {
+                    btn.classList.remove("show");
+                }
+            });
+            btn.addEventListener("click", function() {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        }
+    })();
+</script>
+</body>
 
 </html>

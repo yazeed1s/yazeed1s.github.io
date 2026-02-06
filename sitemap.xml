@@ -18,12 +18,12 @@
         <lastmod>2024-07-21</lastmod>
     </url>
     <url>
-        <loc>https://yazeed1s.github.io/posts/context-switching/</loc>
-        <lastmod>2025-11-28</lastmod>
+        <loc>https://yazeed1s.github.io/posts/context-switches/</loc>
+        <lastmod>2025-12-01</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/cxl/</loc>
-        <lastmod>2026-01-12</lastmod>
+        <lastmod>2026-02-05</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/force-memory-cleanup/</loc>
@@ -34,10 +34,6 @@
         <lastmod>2026-01-18</lastmod>
     </url>
     <url>
-        <loc>https://yazeed1s.github.io/posts/linux-memory-pressure/</loc>
-        <lastmod>2025-12-15</lastmod>
-    </url>
-    <url>
         <loc>https://yazeed1s.github.io/posts/memory-disaggregation/</loc>
         <lastmod>2026-01-05</lastmod>
     </url>
@@ -46,16 +42,20 @@
         <lastmod>2026-02-01</lastmod>
     </url>
     <url>
-        <loc>https://yazeed1s.github.io/posts/paging-performance/</loc>
-        <lastmod>2025-12-10</lastmod>
+        <loc>https://yazeed1s.github.io/posts/outbox-inbox-patterns/</loc>
+        <lastmod>2025-11-25</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/rdma/</loc>
         <lastmod>2025-12-28</lastmod>
     </url>
     <url>
-        <loc>https://yazeed1s.github.io/posts/virtual-memory/</loc>
+        <loc>https://yazeed1s.github.io/posts/swap-paging/</loc>
         <lastmod>2025-12-05</lastmod>
+    </url>
+    <url>
+        <loc>https://yazeed1s.github.io/posts/what-a-process-owns/</loc>
+        <lastmod>2026-02-06</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/projects/</loc>
@@ -79,13 +79,13 @@
         <loc>https://yazeed1s.github.io/tags/cxl/</loc>
     </url>
     <url>
-        <loc>https://yazeed1s.github.io/tags/data-centers/</loc>
-    </url>
-    <url>
         <loc>https://yazeed1s.github.io/tags/debugging/</loc>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/distributed-systems/</loc>
+    </url>
+    <url>
+        <loc>https://yazeed1s.github.io/tags/event-driven/</loc>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/hardware/</loc>
@@ -106,19 +106,19 @@
         <loc>https://yazeed1s.github.io/tags/operating-systems/</loc>
     </url>
     <url>
+        <loc>https://yazeed1s.github.io/tags/os/</loc>
+    </url>
+    <url>
         <loc>https://yazeed1s.github.io/tags/paging/</loc>
     </url>
     <url>
-        <loc>https://yazeed1s.github.io/tags/pcie/</loc>
-    </url>
-    <url>
-        <loc>https://yazeed1s.github.io/tags/performance/</loc>
+        <loc>https://yazeed1s.github.io/tags/patterns/</loc>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/picom/</loc>
     </url>
     <url>
-        <loc>https://yazeed1s.github.io/tags/polybar/</loc>
+        <loc>https://yazeed1s.github.io/tags/processes/</loc>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/rdma/</loc>
@@ -137,12 +137,6 @@
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/tiling-window-manager/</loc>
-    </url>
-    <url>
-        <loc>https://yazeed1s.github.io/tags/virtual-memory/</loc>
-    </url>
-    <url>
-        <loc>https://yazeed1s.github.io/tags/window-manager/</loc>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/x11/</loc>
