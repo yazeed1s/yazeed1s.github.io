@@ -6,133 +6,90 @@ description = "CXL creates a memory tier between local DRAM and everything else.
 tags = ["Memory", "CXL", "Hardware"]
 +++
 
----
+DRAM can be 50% of a server's cost. And most of it sits idle. One machine thrashes while the one next to it uses 30% of its memory. CXL is supposed to fix this.
 
-CXL keeps appearing everywhere I read about memory disaggregation. Every paper mentions it as _"the future"_ of remote memory access. And I think I finally sat down to understand what it actually is.
+## the problem
 
----
+Memory in datacenters is expensive and wasted at the same time. DRAM can be 50% of server cost, and research keeps showing that utilization is terrible. One machine is thrashing because it ran out of memory while another machine next to it is sitting at 30% usage. Some papers claim 70% of aggregate memory is underutilized across a cluster.
 
-## the problem it's solving
+The obvious thought: why not share memory across machines, like we do with storage. Pool it. If one server has idle memory another server could use it.
 
-Memory is expensive, especially in datacenters. DRAM can be 50% of server cost. And it's wasted constantly. One machine thrashes while another sits at 30% usage. Many research papers have shown that memory usage is highly imbalanced across servers in a datacenter, and memory underutilization is 70% in some cases. So what do we do? 
+But the issue is that storage can tolerate milliseconds of latency. Memory can't. A cache miss to local DRAM is around 100ns. Go over the network with RDMA and you're at 1-5 microseconds. That's 10-50x slower. For memory access patterns that's a lot.
 
-The obvious fix is to let machines share memory. Pool it like storage. So instead of the memory setting idle in one server, it can be used by another server. 
+CXL is supposed to bridge this gap.
 
-But memory access is different from storage. Storage can tolerate milliseconds. Memory access happens in nanoseconds. A cache miss to DRAM is ~100ns. Going over the network adds orders of magnitude. RDMA gets you down to single-digit microseconds. Still 10-50x slower than local memory.
+## what it actually is
 
-CXL is supposed to close that gap.
+CXL stands for Compute Express Link. It runs on the PCIe physical layer, same cables and slots, but with a different protocol on top.
 
----
+The interesting thing is it's cache-coherent. The CPU can do normal load/store to CXL-attached memory. No special APIs. No verbs like RDMA. No memory registration. The memory controller just handles it like it's another region of memory. A different NUMA node basically.
 
-## what cxl actually is
+There are three protocols in the spec. CXL.io is basically just PCIe, for device discovery and config, boring stuff. CXL.cache lets devices cache host memory, useful for accelerators. CXL.mem is the interesting one, it lets the host access device-attached memory with load/store.
 
-CXL stands for Compute Express Link. It's a standard built on top of PCIe physical layer. You use the same cables and slots.
-
-The key thing: it's cache-coherent. The CPU can do normal load/store to CXL-attached memory. The memory controller handles it. No special APIs. No registration like RDMA. Just... memory.
-
-Three protocols in CXL:
-
-**CXL.io** — basically PCIe. For discovery, configuration, interrupts. Boring stuff.
-
-**CXL.cache** — lets devices cache host memory. Useful for accelerators that want to share data with the CPU without explicit copies.
-
-**CXL.mem** — the interesting one. Lets the host access device-attached memory. The CPU sees it as another memory region. Different NUMA node, slower latency, but addressable like regular RAM.
-
-CXL 1.0/1.1 is mostly expansion cards. Plug a CXL card with extra DRAM into PCIe slot. Your system gets more memory. Latency is worse than local DIMMs (maybe 200-300ns instead of 100ns), but it's still memory, not storage.
-
-CXL 2.0 adds switching. Multiple hosts can connect to a shared memory pool. CXL 3.0 pushes this further with fabric.
-
----
+CXL 1.0 and 1.1 are mostly local expansion. You plug a CXL card with DRAM into a PCIe slot and your system sees more memory. Latency is higher than native DIMMs, maybe 200-300ns instead of 100ns, but it's still memory, not storage. CXL 2.0 adds switching so multiple hosts can share a memory pool. CXL 3.0 goes further with fabric and shared memory semantics.
 
 ## mixing memory types
 
-This is the part that took me a while to get.
+Normally your CPU's memory controller dictates what DRAM you can use. If it's a DDR5 system, all your DIMMs have to be DDR5. Same speed, same density rules, same timing specs. You can't just plug DDR4 into a DDR5 slot.
 
-Normally, your CPU's memory controller dictates what DRAM you use. DDR5 system? All your DIMMs are DDR5. Same speed, same density rules. You can't just plug DDR4 into a DDR5 slot.
+CXL breaks this because the CXL device has its own memory controller. It can use whatever DRAM it wants. DDR4, DDR5, older cheaper stuff, slower but denser modules. The CPU doesn't care. It just sees CXL memory at some address range.
 
-CXL breaks this. The CXL device has its own memory controller. It can use whatever DRAM it wants. DDR4, DDR5, older stuff, slower but denser chips. The CPU doesn't care. It just sees CXL memory at some address range.
+So you could have local DDR5 for hot data and a CXL card with cheaper DDR4 as a slower tier. Or use high-capacity modules that wouldn't fit your motherboard's timing requirements. From a cost perspective this is interesting. You're not locked into whatever generation your motherboard supports.
 
-So you could have a system with local DDR5 for hot data, and a CXL card with cheaper DDR4 as a slower tier. Or high-capacity, high-density modules that wouldn't work in your native DIMM slots.
+The tradeoff is latency. CXL adds overhead. But if you're using it for capacity expansion rather than latency-critical paths, maybe that's acceptable.
 
-This is interesting from a cost angle. You're not stuck with whatever generation your motherboard supports. Want to keep using old DRAM you already bought? Stick it behind CXL. Want the newest high-density stuff that doesn't fit your memory controller's timing specs? CXL device can handle it.
+## why not just use RDMA
 
-The tradeoff is latency. CXL adds overhead. But if you're using it for capacity expansion (not latency-critical paths), maybe that's fine.
+RDMA is a different model. You need explicit verbs, post work requests, poll completions. It's not transparent load/store. You have to register memory, pin pages, exchange keys. One-sided operations are async so you don't know when remote writes land unless you add signaling. And latency is around 1-5μs which is fast for networking but slow for memory access patterns.
 
----
+CXL at 200-500ns for pooled memory is closer to local DRAM territory. And it's transparent to software. Your malloc can return CXL memory and the application doesn't know the difference.
 
-## why not just use rdma
+That's the promise anyway. The hardware shipping today is mostly local expansion cards, not pooled memory. The pooling stuff is still coming hopefully.
 
-I kept wondering this. RDMA already gives you fast remote memory access. Infiniswap uses it. Works today.
+## the latency thing
 
-But RDMA is different:
+Local DRAM is ~100ns. CXL local expansion is ~200-300ns. CXL through a switch to a shared pool is ~500-1000ns.
 
-1. You need explicit verbs. Post work request, poll completion. Not load/store.
-2. Memory registration overhead. Pin pages, get keys, share keys.
-3. One-sided ops are async. CPU doesn't know when remote writes land unless you signal.
-4. ~1-5μs latency. Fast for network, slow for memory.
+So pooled CXL is 5-10x slower than local. That's not nothing. For tight loops constantly hitting memory, that seems expensive. The pitch is that it's still way better than swapping to SSD (100μs) and you get more capacity. Which is true.
 
-CXL is supposed to be ~200-500ns for pooled memory. Still slower than local, but closer. And it's transparent to software. Your malloc can return CXL memory. The app doesn't know.
+I think the mental model is supposed to be tiering. Hot data lives in local DRAM. Warm data lives in CXL pool. Cold data goes to SSD. The kernel or some runtime migrates pages between tiers based on access patterns.
 
-This is the promise anyway. Shipping hardware today is mostly local expansion, not pooled.
+Linux already has machinery for this. NUMA balancing, DAMON for access pattern detection, tiered memory support that got merged recently. Whether this works well in practice with real workloads, I don't know yet. The theory sounds reasonable but there will be edge cases.
 
----
+## shared memory across hosts
 
-## the latency question
+CXL 3.0 talks about multiple hosts accessing the same memory with hardware-maintained cache coherence.
 
-This is where I'm not fully convinced.
+This sounds amazing and also scary at the same time.
 
-Local DRAM: ~100ns. CXL local expansion: ~200-300ns. CXL pooled (through switch): ~500-1000ns.
+Cache coherence doesn't scale. The distributed shared memory people learned this in the 90s. Beyond a few nodes the coherence traffic overwhelms everything.
 
-Okay so CXL pool is 5-10x slower than local. That's... a lot? For some workloads, maybe fine. For tight loops hitting memory constantly, this seems expensive.
+The CXL spec people know this. The scope is limited, maybe a rack, maybe a pod, maybe less. The vision isn't coherent memory across the whole datacenter. It's more like, within a small group of machines you can have shared memory semantics. Beyond that you're back to message passing or RDMA.
 
-The pitch is: better than swapping to SSD (100μs) or going over RDMA. And you get more capacity.
+Even rack-scale shared memory is interesting though. Databases that want to share buffer caches across replicas. ML training jobs that share model weights. There are use cases.
 
-I think the mental model is tiering. Hot data in local DRAM. Warm data in CXL pool. Cold data in SSD or remote. The kernel or some runtime migrates pages between tiers based on access patterns.
+## what's actually shipping
 
-Linux already has this machinery. NUMA balancing, DAMON, tiered memory support merged recently. Whether it works well in practice is another question.
+CXL 1.1 memory expanders exist today from Samsung, SK Hynix and others. Intel Sapphire Rapids supports CXL. These are mostly used to add capacity to memory-hungry workloads.
 
----
+CXL switches are not really production-ready yet. Some prototypes. I'd guess pooled CXL deployments are 2-3 years out.
 
-## cache coherence across hosts
+So when papers say "CXL will enable this," they're often talking about future hardware. The concepts are solid but the ecosystem is young. Worth understanding now because it's coming, but don't expect to deploy pooled CXL next month.
 
-CXL 3.0 talks about shared memory. Multiple hosts access same bytes. Hardware maintains coherence.
+## what I'm still uncertain about
 
-This sounds amazing and also scary.
+**Latency tradeoffs.** 5-10x slower than local is real overhead. Better than SSD, yes. But memory-intensive applications might just thrash the CXL tier and make things worse. Tiering policies need to actually work.
 
-Cache coherence doesn't scale. We learned this from distributed shared memory systems in the 90s. Beyond a few nodes, the coherence traffic kills you.
+**Ecosystem maturity.** RDMA took years to get right. CXL is newer. Drivers, kernel support, allocation policies, debugging tools, all of this needs to catch up.
 
-CXL spec people know this. The scope is limited. Maybe a rack. Maybe less. The vision isn't "coherent memory across datacenter." It's more like: within a pod or blade, you get shared memory semantics. Beyond that, you're back to message passing or RDMA-style access.
-
-Still, even rack-scale shared memory is interesting for some workloads. Databases that want to share buffer caches. ML jobs that share model weights.
-
----
-
-## what's shipping
-
-CXL 1.1 devices exist. Samsung, SK Hynix, others have memory expanders. Mostly used to add capacity to memory-hungry workloads. Intel Sapphire Rapids supports CXL.
-
-CXL switches are... not really there yet. Some prototypes. Production deployments of pooled CXL memory are probably 2-3 years out.
-
-So when papers say "CXL will enable this", they're often talking about future hardware. The concepts matter but the ecosystem is young.
-
----
-
-## what i'm still unsure about
-
-**Is the latency worth it?** 5-10x slower than local. Yes better than SSD. But memory-intensive apps might just thrash the CXL tier. Need tiering policies that actually work.
-
-**Will the ecosystem mature?** RDMA took years to get right. CXL is newer. Drivers, kernel support, allocation policies, debugging tools. All need to catch up.
-
-**Who actually benefits?** Big cloud providers with massive memory imbalance probably. Smaller deployments might not see ROI with current hardware costs.
-
----
+**Who benefits.** Big cloud providers with massive memory imbalance probably see value. Smaller deployments might not see ROI at current hardware costs.
 
 ## notes
 
-- CXL consortium: Intel, AMD, ARM, NVIDIA, Samsung, etc.
-- Built on PCIe 5.0/6.0 physical layer. Same slots and cables.
-- Latency estimates vary by source. Local expansion seems around 200-300ns. Pooled depends heavily on topology.
-- Linux kernel CXL support: drivers/cxl/. Device enumeration works. Memory tiering still evolving.
-- Related specs: Gen-Z (dead?), CCIX (absorbed into CXL)
-- Good overview: [CXL Consortium spec](https://www.computeexpresslink.org/)
-- For memory disaggregation context: Aguilera et al., "Memory disaggregation: why now and what are the challenges"
+- CXL consortium includes Intel, AMD, ARM, NVIDIA, Samsung and others
+- Built on PCIe 5.0/6.0 physical layer, same slots and cables
+- Latency numbers vary by source and topology
+- Linux kernel has CXL support in drivers/cxl/, device enumeration works, memory tiering is evolving
+- Related specs: Gen-Z (seems dead), CCIX (absorbed into CXL)
+- Good starting point: [CXL Consortium](https://www.computeexpresslink.org/)
+- For context on memory disaggregation: Aguilera et al., "Memory disaggregation: why now and what are the challenges"

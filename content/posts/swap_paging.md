@@ -133,9 +133,7 @@ Working set = the memory you're actively using right now. Bigger than RAM? Kerne
 3. Need page A -> fault, load A, evict B
 4. Forever
 
-System spends 99% of time moving data. 1% doing work. Disk light stuck on. Mouse barely moves.
-
-This is the performance cliff. Not gradual slowdown. Death spiral.
+System spends 99% of time moving data. 1% doing work. This is where you get the "stuck mouse" feeling.
 
 ---
 
