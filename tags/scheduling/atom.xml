@@ -5,12 +5,12 @@
     <link rel="self" type="application/atom+xml" href="https://yazeed1s.github.io/tags/scheduling/atom.xml"/>
     <link rel="alternate" type="text/html" href="https://yazeed1s.github.io"/>
     <generator uri="https://www.getzola.org/">Zola</generator>
-    <updated>2025-12-01T00:00:00+00:00</updated>
+    <updated>2025-04-03T00:00:00+00:00</updated>
     <id>https://yazeed1s.github.io/tags/scheduling/atom.xml</id>
     <entry xml:lang="en">
         <title>Context Switches</title>
-        <published>2025-12-01T00:00:00+00:00</published>
-        <updated>2025-12-01T00:00:00+00:00</updated>
+        <published>2025-04-03T00:00:00+00:00</published>
+        <updated>2025-04-03T00:00:00+00:00</updated>
         
         <author>
           <name>
@@ -23,10 +23,9 @@
         <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/context-switches/"/>
         <id>https://yazeed1s.github.io/posts/context-switches/</id>
         
-        <content type="html" xml:base="https://yazeed1s.github.io/posts/context-switches/">&lt;p&gt;I wanted to write down what I understand about context switches because they keep coming up when I read about performance and scheduling.&lt;&#x2F;p&gt;
-&lt;h2 id=&quot;what-is-a-context-switch&quot;&gt;what is a context switch&lt;&#x2F;h2&gt;
-&lt;p&gt;A context switch is when the CPU stops running one process (or thread) and starts running another. The OS has to save everything about the current process so it can resume it later, then load everything about the next process so it can start running.&lt;&#x2F;p&gt;
-&lt;p&gt;&quot;Everything&quot; here means: the program counter (where the process was in its code), the register values, the stack pointer, and some other CPU state. This is called the process context.&lt;&#x2F;p&gt;
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/context-switches/">&lt;p&gt;A CPU can only run one thing at a time. When the OS needs to switch from one process to another, it saves everything about the current one and loads everything about the next. That&#x27;s a context switch.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-gets-saved&quot;&gt;what gets saved&lt;&#x2F;h2&gt;
+&lt;p&gt;&quot;Everything&quot; means the program counter (where the process was in its code), the register values, the stack pointer, and some other CPU state. This is called the process context.&lt;&#x2F;p&gt;
 &lt;p&gt;The reason we need this is simple: we have more processes than CPUs. On my laptop I might have hundreds of processes but only 8 cores. They all need to run somehow, so they take turns. The OS gives each process a slice of time on a CPU, and when the slice is up (or something else happens), it switches to another process.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;when-do-context-switches-happen&quot;&gt;when do context switches happen&lt;&#x2F;h2&gt;
 &lt;p&gt;A few situations:&lt;&#x2F;p&gt;
@@ -45,6 +44,9 @@
 &lt;li&gt;Jump to wherever B left off&lt;&#x2F;li&gt;
 &lt;&#x2F;ol&gt;
 &lt;p&gt;If A and B are threads in the same process, step 3 is simpler because they share the same address space. This is one reason thread switches are cheaper than process switches.&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;This is the common case, but not always true. With Spectre mitigations like KPTI enabled, the kernel uses separate page tables for user and kernel space. Even a thread switch within the same process pays for the kernel page table switch on entry and exit.&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
 &lt;h2 id=&quot;why-context-switches-are-expensive&quot;&gt;why context switches are expensive&lt;&#x2F;h2&gt;
 &lt;p&gt;The direct cost isn&#x27;t that bad. Saving and restoring registers takes maybe hundreds of nanoseconds to a few microseconds. The bigger costs are indirect:&lt;&#x2F;p&gt;
 &lt;p&gt;&lt;strong&gt;TLB flush.&lt;&#x2F;strong&gt; The TLB caches virtual-to-physical address translations. If you switch to a process with a different address space, those cached translations are useless (or worse, wrong). The TLB gets flushed and the new process starts cold. Every memory access causes a TLB miss until the cache warms up again.&lt;&#x2F;p&gt;

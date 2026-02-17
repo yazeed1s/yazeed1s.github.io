@@ -115,7 +115,7 @@
     <header>
         <h1>Interrupts, Traps, and the Kernel Boundary</h1>
         <div class="post-meta">
-            <time datetime="2025-03-15">15 Mar 2025</time>
+            <time datetime="2025-02-18">18 Feb 2025</time>
             
             <span>How the CPU switches between user and kernel mode, and what triggers those switches.</span>
              
@@ -131,9 +131,9 @@
             
         </div>
     </header>
-     <p>Your app calls a syscall. A packet arrives on the network card. The timer fires. These all interrupt normal execution, but they're not the same thing. The terminology gets confusing because people use interrupt, trap, and exception loosely.</p>
+     <p>Your app might call a syscall, a packet might arrive on the network card, or the timer might fire; all of these interrupt normal execution, but they're not the same thing. The terminology gets confusing because people use interrupt, trap, and exception loosely.</p>
 <h2 id="user-space-vs-kernel-space">user space vs kernel space</h2>
-<p>First the basics. Modern CPUs have privilege levels. On x86 these are called rings. Ring 0 is the most privileged (kernel). Ring 3 is least privileged (user applications).</p>
+<p>First the basics: modern CPUs have privilege levels called rings on x86, where ring 0 is the most privileged (kernel) and ring 3 is least privileged (user applications).</p>
 <p>Your application runs in ring 3. It can execute normal instructions, access its own memory, do math. But it cannot:</p>
 <ul>
 <li>Access hardware directly</li>
@@ -142,7 +142,7 @@
 </ul>
 <p>The kernel runs in ring 0. It can do all of those things.</p>
 <p>When you call <code>read()</code> to read from a file, your code can't just talk to the disk controller. It has to ask the kernel. The CPU has to switch from ring 3 to ring 0, do the privileged work, then switch back.</p>
-<p>This switch is the kernel boundary. Crossing it has a cost. You save registers, change privilege level, potentially flush caches. This is why syscalls aren't free.</p>
+<p>This switch is the kernel boundary, and crossing it costs you: register save/restore, privilege change, and sometimes cache disruption. That's why syscalls aren't free.</p>
 <h2 id="interrupts">interrupts</h2>
 <p>An interrupt is a signal from hardware that says "stop what you're doing, I need attention."</p>
 <p>Examples:</p>
@@ -236,7 +236,7 @@
 <li>Spectre mitigations on modern kernels (KPTI, retpolines)</li>
 </ul>
 <p>On a modern system, a syscall might take a few hundred nanoseconds. Doesn't sound like much, but if you're doing thousands per second, it adds up.</p>
-<p>This is why people use:</p>
+<p>That cost is why people use:</p>
 <ul>
 <li>Batching (fewer syscalls, more work per call)</li>
 <li>io_uring (submit many I/O requests with one syscall)</li>

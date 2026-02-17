@@ -5,12 +5,12 @@
     <link rel="self" type="application/atom+xml" href="https://yazeed1s.github.io/tags/distributed-systems/atom.xml"/>
     <link rel="alternate" type="text/html" href="https://yazeed1s.github.io"/>
     <generator uri="https://www.getzola.org/">Zola</generator>
-    <updated>2026-01-05T00:00:00+00:00</updated>
+    <updated>2026-02-02T00:00:00+00:00</updated>
     <id>https://yazeed1s.github.io/tags/distributed-systems/atom.xml</id>
     <entry xml:lang="en">
         <title>Memory Disaggregation</title>
-        <published>2026-01-05T00:00:00+00:00</published>
-        <updated>2026-01-05T00:00:00+00:00</updated>
+        <published>2026-02-02T00:00:00+00:00</published>
+        <updated>2026-02-02T00:00:00+00:00</updated>
         
         <author>
           <name>
@@ -23,8 +23,8 @@
         <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/memory-disaggregation/"/>
         <id>https://yazeed1s.github.io/posts/memory-disaggregation/</id>
         
-        <content type="html" xml:base="https://yazeed1s.github.io/posts/memory-disaggregation/">&lt;p&gt;I&#x27;ve been reading about memory disaggregation lately and wanted to write down what I understand so far. This is mostly from a VMware Research paper that asks a question I found interesting: why hasn&#x27;t memory disaggregation happened already?&lt;&#x2F;p&gt;
-&lt;p&gt;The idea has been around since the 90s. Intel pushed Rack Scale Architecture in 2013. It didn&#x27;t take off. The paper argues two things finally align now: the economics are painful enough and the technology exists to actually do something about it.&lt;&#x2F;p&gt;
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/memory-disaggregation/">&lt;p&gt;Memory is expensive. In some clusters it&#x27;s half the server cost, and a lot of it sits idle. Over 70% of the time, more than half of aggregate cluster memory is unused while some machines are paging to disk because they ran out.&lt;&#x2F;p&gt;
+&lt;p&gt;Memory disaggregation is the idea: pull memory out of servers, pool it, let machines use what they need. A VMware Research paper I read recently asks why this hasn&#x27;t happened already. Their answer: the economics were bad but tolerable, and the technology didn&#x27;t exist. Now both are changing.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;the-basic-idea&quot;&gt;the basic idea&lt;&#x2F;h2&gt;
 &lt;p&gt;Traditional servers bundle CPU, memory, storage into one box. Need more RAM? Buy a bigger box or add DIMMs if you haven&#x27;t hit the motherboard limit. Don&#x27;t use all your RAM? It sits idle. You can&#x27;t share it.&lt;&#x2F;p&gt;
 &lt;p&gt;Memory disaggregation pulls memory out into separate pools that multiple servers can access. Think about how we went from local storage to SAN&#x2F;NAS, but for memory instead.&lt;&#x2F;p&gt;
@@ -42,9 +42,9 @@
 &lt;p&gt;The technology also finally exists. RDMA gives single-digit microsecond latencies. But the bigger thing is CXL which gives you cache-coherent load&#x2F;store access over PCIe. Plus theres a roadmap toward switches and pooling and shared memory fabrics.&lt;&#x2F;p&gt;
 &lt;p&gt;The pool can even use cheaper denser slower DRAM since it&#x27;s already the &quot;slow tier&quot; compared to local DIMMs anyway.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;what-i-found-interesting&quot;&gt;what I found interesting&lt;&#x2F;h2&gt;
-&lt;p&gt;It&#x27;s not just about capacity. Most remote memory systems like Infiniswap focus on paging to remote RAM. That&#x27;s useful but limited. CXL promises memory that actually looks like memory: load&#x2F;store access to a larger pool. With the right fabric features you could map the same bytes into multiple hosts. That&#x27;s different from shipping pages around.&lt;&#x2F;p&gt;
-&lt;p&gt;The OS problems are hard though. The paper is mostly about what&#x27;s unsolved. Memory allocation at scale. Scheduling with memory locality. Pointer sharing across servers. Failure handling for &quot;optional&quot; memory. Security for hot-swappable pools. These need fundamental rethinking.&lt;&#x2F;p&gt;
-&lt;p&gt;The timeline matches what happened with storage disaggregation. Start small with few hosts per pool. Add switches for rack-scale. Push the fabric boundary outward. Whether it ends up being &quot;CXL over something&quot; or something else is open. But the trajectory rhymes with how storage disaggregation went.&lt;&#x2F;p&gt;
+&lt;p&gt;This isn&#x27;t only about capacity. Most remote-memory systems like Infiniswap focus on paging to remote RAM, which helps but stays limited. CXL is aiming for memory that still behaves like memory, with load&#x2F;store access to a larger pool. With the right fabric features, you can even map the same bytes into multiple hosts, which is very different from shipping pages around.&lt;&#x2F;p&gt;
+&lt;p&gt;The OS problems are hard though, and the paper mostly focuses on what&#x27;s still unsolved: memory allocation at scale, scheduling with memory locality, pointer sharing across servers, failure handling for &quot;optional&quot; memory, and security for hot-swappable pools. These all need fundamental rethinking.&lt;&#x2F;p&gt;
+&lt;p&gt;The timeline matches what happened with storage disaggregation: start small with a few hosts per pool, add switches for rack-scale, and then push the fabric boundary outward. Whether it ends up being &quot;CXL over something&quot; or something else is open, but the trajectory rhymes with how storage disaggregation went.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;where-it-fits-and-where-it-doesn-t&quot;&gt;where it fits and where it doesn&#x27;t&lt;&#x2F;h2&gt;
 &lt;p&gt;Good for: data-intensive workloads like Spark or Ray or distributed DBs that spend cycles serializing and copying. Working sets that barely fit in local memory. Clusters with memory imbalance. Places where memory is already 50%+ of server cost.&lt;&#x2F;p&gt;
 &lt;p&gt;Bad for: workloads that already fit in local memory (you&#x27;re just adding latency for no reason). Latency-sensitive apps that can&#x27;t handle hundreds of extra nanoseconds. Traditional apps that don&#x27;t share data across processes anyway.&lt;&#x2F;p&gt;
@@ -65,9 +65,72 @@
         
     </entry>
     <entry xml:lang="en">
+        <title>Exactly-Once Is a Lie</title>
+        <published>2025-08-04T00:00:00+00:00</published>
+        <updated>2025-08-04T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/exactly-once/"/>
+        <id>https://yazeed1s.github.io/posts/exactly-once/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/exactly-once/">&lt;p&gt;Every message broker eventually puts &quot;exactly-once&quot; somewhere in its docs. Kafka has it. Pulsar claims it. NATS JetStream has a version of it. It sounds like the thing you want. Send a message, it arrives once, nobody worries.&lt;&#x2F;p&gt;
+&lt;p&gt;But exactly-once delivery doesn&#x27;t exist. What exists is engineering around the fact that it doesn&#x27;t.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-can-actually-happen&quot;&gt;what can actually happen&lt;&#x2F;h2&gt;
+&lt;p&gt;A producer sends a message to a broker. Three outcomes:&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;Broker receives it, acknowledges, producer gets the ack. Success.&lt;&#x2F;li&gt;
+&lt;li&gt;Broker receives it, acknowledges, but the ack is lost. Producer doesn&#x27;t know it worked. It retries. Now there are two copies.&lt;&#x2F;li&gt;
+&lt;li&gt;Broker never receives it. Message is gone.&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;p&gt;That&#x27;s it. Those are the options on an unreliable network. You can avoid case 3 by retrying. But retrying introduces case 2. You cannot eliminate both.&lt;&#x2F;p&gt;
+&lt;p&gt;This is the fundamental issue. At the network level, you get at-most-once (don&#x27;t retry, accept losses) or at-least-once (retry, accept duplicates). There&#x27;s no third option that the network gives you for free.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-kafka-actually-does&quot;&gt;what Kafka actually does&lt;&#x2F;h2&gt;
+&lt;p&gt;Kafka advertises exactly-once semantics. What it actually implements is two things working together.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Idempotent producer.&lt;&#x2F;strong&gt; Each producer gets an ID. Each message gets a sequence number. If the broker sees the same producer ID + sequence number twice, it drops the duplicate. This handles the lost-ack problem. The producer retries, the broker deduplicates.&lt;&#x2F;p&gt;
+&lt;p&gt;This only works within a single producer session. If the producer crashes and restarts with a new ID, the deduplication state is gone.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Transactions.&lt;&#x2F;strong&gt; Kafka lets you wrap a consume-process-produce cycle in a transaction. Read from input topic, do work, write to output topic, commit offsets. All atomically. If anything fails, everything rolls back.&lt;&#x2F;p&gt;
+&lt;p&gt;So Kafka doesn&#x27;t deliver messages exactly once. It uses at-least-once delivery with deduplication and atomic commits to make the &lt;em&gt;processing&lt;&#x2F;em&gt; behave as if messages were delivered once. The duplicates still happen at the transport layer. The broker just hides them.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;delivery-vs-processing&quot;&gt;delivery vs processing&lt;&#x2F;h2&gt;
+&lt;p&gt;This distinction matters.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Exactly-once delivery&lt;&#x2F;strong&gt; would mean the network guarantees each message arrives once. No system does this. The network is unreliable. Acks get lost. Connections drop. Machines crash between receiving and acknowledging.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Exactly-once processing&lt;&#x2F;strong&gt; means the side effects of handling a message happen once, even if the message itself arrives more than once. That&#x27;s achievable. But it requires work. Deduplication, idempotency, transactions. It&#x27;s not a delivery guarantee, it&#x27;s an application-level property.&lt;&#x2F;p&gt;
+&lt;p&gt;When brokers say &quot;exactly-once&quot; they mean the second thing. They don&#x27;t say that clearly.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-broker-can-t-save-you-everywhere&quot;&gt;the broker can&#x27;t save you everywhere&lt;&#x2F;h2&gt;
+&lt;p&gt;Even with Kafka transactions, exactly-once only works within Kafka. Read from Kafka, write to Kafka, commit. That&#x27;s a closed system. Kafka controls both sides.&lt;&#x2F;p&gt;
+&lt;p&gt;The moment your consumer does something outside Kafka, the guarantee breaks. Write to a database? Send an HTTP request? Call an external API? Kafka doesn&#x27;t know about those. If your consumer processes a message, writes to Postgres, then crashes before committing the Kafka offset, it&#x27;ll reprocess on restart. Postgres gets the write twice.&lt;&#x2F;p&gt;
+&lt;p&gt;This is where the inbox pattern from my &lt;a href=&quot;https:&#x2F;&#x2F;yazeed1s.github.io&#x2F;posts&#x2F;outbox-inbox-patterns&#x2F;&quot;&gt;outbox&#x2F;inbox post&lt;&#x2F;a&gt; comes in. You need idempotency at your handler level. Record that you processed this message before doing the work. If you see it again, skip it.&lt;&#x2F;p&gt;
+&lt;p&gt;The broker gives you tools. It doesn&#x27;t give you a complete solution.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;idempotency-is-always-your-problem&quot;&gt;idempotency is always your problem&lt;&#x2F;h2&gt;
+&lt;p&gt;Regardless of what your broker promises, if your consumer has side effects, you need to handle duplicates. Either:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Make the operation naturally idempotent (SET is idempotent, INCREMENT is not)&lt;&#x2F;li&gt;
+&lt;li&gt;Track processed message IDs and skip duplicates&lt;&#x2F;li&gt;
+&lt;li&gt;Use transactions that span both the broker offset and your external state (hard, often impractical)&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;At-least-once delivery + idempotent handling gives you the effect of exactly-once. That&#x27;s what production systems actually do. The &quot;exactly-once&quot; label is marketing over a real but narrower mechanism.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Two Generals Problem: you can&#x27;t get agreement over an unreliable channel with finite messages. This is why ack-loss is unavoidable.&lt;&#x2F;li&gt;
+&lt;li&gt;Kafka&#x27;s exactly-once (KIP-98) was controversial when introduced. The original blog post title was literally &quot;Exactly-once Semantics are Possible&quot; which tells you something.&lt;&#x2F;li&gt;
+&lt;li&gt;NATS JetStream does deduplication by message ID with a configurable window. Similar idea, simpler scope.&lt;&#x2F;li&gt;
+&lt;li&gt;Pulsar transactions work similarly to Kafka. Read-process-write atomically within Pulsar.&lt;&#x2F;li&gt;
+&lt;li&gt;If you&#x27;re using a broker without deduplication, you&#x27;re getting at-least-once at best. Plan for it.&lt;&#x2F;li&gt;
+&lt;li&gt;&quot;Effectively exactly-once&quot; is the more honest term some people use. I prefer it.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
         <title>Outbox and Inbox Patterns</title>
-        <published>2025-11-25T00:00:00+00:00</published>
-        <updated>2025-11-25T00:00:00+00:00</updated>
+        <published>2025-07-08T00:00:00+00:00</published>
+        <updated>2025-07-08T00:00:00+00:00</updated>
         
         <author>
           <name>
@@ -80,8 +143,8 @@
         <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/outbox-inbox-patterns/"/>
         <id>https://yazeed1s.github.io/posts/outbox-inbox-patterns/</id>
         
-        <content type="html" xml:base="https://yazeed1s.github.io/posts/outbox-inbox-patterns/">&lt;p&gt;I&#x27;ve been working on an event-driven system and ran into a classic problem: how do I make sure that when I save something to my database, the corresponding event actually gets published to the message broker. And on the receiving side, how do I make sure I don&#x27;t process the same event twice when the broker delivers it multiple times.&lt;&#x2F;p&gt;
-&lt;p&gt;These are the Outbox and Inbox patterns. Not new ideas. But I had to actually implement them to understand why they matter.&lt;&#x2F;p&gt;
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/outbox-inbox-patterns/">&lt;p&gt;I was working on an event-driven system and hit a classic problem: when I save to the database, how do I make sure the event actually gets published to the broker. And on the consumer side, how do I avoid processing the same event twice when the broker redelivers.&lt;&#x2F;p&gt;
+&lt;p&gt;These are the Outbox and Inbox patterns. Not new ideas, but I only really understood them after implementing them.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;the-fundamental-problem&quot;&gt;the fundamental problem&lt;&#x2F;h2&gt;
 &lt;p&gt;Say you save a user to the database and then publish a &lt;code&gt;UserCreated&lt;&#x2F;code&gt; event.&lt;&#x2F;p&gt;
 &lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;1. save user to DB&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
@@ -155,7 +218,7 @@
 &lt;p&gt;Both tables need maintenance:&lt;&#x2F;p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;Batch reads.&lt;&#x2F;strong&gt; Don&#x27;t poll one row at a time. Read 100 or whatever.&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;Polling interval.&lt;&#x2F;strong&gt; Too fast wastes CPU. Too slow adds latency. We use 500ms.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Polling interval.&lt;&#x2F;strong&gt; If it&#x27;s too fast it wastes CPU, and if it&#x27;s too slow it adds latency, so we use 500ms.&lt;&#x2F;li&gt;
 &lt;li&gt;&lt;strong&gt;Cleanup job.&lt;&#x2F;strong&gt; Delete &lt;code&gt;SENT&lt;&#x2F;code&gt;&#x2F;&lt;code&gt;PROCESSED&lt;&#x2F;code&gt; rows older than X days.&lt;&#x2F;li&gt;
 &lt;li&gt;&lt;strong&gt;Monitoring.&lt;&#x2F;strong&gt; Track how many &lt;code&gt;PENDING&lt;&#x2F;code&gt; rows are piling up. Alert if growing.&lt;&#x2F;li&gt;
 &lt;li&gt;&lt;strong&gt;Failure handling.&lt;&#x2F;strong&gt; After N retries, mark &lt;code&gt;FAILED&lt;&#x2F;code&gt;. Maybe route to a dead letter table for manual inspection.&lt;&#x2F;li&gt;

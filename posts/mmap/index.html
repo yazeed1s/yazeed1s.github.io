@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="The mmap syscall, its flags, and the situations where it actually makes sense." />
+<meta
+    name="keywords"
+    content="yazeed, blog, alharthi, yaz, yazeed1s"
+/>
+<link rel="canonical" href="https://yazeed1s.github.io/posts/mmap/" />
+
+<title>mmap: What It Does, How to Use It, and When | Yazeed&#x27;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
+<meta property="og:title" content="mmap: What It Does, How to Use It, and When | Yazeed&#x27;s Blog" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://yazeed1s.github.io/posts/mmap/" />
+<meta property="og:description" content="The mmap syscall, its flags, and the situations where it actually makes sense." />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="mmap: What It Does, How to Use It, and When" />
+<meta name="twitter:description" content="The mmap syscall, its flags, and the situations where it actually makes sense." />
+
+    <link rel="icon" href="&#x2F;favicon.ico" />
+    
+    <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
+    <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+
+           
+    
+    
+    
+
+          
+    
+    
+    
+    <style>
+        :root {
+            --nav-basis: 25%;
+            --light-bg: #eae6deff;
+            --light-text: #1a1410;
+            --light-text-muted: #1a1410;
+            --light-accent: #9E4440;
+            --light-accent-hover: #7A3533;
+            --light-code-bg: #e1ded6ff;
+            --light-border: #abaaaaff;
+            --light-bold: #1a1410;
+            --light-italic: #1a1410;
+            --light-headers: #1a1410;
+            --dark-bg: #303132;
+            --dark-text: #bebbb9ff;
+            --dark-text-muted: #d5d2cf;
+            --dark-accent: #e57665;
+            --dark-accent-hover: #888885;
+            --dark-code-bg: #282829;
+            --dark-border: #524f4c;
+            --dark-bold: #d5d2cf;
+            --dark-italic: #d5d2cf;
+            --dark-headers: #d5d2cf;
+        }
+    </style>
+    <meta name="theme-color" id="tc" />
+    <script>
+        (function () {
+            var m = matchMedia("(prefers-color-scheme:dark)"),
+                t = localStorage.theme || (m.matches ? "dark" : "light"),
+                h = document.documentElement,
+                c = document.getElementById("tc");
+            h.className = t;
+            function u() {
+                c.content = getComputedStyle(h).getPropertyValue("--tc");
+            }
+            u();
+            window.T = function () {
+                t = t === "dark" ? "light" : "dark";
+                localStorage.theme = t;
+                h.className = t;
+                u();
+            };
+        })();
+    </script>
+    
+</head>
+
+<body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><symbol id="light" viewBox="0 0 32 32"><rect x="15" y="2" width="2" height="5"/><rect x="21.6675" y="6.8536" width="4.958" height="1.9998" transform="translate(1.5191 19.3744) rotate(-45)"/><rect x="25" y="15" width="5" height="2"/><rect x="23.1466" y="21.6675" width="1.9998" height="4.958" transform="translate(-10.0018 24.1465) rotate(-45)"/><rect x="15" y="25" width="2" height="5"/><rect x="5.3745" y="23.1466" width="4.958" height="1.9998" transform="translate(-14.7739 12.6256) rotate(-45)"/><rect x="2" y="15" width="5" height="2"/><rect x="6.8536" y="5.3745" width="1.9998" height="4.958" transform="translate(-3.253 7.8535) rotate(-45)"/><path d="M16,12a4,4,0,1,1-4,4,4.0045,4.0045,0,0,1,4-4m0-2a6,6,0,1,0,6,6,6,6,0,0,0-6-6Z"/></symbol>
+<symbol id="asleep" viewBox="0 0 32 32"><path d="M13.5025,5.4136A15.0755,15.0755,0,0,0,25.096,23.6082a11.1134,11.1134,0,0,1-7.9749,3.3893c-.1385,0-.2782.0051-.4178,0A11.0944,11.0944,0,0,1,13.5025,5.4136M14.98,3a1.0024,1.0024,0,0,0-.1746.0156A13.0959,13.0959,0,0,0,16.63,28.9973c.1641.006.3282,0,.4909,0a13.0724,13.0724,0,0,0,10.702-5.5556,1.0094,1.0094,0,0,0-.7833-1.5644A13.08,13.08,0,0,1,15.8892,4.38,1.0149,1.0149,0,0,0,14.98,3Z"/></symbol>
+<symbol id="rss" viewBox="0 0 32 32"><path d="M8,18c-3.3,0-6,2.7-6,6s2.7,6,6,6s6-2.7,6-6C14,20.7,11.3,18,8,18z M8,28c-2.2,0-4-1.8-4-4s1.8-4,4-4s4,1.8,4,4C12,26.2,10.2,28,8,28z"/><path d="M30,24h-2C28,13,19,4,8,4V2C20.1,2,30,11.9,30,24z"/><path d="M22,24h-2c0-6.6-5.4-12-12-12v-2C15.7,10,22,16.3,22,24z"/></symbol>
+</svg>
+
+    <header id="site-header">
+        <div>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <nav>
+                <a href="https://yazeed1s.github.io/" >Home</a>
+                <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
+                <a href="https://yazeed1s.github.io/projects/" >Projects</a>
+                <a href="https://yazeed1s.github.io/tags/" >Tags</a>
+                </nav>
+            <a href="#" onclick="
+                        T();
+                        return false;
+                    " class="theme" aria-label="Toggle theme" title="Toggle theme">
+<svg><use href="#light"/></svg>
+<svg><use href="#asleep"/></svg></a>
+        </div>
+    </header>
+    <hr class="site-sep" />
+    <main id="main">
+<article>
+    <header>
+        <h1>mmap: What It Does, How to Use It, and When</h1>
+        <div class="post-meta">
+            <time datetime="2025-11-21">21 Nov 2025</time>
+            
+            <span>The mmap syscall, its flags, and the situations where it actually makes sense.</span>
+             
+            <span class="post-tags">
+                <span class="post-tags-label">Tags: </span>
+                
+                <a href="https://yazeed1s.github.io/tags/linux">Linux</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/c">C</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/systems-programming">Systems Programming</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/memory">Memory</a>
+            </span>
+            
+        </div>
+    </header>
+     <p><code>mmap</code> maps a region of virtual address space. That region can be backed by a file, by anonymous memory, or by shared memory. The kernel sets up the page table entries but doesn't necessarily load anything into physical memory until you touch it.</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#3C6362, #A2BD90);">mmap</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#7D4242, #D4D4C0);">addr</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> size_t</span><span style="color: light-dark(#7D4242, #D4D4C0);"> length</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> int</span><span style="color: light-dark(#7D4242, #D4D4C0);"> prot</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> int</span><span style="color: light-dark(#7D4242, #D4D4C0);"> flags</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> int</span><span style="color: light-dark(#7D4242, #D4D4C0);"> fd</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> off_t</span><span style="color: light-dark(#7D4242, #D4D4C0);"> offset</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span></code></pre>
+<p>Six arguments. The combination of <code>prot</code> and <code>flags</code> determines what you get.</p>
+<h2 id="protection-flags-prot">protection flags (prot)</h2>
+<p>These control what you can do with the mapped memory:</p>
+<ul>
+<li><code>PROT_READ</code>: pages can be read</li>
+<li><code>PROT_WRITE</code>: pages can be written</li>
+<li><code>PROT_EXEC</code>: pages can be executed (for JIT compilation or loading code)</li>
+<li><code>PROT_NONE</code>: pages cannot be accessed at all (useful for guard pages)</li>
+</ul>
+<p>You can combine them with OR. <code>PROT_READ | PROT_WRITE</code> is the common case for data. <code>PROT_READ | PROT_EXEC</code> is what the loader uses for <code>.text</code> segments.</p>
+<p><code>PROT_NONE</code> sounds useless but it's how stack guard pages work. Map a page with no permissions between thread stacks. If a stack overflows into it, the hardware traps immediately instead of silently corrupting the next stack.</p>
+<h2 id="mapping-flags">mapping flags</h2>
+<h3 id="map-shared-vs-map-private">MAP_SHARED vs MAP_PRIVATE</h3>
+<p>This is the most important distinction.</p>
+<p><code>MAP_SHARED</code> means modifications are visible to other processes that map the same file, and changes are eventually written back to the file. This is actual shared memory. Multiple processes can map the same file with <code>MAP_SHARED</code> and see each other's writes.</p>
+<p><code>MAP_PRIVATE</code> creates a copy-on-write mapping. You can read the file contents, but writes go to a private copy. The underlying file is never modified. Other processes see the original data.</p>
+<p>The dynamic linker uses <code>MAP_PRIVATE</code> to load shared libraries. Every process maps the same <code>.so</code> file. As long as nobody writes to it, they all share the same physical pages. If a debugger patches a function, only that process gets a private copy of the modified page.</p>
+<h3 id="map-anonymous">MAP_ANONYMOUS</h3>
+<p>No file backing. The mapping is initialized to zero. This is how <code>malloc</code> allocates large blocks. When you <code>malloc(1 &lt;&lt; 20)</code>, glibc usually calls <code>mmap</code> with <code>MAP_ANONYMOUS | MAP_PRIVATE</code> instead of using <code>brk</code>.</p>
+<p>When combined with <code>MAP_SHARED</code>, you get shared anonymous memory (useful for communication between parent and child processes after <code>fork</code>).</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">//</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> allocate 4MB of zeroed memory, no file involved</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>buf </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#3C6362, #A2BD90);"> mmap</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #CA9D7D);">NULL</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #CA9D7D);"> 4</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> &lt;&lt;</span><span style="color: light-dark(#784367, #CA9D7D);"> 20</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> PROT_READ </span><span style="color: light-dark(#4B4B48, #CB8B8B);">|</span><span> PROT_WRITE</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span>                 MAP_ANONYMOUS </span><span style="color: light-dark(#4B4B48, #CB8B8B);">|</span><span> MAP_PRIVATE</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> -</span><span style="color: light-dark(#784367, #CA9D7D);">1</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span></code></pre><h3 id="map-fixed">MAP_FIXED</h3>
+<p>Forces the mapping to the exact address you specify in <code>addr</code>. If something is already mapped there, it gets silently unmapped. Dangerous, but necessary for some use cases (loading ELF segments at specific addresses, implementing custom allocators with known layouts).</p>
+<p>Without <code>MAP_FIXED</code>, the <code>addr</code> argument is a hint. The kernel can place the mapping wherever it wants.</p>
+<h3 id="map-fixed-noreplace">MAP_FIXED_NOREPLACE</h3>
+<p>Same as <code>MAP_FIXED</code> but fails with <code>EEXIST</code> if the address range is already mapped. Added in Linux 4.17. Safer than <code>MAP_FIXED</code> because it won't silently destroy existing mappings.</p>
+<h3 id="map-populate">MAP_POPULATE</h3>
+<p>Pre-fault all pages immediately. Normally mmap doesn't load anything until you access it (demand paging). <code>MAP_POPULATE</code> tells the kernel to read the entire region into memory upfront.</p>
+<p>Useful when you know you'll need the whole mapping and want to avoid page faults during processing. The trade-off is slower setup time and higher initial memory usage.</p>
+<h3 id="map-hugetlb">MAP_HUGETLB</h3>
+<p>Use huge pages (2MB or 1GB on x86) instead of regular 4KB pages. Reduces TLB pressure for large mappings. Requires huge pages to be available on the system (configured via <code>/proc/sys/vm/nr_hugepages</code> or transparent huge pages).</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">//</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> map 64MB using 2MB huge pages</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>buf </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#3C6362, #A2BD90);"> mmap</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #CA9D7D);">NULL</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #CA9D7D);"> 64</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> &lt;&lt;</span><span style="color: light-dark(#784367, #CA9D7D);"> 20</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> PROT_READ </span><span style="color: light-dark(#4B4B48, #CB8B8B);">|</span><span> PROT_WRITE</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span>                 MAP_ANONYMOUS </span><span style="color: light-dark(#4B4B48, #CB8B8B);">|</span><span> MAP_PRIVATE </span><span style="color: light-dark(#4B4B48, #CB8B8B);">|</span><span> MAP_HUGETLB</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> -</span><span style="color: light-dark(#784367, #CA9D7D);">1</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span></code></pre><h3 id="map-noreserve">MAP_NORESERVE</h3>
+<p>By default, the kernel checks whether enough swap space exists to back a private writable mapping. <code>MAP_NORESERVE</code> skips this check. The mapping may succeed but later writes can fail (SIGBUS) if the system runs out of memory. Only matters when overcommit settings restrict it.</p>
+<h3 id="map-locked">MAP_LOCKED</h3>
+<p>Lock pages into physical memory and don't allow them to be swapped out. Similar to calling <code>mlock</code> after mmap. Requires <code>CAP_IPC_LOCK</code> or sufficient <code>RLIMIT_MEMLOCK</code>.</p>
+<h3 id="map-growsdown">MAP_GROWSDOWN</h3>
+<p>Used for stack-like mappings that grow downward. The kernel automatically extends the mapping when the process touches the guard page below it. Used internally for thread stacks.</p>
+<h2 id="companion-syscalls">companion syscalls</h2>
+<h3 id="munmap">munmap</h3>
+<p>Releases a mapping:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">int</span><span style="color: light-dark(#3C6362, #A2BD90);"> munmap</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#7D4242, #D4D4C0);">addr</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> size_t</span><span style="color: light-dark(#7D4242, #D4D4C0);"> length</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span></code></pre>
+<p>After this, accessing the region causes a segfault. The kernel frees the page table entries and (eventually) the physical pages.</p>
+<h3 id="msync">msync</h3>
+<p>Forces modified pages of a <code>MAP_SHARED</code> file mapping back to disk:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">int</span><span style="color: light-dark(#3C6362, #A2BD90);"> msync</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#7D4242, #D4D4C0);">addr</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> size_t</span><span style="color: light-dark(#7D4242, #D4D4C0);"> length</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> int</span><span style="color: light-dark(#7D4242, #D4D4C0);"> flags</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span></code></pre>
+<p>Flags are <code>MS_SYNC</code> (block until written), <code>MS_ASYNC</code> (schedule the write but return immediately), or <code>MS_INVALIDATE</code> (invalidate cached copies so other mappings see the latest file content).</p>
+<p>Without <code>msync</code>, the kernel writes dirty pages back at its own pace. If the system crashes before that, changes can be lost.</p>
+<h3 id="mprotect">mprotect</h3>
+<p>Changes protection on an existing mapping:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">int</span><span style="color: light-dark(#3C6362, #A2BD90);"> mprotect</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#7D4242, #D4D4C0);">addr</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> size_t</span><span style="color: light-dark(#7D4242, #D4D4C0);"> len</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> int</span><span style="color: light-dark(#7D4242, #D4D4C0);"> prot</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span></code></pre>
+<p>Common use: allocate with <code>PROT_NONE</code>, then upgrade to <code>PROT_READ | PROT_WRITE</code> when needed. JIT compilers use this to toggle between writable (fill code buffer) and executable (run the code).</p>
+<h3 id="madvise">madvise</h3>
+<p>Hints to the kernel about expected access patterns:</p>
+<ul>
+<li><code>MADV_SEQUENTIAL</code>: will access pages sequentially (kernel can prefetch aggressively)</li>
+<li><code>MADV_RANDOM</code>: will access pages randomly (kernel should not prefetch)</li>
+<li><code>MADV_WILLNEED</code>: will need these pages soon (start loading them)</li>
+<li><code>MADV_DONTNEED</code>: won't need these pages soon (can discard them, re-reading from file or re-zeroing anonymous pages)</li>
+<li><code>MADV_FREE</code>: pages can be reclaimed if memory is needed, but keep them if possible (lazy reclaim, Linux 4.5+)</li>
+<li><code>MADV_HUGEPAGE</code>: enable transparent huge pages for this region</li>
+<li><code>MADV_NOHUGEPAGE</code>: disable transparent huge pages</li>
+</ul>
+<p>These are hints, not commands. The kernel can ignore them. But in practice they make a measurable difference for large sequential reads (prefetch) and memory-intensive applications that want to release memory without unmapping (MADV_DONTNEED).</p>
+<h2 id="when-mmap-makes-sense">when mmap makes sense</h2>
+<p><strong>Reading large files sequentially or with known access patterns.</strong> Map the file, access it through pointers. The kernel handles paging. For read-only workloads where the file fits in memory, this is simple and efficient.</p>
+<p><strong>Shared memory between processes.</strong> Map the same file (or anonymous region) with <code>MAP_SHARED</code> in multiple processes. Writes are visible across processes. No copies, no pipes, no serialization. Used for high-performance IPC.</p>
+<p><strong>Large allocations.</strong> glibc uses mmap for allocations above a threshold (typically 128KB). Anonymous private mappings are simpler to manage than growing the heap with <code>brk</code> because they can be returned to the OS individually with <code>munmap</code>.</p>
+<p><strong>Loading executables and shared libraries.</strong> The dynamic linker maps <code>.text</code> (read + execute), <code>.rodata</code> (read-only), and <code>.data</code> (read + write, copy-on-write) segments from ELF files. This is the most widespread use of mmap and you never call it directly.</p>
+<p><strong>Guard pages and memory protection.</strong> Map regions with <code>PROT_NONE</code> to catch overflows. Change protection dynamically with <code>mprotect</code>. JIT compilers write code into RW pages, then flip them to RX before execution.</p>
+<h2 id="when-mmap-is-the-wrong-tool">when mmap is the wrong tool</h2>
+<p><strong>Database buffer management.</strong> <a href="https://yazeed1s.github.io/posts/mmap-databases/">Covered in a separate post</a>. The OS controls eviction and write-back, which conflicts with WAL ordering and application-level caching.</p>
+<p><strong>Small, frequent, short-lived allocations.</strong> mmap has overhead per call (kernel entry, VMA creation, page table setup). <code>malloc</code> with arena-based allocation is better for small objects.</p>
+<p><strong>When you need precise control over I/O scheduling.</strong> mmap gives you demand paging. If you need async I/O, prefetching at specific offsets, or I/O prioritization, use <code>read</code>/<code>write</code> with <code>io_uring</code> or <code>aio</code>.</p>
+<h2 id="notes">notes</h2>
+<ul>
+<li><code>mmap</code> returns <code>MAP_FAILED</code> (which is <code>(void *)-1</code>), not <code>NULL</code>, on failure. Check against the wrong value and you miss errors.</li>
+<li>You can remap an existing mapping with <code>mremap</code> to grow or shrink it without copying. glibc's <code>realloc</code> uses this for mmap'd allocations.</li>
+<li><code>/proc/[pid]/maps</code> shows all current mappings for a process. Each line shows the address range, permissions, offset, device, inode, and pathname.</li>
+<li>Mappings are inherited across <code>fork</code>. The child gets the same mappings. With <code>MAP_PRIVATE</code>, both parent and child share physical pages until one of them writes (copy-on-write). With <code>MAP_SHARED</code>, they share the actual pages.</li>
+<li><code>MAP_ANONYMOUS</code> allocations from mmap are always zero-initialized by the kernel (for security). <code>malloc</code> makes no such guarantee.</li>
+</ul>
+  
+</article>
+</main>
+    <hr class="site-sep bottom-sep" />
+    <footer class="s">
+        
+    </footer>
+    
+
+    <script>
+        document.querySelectorAll("article img[srcset]").forEach((i) => {
+            if (i.closest("a")) return;
+            i.style.cursor = "pointer";
+            i.onclick = () => {
+                let d = document.createElement("div"),
+                    s = i.srcset.split(",").pop().trim().split(" ")[0];
+                d.className = "lb";
+                d.innerHTML = '<img src="' + s + '">';
+                document.body.style.overflow = "hidden";
+                d.onclick = () => {
+                    d.remove();
+                    document.body.style.overflow = "";
+                };
+                document.body.appendChild(d);
+            };
+        });
+    </script>
+    
+<button id="scroll-to-top" aria-label="Scroll to top" title="Scroll to top">↑</button>
+<script>
+    (function() {
+        var btn = document.getElementById("scroll-to-top");
+        if (btn) {
+            window.addEventListener("scroll", function() {
+                if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                    btn.classList.add("show");
+                } else {
+                    btn.classList.remove("show");
+                }
+            });
+            btn.addEventListener("click", function() {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        }
+    })();
+</script>
+</body>
+
+</html>

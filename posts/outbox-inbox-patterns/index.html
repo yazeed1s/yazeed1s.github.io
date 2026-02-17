@@ -115,7 +115,7 @@
     <header>
         <h1>Outbox and Inbox Patterns</h1>
         <div class="post-meta">
-            <time datetime="2025-11-25">25 Nov 2025</time>
+            <time datetime="2025-07-08">08 Jul 2025</time>
             
             <span>Why you need transactional outbox and idempotent inbox when building event-driven systems.</span>
              
@@ -131,8 +131,8 @@
             
         </div>
     </header>
-     <p>I've been working on an event-driven system and ran into a classic problem: how do I make sure that when I save something to my database, the corresponding event actually gets published to the message broker. And on the receiving side, how do I make sure I don't process the same event twice when the broker delivers it multiple times.</p>
-<p>These are the Outbox and Inbox patterns. Not new ideas. But I had to actually implement them to understand why they matter.</p>
+     <p>I was working on an event-driven system and hit a classic problem: when I save to the database, how do I make sure the event actually gets published to the broker. And on the consumer side, how do I avoid processing the same event twice when the broker redelivers.</p>
+<p>These are the Outbox and Inbox patterns. Not new ideas, but I only really understood them after implementing them.</p>
 <h2 id="the-fundamental-problem">the fundamental problem</h2>
 <p>Say you save a user to the database and then publish a <code>UserCreated</code> event.</p>
 <pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="plain"><span class="giallo-l"><span>1. save user to DB</span></span>
@@ -206,7 +206,7 @@
 <p>Both tables need maintenance:</p>
 <ul>
 <li><strong>Batch reads.</strong> Don't poll one row at a time. Read 100 or whatever.</li>
-<li><strong>Polling interval.</strong> Too fast wastes CPU. Too slow adds latency. We use 500ms.</li>
+<li><strong>Polling interval.</strong> If it's too fast it wastes CPU, and if it's too slow it adds latency, so we use 500ms.</li>
 <li><strong>Cleanup job.</strong> Delete <code>SENT</code>/<code>PROCESSED</code> rows older than X days.</li>
 <li><strong>Monitoring.</strong> Track how many <code>PENDING</code> rows are piling up. Alert if growing.</li>
 <li><strong>Failure handling.</strong> After N retries, mark <code>FAILED</code>. Maybe route to a dead letter table for manual inspection.</li>

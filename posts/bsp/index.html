@@ -132,7 +132,7 @@
         </div>
     </header>
      <hr />
-<p>Some time ago, I decided to build my own tiling window manager from scratch. I was working with spatial data structures at work, and BSP trees seemed like a good fit for this kind of problem. And It all sounded like a fun challenge.</p>
+<p>At some point I decided to build my own tiling window manager from scratch. I was working with spatial data structures at work, and BSP trees looked like a good fit for this kind of problem. It also sounded like a fun challenge.</p>
 <hr />
 <h2 id="what-s-a-tiling-window-manager">What's a Tiling Window Manager?</h2>
 <p>A tiling window manager arranges windows so they don't overlap. Instead of floating windows on top of each other like macOS or Windows, it splits the screen into sections. You open a window, it goes into a tile. Open another, the screen splits. You don't manually position anything.</p>
@@ -194,7 +194,7 @@
 <span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    bool</span><span>        is_master</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
 <span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span></code></pre>
 <p>I include a parent pointer. Some implementations skip it to save memory, but having it makes traversal and sibling access trivial. Worth the extra 8 bytes per node.</p>
-<p>With the structure in place, let's look at the core operations: insertion and deletion.</p>
+<p>With the structure in place, the next parts are insertion and deletion.</p>
 <h2 id="insertion">Insertion</h2>
 <p>When you open a new window, here's what happens:</p>
 <ol>
@@ -467,9 +467,9 @@
 <span class="giallo-l"></span>
 <span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    free_queue</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>q</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
 <span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    return</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre><h2 id="conclusion">Conclusion</h2>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre><h2 id="wrap-up">wrap-up</h2>
 <p>BSP trees aren't complicated once you see them as just recursive space division. The tree structure matches the visual layout, which makes most operations straightforward. Insertion splits a rectangle, deletion merges back up. Add/remove windows, the tree adjusts.</p>
-<p>The full implementation handles more edge cases (floating windows, fullscreen, gaps, borders, multiple monitors), but the core idea is what I described above. If you're interested, the code is at <a rel="external" href="https://github.com/yazeed1s/zwm">github.com/yazeed1s/zwm</a>.</p>
+<p>The full implementation handles more edge cases (floating windows, fullscreen, gaps, borders, multiple monitors), but the core idea is what I described here. Code is here: <a rel="external" href="https://github.com/yazeed1s/zwm">github.com/yazeed1s/zwm</a>.</p>
   
 </article>
 </main>

@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Understanding tiered memory from an OS and systems perspective" />
+<meta
+    name="keywords"
+    content="yazeed, blog, alharthi, yaz, yazeed1s"
+/>
+<link rel="canonical" href="https://yazeed1s.github.io/posts/memory-teiring/" />
+
+<title>Tiered Memory | Yazeed&#x27;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
+<meta property="og:title" content="Tiered Memory | Yazeed&#x27;s Blog" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://yazeed1s.github.io/posts/memory-teiring/" />
+<meta property="og:description" content="Understanding tiered memory from an OS and systems perspective" />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Tiered Memory" />
+<meta name="twitter:description" content="Understanding tiered memory from an OS and systems perspective" />
+
+    <link rel="icon" href="&#x2F;favicon.ico" />
+    
+    <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
+    <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+
+           
+    
+    
+    
+
+          
+    
+    
+    
+    <style>
+        :root {
+            --nav-basis: 25%;
+            --light-bg: #eae6deff;
+            --light-text: #1a1410;
+            --light-text-muted: #1a1410;
+            --light-accent: #9E4440;
+            --light-accent-hover: #7A3533;
+            --light-code-bg: #e1ded6ff;
+            --light-border: #abaaaaff;
+            --light-bold: #1a1410;
+            --light-italic: #1a1410;
+            --light-headers: #1a1410;
+            --dark-bg: #303132;
+            --dark-text: #bebbb9ff;
+            --dark-text-muted: #d5d2cf;
+            --dark-accent: #e57665;
+            --dark-accent-hover: #888885;
+            --dark-code-bg: #282829;
+            --dark-border: #524f4c;
+            --dark-bold: #d5d2cf;
+            --dark-italic: #d5d2cf;
+            --dark-headers: #d5d2cf;
+        }
+    </style>
+    <meta name="theme-color" id="tc" />
+    <script>
+        (function () {
+            var m = matchMedia("(prefers-color-scheme:dark)"),
+                t = localStorage.theme || (m.matches ? "dark" : "light"),
+                h = document.documentElement,
+                c = document.getElementById("tc");
+            h.className = t;
+            function u() {
+                c.content = getComputedStyle(h).getPropertyValue("--tc");
+            }
+            u();
+            window.T = function () {
+                t = t === "dark" ? "light" : "dark";
+                localStorage.theme = t;
+                h.className = t;
+                u();
+            };
+        })();
+    </script>
+    
+</head>
+
+<body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><symbol id="light" viewBox="0 0 32 32"><rect x="15" y="2" width="2" height="5"/><rect x="21.6675" y="6.8536" width="4.958" height="1.9998" transform="translate(1.5191 19.3744) rotate(-45)"/><rect x="25" y="15" width="5" height="2"/><rect x="23.1466" y="21.6675" width="1.9998" height="4.958" transform="translate(-10.0018 24.1465) rotate(-45)"/><rect x="15" y="25" width="2" height="5"/><rect x="5.3745" y="23.1466" width="4.958" height="1.9998" transform="translate(-14.7739 12.6256) rotate(-45)"/><rect x="2" y="15" width="5" height="2"/><rect x="6.8536" y="5.3745" width="1.9998" height="4.958" transform="translate(-3.253 7.8535) rotate(-45)"/><path d="M16,12a4,4,0,1,1-4,4,4.0045,4.0045,0,0,1,4-4m0-2a6,6,0,1,0,6,6,6,6,0,0,0-6-6Z"/></symbol>
+<symbol id="asleep" viewBox="0 0 32 32"><path d="M13.5025,5.4136A15.0755,15.0755,0,0,0,25.096,23.6082a11.1134,11.1134,0,0,1-7.9749,3.3893c-.1385,0-.2782.0051-.4178,0A11.0944,11.0944,0,0,1,13.5025,5.4136M14.98,3a1.0024,1.0024,0,0,0-.1746.0156A13.0959,13.0959,0,0,0,16.63,28.9973c.1641.006.3282,0,.4909,0a13.0724,13.0724,0,0,0,10.702-5.5556,1.0094,1.0094,0,0,0-.7833-1.5644A13.08,13.08,0,0,1,15.8892,4.38,1.0149,1.0149,0,0,0,14.98,3Z"/></symbol>
+<symbol id="rss" viewBox="0 0 32 32"><path d="M8,18c-3.3,0-6,2.7-6,6s2.7,6,6,6s6-2.7,6-6C14,20.7,11.3,18,8,18z M8,28c-2.2,0-4-1.8-4-4s1.8-4,4-4s4,1.8,4,4C12,26.2,10.2,28,8,28z"/><path d="M30,24h-2C28,13,19,4,8,4V2C20.1,2,30,11.9,30,24z"/><path d="M22,24h-2c0-6.6-5.4-12-12-12v-2C15.7,10,22,16.3,22,24z"/></symbol>
+</svg>
+
+    <header id="site-header">
+        <div>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <nav>
+                <a href="https://yazeed1s.github.io/" >Home</a>
+                <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
+                <a href="https://yazeed1s.github.io/projects/" >Projects</a>
+                <a href="https://yazeed1s.github.io/tags/" >Tags</a>
+                </nav>
+            <a href="#" onclick="
+                        T();
+                        return false;
+                    " class="theme" aria-label="Toggle theme" title="Toggle theme">
+<svg><use href="#light"/></svg>
+<svg><use href="#asleep"/></svg></a>
+        </div>
+    </header>
+    <hr class="site-sep" />
+    <main id="main">
+<article>
+    <header>
+        <h1>Tiered Memory</h1>
+        <div class="post-meta">
+            <time datetime="2026-02-12">12 Feb 2026</time>
+            
+            <span>Understanding tiered memory from an OS and systems perspective</span>
+             
+            <span class="post-tags">
+                <span class="post-tags-label">Tags: </span>
+                
+                <a href="https://yazeed1s.github.io/tags/memory">Memory</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/hardware">Hardware</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/performance">Performance</a>
+            </span>
+            
+        </div>
+    </header>
+     <p>The OS always assumed memory is uniform. Every page frame is the same speed, same cost, same latency. With CXL and tiered memory that assumption breaks. You now have fast DRAM and slower memory in the same machine.</p>
+<p>At first it sounded simple to me. Hot pages go in fast memory, cold pages in slow memory. But from an OS perspective it gets complicated fast.</p>
+<h2 id="first-what-are-memory-pages">first, what are memory pages</h2>
+<p>Before talking about tiers, pages.</p>
+<p>Operating systems manage memory in fixed-size chunks called <strong>pages</strong>. On x86 that's 4KB. Sometimes you use huge pages (2MB or 1GB), but 4KB is the default.</p>
+<p>Basically, the OS doesn't think in bytes, it thinks in pages.</p>
+<p>When a process allocates memory, the OS maps virtual pages to physical page frames. The page table stores this mapping. CPU sees a virtual address, walks the page tables, translates it to a physical frame.</p>
+<p>If a page is not present? Page fault. Memory full? The OS evicts pages.</p>
+<p>So when you talk about tiered memory, what you're really asking is: which physical page frames should live in which kind of memory? That's the core question.</p>
+<h2 id="why-do-we-even-need-tiered-memory">why do we even need tiered memory</h2>
+<p>A server has DRAM directly attached to the CPU through memory channels. Fast, low latency, but expensive.</p>
+<p>In large systems memory becomes a serious cost factor. In some cloud setups it's a big portion of total server cost. And many applications allocate large heaps but only actively touch part of them.</p>
+<p>Scaling DRAM isn't trivial either. You're limited by channels, DIMM slots, signal integrity.</p>
+<p>So the idea behind tiered memory is simple: instead of making all memory equally fast and equally expensive, have a small fast tier and a larger slower tier. Put frequently used pages in fast memory. Put less active pages in slower memory.</p>
+<p>Conceptually simple. Implementation is not.</p>
+<h2 id="cxl-and-heterogeneous-memory">CXL and heterogeneous memory</h2>
+<p>With newer interconnects you can attach extra memory that's cache-coherent but slower than local DRAM. From the OS perspective it looks like another NUMA node.</p>
+<p>But latency is higher. Roughly:</p>
+<ul>
+<li>Local DRAM: maybe around 100ns</li>
+<li>Attached memory over fabric: maybe 2x or 3x that</li>
+<li>Still much faster than SSD or disk</li>
+</ul>
+<p>So now you have heterogeneous memory inside the same system. Fast tier is local DRAM. Slow tier is attached or remote memory. Same abstraction (page), different performance.</p>
+<blockquote>
+<p>The "2x or 3x" latency for CXL-attached memory is a rough estimate based on early CXL 1.1/2.0 hardware. Actual latency depends on the CXL device type (Type 1, 2, or 3), the number of CXL hops, the controller implementation, and whether the access hits the device's internal cache. Some CXL memory expanders report closer to 1.5x for cached accesses. These numbers will keep changing as the hardware matures.</p>
+</blockquote>
+<p>This breaks the old assumption that memory is uniform.</p>
+<h2 id="the-core-problem-which-pages-go-where">the core problem: which pages go where</h2>
+<p>If hot pages sit in the fast tier, everything is fine. If hot pages end up in the slow tier, performance drops.</p>
+<p>So you need to detect which pages are hot and move them.</p>
+<p>The naive idea: count how many times each page is accessed. Most accessed pages are hot.</p>
+<p>But it turns out that's not enough.</p>
+<h2 id="hotness-is-not-that-simple">hotness is not that simple</h2>
+<p>Frequency alone doesn't always tell the full story.</p>
+<p>Modern CPUs overlap memory accesses. If several cache misses happen at the same time, the effective stall per access can be smaller. Some accesses hurt more than others, depending on timing and overlap.</p>
+<p>So a page can be frequently accessed but not necessarily performance-critical. Another page might be accessed less often but sit directly on the critical path.</p>
+<p>Instead of just asking "how many times was this page accessed?", you probably need to ask "how much does this page slow down the program if it's in slow memory?"</p>
+<p>That's a harder question. I'm not sure how well current systems actually answer it. It connects OS policy with microarchitecture behavior, and I don't think the abstractions we have right now are set up for that.</p>
+<h2 id="page-granularity-mismatch">page granularity mismatch</h2>
+<p>The OS moves memory in 4KB pages. The hardware accesses memory in 64-byte cache lines.</p>
+<p>Sometimes only a few cache lines inside a 4KB page are really hot. The rest is barely touched. If you migrate the entire page to the fast tier because a small region inside it is hot, you're wasting precious fast memory.</p>
+<p>Huge pages make this worse. A 2MB page may contain a small hot region and a lot of cold data. Promoting the whole thing seems expensive.</p>
+<p>There's a mismatch between OS abstraction (page-based) and real access behavior (cache-line based). Tiered memory just makes the mismatch more visible.</p>
+<h2 id="migration-is-not-free">migration is not free</h2>
+<p>Moving a page between tiers isn't just a pointer update. You need to allocate space in the target tier, copy 4KB of data, update page tables, possibly flush TLB entries, and coordinate across cores.</p>
+<p>If you migrate too often, or migrate the wrong pages, you can hurt performance instead of improving it. I've seen papers where the migration overhead alone ate most of the benefit.</p>
+<p>So it becomes a control problem. You need accurate detection, low tracking overhead, stable decisions, limited oscillation. It starts to feel like scheduling honestly. Continuously adapting to workload behavior, except the feedback signals are noisier.</p>
+<h2 id="where-disaggregation-fits">where disaggregation fits</h2>
+<p>Tiered memory is closely related to disaggregated memory.</p>
+<p>Disaggregation means memory can be separated from compute and accessed over a fabric. That memory naturally has higher latency than local DRAM, so it often becomes the slow tier.</p>
+<p>At that point memory management isn't just a local kernel concern. It interacts with cluster design, resource allocation, and even scheduling across machines. The boundary between OS and infrastructure gets thinner.</p>
+<hr />
+<h2 id="notes-random-thoughts">notes / random thoughts</h2>
+<ul>
+<li>Page abstraction worked well when memory was uniform. Now it feels slightly strained.</li>
+<li>Counting accesses is easy. Understanding performance impact is harder. I'm not convinced anyone has a great solution for this yet.</li>
+<li>Huge pages help TLB reach but can complicate tiering decisions.</li>
+<li>Migration policy starts to look like a feedback controller.</li>
+<li>There's always tension between transparency and giving applications more control.</li>
+<li>In some sense tiered memory is like swap inside RAM, but at nanosecond scale.</li>
+<li>It looks like a small hardware change but from the OS side it touches a lot of assumptions.</li>
+</ul>
+  
+</article>
+</main>
+    <hr class="site-sep bottom-sep" />
+    <footer class="s">
+        
+    </footer>
+    
+
+    <script>
+        document.querySelectorAll("article img[srcset]").forEach((i) => {
+            if (i.closest("a")) return;
+            i.style.cursor = "pointer";
+            i.onclick = () => {
+                let d = document.createElement("div"),
+                    s = i.srcset.split(",").pop().trim().split(" ")[0];
+                d.className = "lb";
+                d.innerHTML = '<img src="' + s + '">';
+                document.body.style.overflow = "hidden";
+                d.onclick = () => {
+                    d.remove();
+                    document.body.style.overflow = "";
+                };
+                document.body.appendChild(d);
+            };
+        });
+    </script>
+    
+<button id="scroll-to-top" aria-label="Scroll to top" title="Scroll to top">↑</button>
+<script>
+    (function() {
+        var btn = document.getElementById("scroll-to-top");
+        if (btn) {
+            window.addEventListener("scroll", function() {
+                if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                    btn.classList.add("show");
+                } else {
+                    btn.classList.remove("show");
+                }
+            });
+            btn.addEventListener("click", function() {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        }
+    })();
+</script>
+</body>
+
+</html>

@@ -308,6 +308,7 @@ header strong {
 .post-tags {
     display: inline-flex;
     flex-wrap: wrap;
+    width: 100%;
     color: var(--accent);
     font-size: 0.90rem;
 }
@@ -673,10 +674,41 @@ html hr {
 }
 
 html blockquote {
-    border-left: 3px solid var(--accent);
-    padding-left: 1.25rem;
+    border: 1.5px dashed var(--border);
+    background: var(--code-bg);
+    padding: 1.25rem;
+    padding-left: 2.5rem;
     font-style: italic;
+    font-size: 0.9rem;
     color: var(--muted);
+    opacity: 0.95;
+    border-radius: 0.5rem;
+    position: relative;
+}
+
+html blockquote::before {
+    content: "**";
+    position: absolute;
+    left: 0.6rem;
+    top: 0.4rem;
+    font-size: 0.8rem;
+    line-height: 1;
+    color: var(--accent);
+    font-style: normal;
+}
+
+@media (max-width: 600px) {
+    html blockquote {
+        padding: 1rem;
+        padding-left: 2rem;
+        font-size: 0.85rem;
+    }
+
+    html blockquote::before {
+        left: 0.4rem;
+        top: 0.3rem;
+        font-size: 1.2rem;
+    }
 }
 
 .skip-link {

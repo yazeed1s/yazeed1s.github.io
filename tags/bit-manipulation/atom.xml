@@ -5,12 +5,12 @@
     <link rel="self" type="application/atom+xml" href="https://yazeed1s.github.io/tags/bit-manipulation/atom.xml"/>
     <link rel="alternate" type="text/html" href="https://yazeed1s.github.io"/>
     <generator uri="https://www.getzola.org/">Zola</generator>
-    <updated>2025-01-21T00:00:00+00:00</updated>
+    <updated>2024-10-01T00:00:00+00:00</updated>
     <id>https://yazeed1s.github.io/tags/bit-manipulation/atom.xml</id>
     <entry xml:lang="en">
         <title>Using Bit Flags to Pack Multiple States Efficiently</title>
-        <published>2025-01-21T00:00:00+00:00</published>
-        <updated>2025-01-21T00:00:00+00:00</updated>
+        <published>2024-10-01T00:00:00+00:00</published>
+        <updated>2024-10-01T00:00:00+00:00</updated>
         
         <author>
           <name>
@@ -24,7 +24,7 @@
         <id>https://yazeed1s.github.io/posts/bit-flags/</id>
         
         <content type="html" xml:base="https://yazeed1s.github.io/posts/bit-flags/">&lt;hr &#x2F;&gt;
-&lt;p&gt;Sometimes you need to track multiple related conditions. Using a struct of booleans works, but it gets clunky when checking combinations or passing state around.&lt;&#x2F;p&gt;
+&lt;p&gt;Sometimes you need to track multiple related conditions. A struct of booleans works, but it gets clunky once you start checking combinations or passing state around.&lt;&#x2F;p&gt;
 &lt;p&gt;Bit flags offer a simpler pattern: pack everything into a single integer. The real win isn&#x27;t memory usage, it&#x27;s composability. You get a single value representing your entire state that you can pass, store, and compare in one go.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;the-pattern&quot;&gt;the pattern&lt;&#x2F;h2&gt;
@@ -172,9 +172,9 @@
 &lt;&#x2F;ul&gt;
 &lt;p&gt;The pattern shines when state composition matters (events, options, validation results, capability bits). It&#x27;s worse when conditions are truly independent and never need to travel together.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;the-takeaway&quot;&gt;the takeaway&lt;&#x2F;h2&gt;
+&lt;h2 id=&quot;where-i-use-this&quot;&gt;where I use this&lt;&#x2F;h2&gt;
 &lt;p&gt;Bit flags are about composability, not memory. One integer can represent any combination of states. You can pass it, store it, compare it, mask it.&lt;&#x2F;p&gt;
-&lt;p&gt;Use them when you&#x27;re building up state from multiple sources and handling combinations. Use bools when you&#x27;re not. The choice is about how state flows through your code, not how many bytes it takes.&lt;&#x2F;p&gt;
+&lt;p&gt;Use bit flags when state comes from multiple sources and combinations matter. Use bools when conditions are simple and independent. The real choice is how state moves through your code, not how many bytes it takes.&lt;&#x2F;p&gt;
 </content>
         
     </entry>

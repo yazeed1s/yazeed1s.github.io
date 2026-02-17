@@ -5,12 +5,12 @@
     <link rel="self" type="application/atom+xml" href="https://yazeed1s.github.io/tags/operating-systems/atom.xml"/>
     <link rel="alternate" type="text/html" href="https://yazeed1s.github.io"/>
     <generator uri="https://www.getzola.org/">Zola</generator>
-    <updated>2025-12-05T00:00:00+00:00</updated>
+    <updated>2025-10-30T00:00:00+00:00</updated>
     <id>https://yazeed1s.github.io/tags/operating-systems/atom.xml</id>
     <entry xml:lang="en">
         <title>Swap and Paging: What Actually Happens When Memory Fills Up</title>
-        <published>2025-12-05T00:00:00+00:00</published>
-        <updated>2025-12-05T00:00:00+00:00</updated>
+        <published>2025-10-30T00:00:00+00:00</published>
+        <updated>2025-10-30T00:00:00+00:00</updated>
         
         <author>
           <name>
@@ -28,7 +28,7 @@
 &lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;what-swap-is&quot;&gt;what swap is&lt;&#x2F;h2&gt;
 &lt;p&gt;Swap is disk space that acts as overflow for RAM. When physical memory fills up, the kernel moves some data to swap. Later, if that data is needed again, it gets loaded back.&lt;&#x2F;p&gt;
-&lt;p&gt;That&#x27;s sort of it. The complication is in the details.&lt;&#x2F;p&gt;
+&lt;p&gt;That&#x27;s basically it. The messy part is the details.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;pages&quot;&gt;pages&lt;&#x2F;h2&gt;
 &lt;p&gt;The kernel doesn&#x27;t manage memory byte by byte. Too much bookkeeping. Instead it works in fixed-size chunks called &lt;strong&gt;pages&lt;&#x2F;strong&gt;. Usually 4KB.&lt;&#x2F;p&gt;
@@ -37,8 +37,8 @@
 &lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;page-tables-and-the-mmu&quot;&gt;page tables and the mmu&lt;&#x2F;h2&gt;
 &lt;p&gt;The CPU doesn&#x27;t know about virtual addresses on its own. There&#x27;s a &lt;strong&gt;Memory Management Unit (MMU)&lt;&#x2F;strong&gt; that translates virtual addresses to physical ones.&lt;&#x2F;p&gt;
-&lt;p&gt;How does it know the mapping? &lt;strong&gt;Page tables&lt;&#x2F;strong&gt;. Data structures the kernel maintains. The MMU walks these to find where a virtual page actually lives (which physical frame, or if it&#x27;s not in RAM at all).&lt;&#x2F;p&gt;
-&lt;p&gt;Walking page tables on every memory access would be slow. So the MMU has a cache called the &lt;strong&gt;TLB (Translation Lookaside Buffer)&lt;&#x2F;strong&gt;. Recent translations are stored there. Hit the TLB = fast. Miss = pay for the walk.&lt;&#x2F;p&gt;
+&lt;p&gt;How does it know the mapping? Through &lt;strong&gt;page tables&lt;&#x2F;strong&gt;, data structures the kernel maintains that the MMU walks to find where a virtual page actually lives (which physical frame, or if it&#x27;s not in RAM at all).&lt;&#x2F;p&gt;
+&lt;p&gt;Walking page tables on every memory access would be slow, so the MMU keeps a cache called the &lt;strong&gt;TLB (Translation Lookaside Buffer)&lt;&#x2F;strong&gt; where recent translations are stored: a hit is fast, and a miss pays for the walk.&lt;&#x2F;p&gt;
 &lt;p&gt;Most accesses hit the TLB. That&#x27;s what makes virtual memory practical.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;page-faults&quot;&gt;page faults&lt;&#x2F;h2&gt;
@@ -55,7 +55,7 @@
 &lt;&#x2F;ol&gt;
 &lt;p&gt;Two kinds:&lt;&#x2F;p&gt;
 &lt;p&gt;&lt;strong&gt;Minor fault.&lt;&#x2F;strong&gt; Page is already somewhere in memory (page cache, shared mapping). Kernel just fixes the page table. Fast.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Major fault.&lt;&#x2F;strong&gt; Page has to be read from disk. Slow. Really slow.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Major fault.&lt;&#x2F;strong&gt; The page has to be read from disk, which is really slow.&lt;&#x2F;p&gt;
 &lt;p&gt;Some faults are expected:&lt;&#x2F;p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;Lazy allocation.&lt;&#x2F;strong&gt; Kernel doesn&#x27;t back memory until you touch it. First access = minor fault.&lt;&#x2F;li&gt;
@@ -77,7 +77,7 @@
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;After:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;RAM:  [A][E][C][D]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Swap: [B]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;If B is accessed again? Major fault. Load B. Evict something else. This happens constantly under memory pressure.&lt;&#x2F;p&gt;
+&lt;p&gt;If B is accessed again, you take a major fault, load B, and evict something else; this happens constantly under memory pressure.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;the-dirty-bit&quot;&gt;the dirty bit&lt;&#x2F;h2&gt;
 &lt;p&gt;Each page has a &lt;strong&gt;dirty bit&lt;&#x2F;strong&gt;. Set if the page has been modified since it was loaded.&lt;&#x2F;p&gt;
@@ -140,11 +140,14 @@
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; 1 = always allow (yolo)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; 2 = strict (refuse if exceeds limit)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
 &lt;p&gt;Mode 2 is safer but breaks things. Mode 1 is living dangerously.&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Mode 0 isn&#x27;t blind. The kernel uses heuristics that account for total RAM, swap space, and current usage. It will still refuse obviously absurd allocations. Mode 2 enforces a strict limit based on &lt;code&gt;overcommit_ratio&lt;&#x2F;code&gt; (default 50%) of physical RAM plus swap. So &quot;always allow&quot; vs &quot;strict&quot; is more nuanced than it looks.&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
 &lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;why-this-matters-for-remote-memory&quot;&gt;why this matters for remote memory&lt;&#x2F;h2&gt;
 &lt;p&gt;Main problem: disk is slow. 1,000-100,000× slower than RAM.&lt;&#x2F;p&gt;
-&lt;p&gt;Systems like Infiniswap replace swap with network access to remote memory. RDMA gives single-digit microsecond latency. Still slower than local RAM. But 10-1000× faster than disk.&lt;&#x2F;p&gt;
-&lt;p&gt;Keep the paging model. Replace the slow part. Cliff becomes slope.&lt;&#x2F;p&gt;
+&lt;p&gt;Systems like Infiniswap replace swap with network access to remote memory; RDMA gives single-digit microsecond latency, which is still slower than local RAM but 10-1000× faster than disk.&lt;&#x2F;p&gt;
+&lt;p&gt;Keep the paging model, replace the slow part, and the performance cliff becomes a slope.&lt;&#x2F;p&gt;
 &lt;p&gt;The interesting thing: Linux has a &lt;strong&gt;frontswap&lt;&#x2F;strong&gt; interface. It&#x27;s a hook that lets you intercept pages before they go to disk. Implement a few callbacks and your module becomes an alternative swap backend. That&#x27;s how Infiniswap plugs into the kernel. Pages that would go to disk get redirected over the network instead.&lt;&#x2F;p&gt;
 &lt;p&gt;I want to look at this interface in more detail later. How frontswap works, what the callbacks look like, and what&#x27;s involved in building something like Infiniswap. Different post.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;

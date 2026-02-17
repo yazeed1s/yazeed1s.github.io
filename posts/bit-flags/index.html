@@ -115,7 +115,7 @@
     <header>
         <h1>Using Bit Flags to Pack Multiple States Efficiently</h1>
         <div class="post-meta">
-            <time datetime="2025-01-21">21 Jan 2025</time>
+            <time datetime="2024-10-01">01 Oct 2024</time>
             
             <span>A simple way to embed multiple boolean conditions in a single integer.</span>
              
@@ -132,7 +132,7 @@
         </div>
     </header>
      <hr />
-<p>Sometimes you need to track multiple related conditions. Using a struct of booleans works, but it gets clunky when checking combinations or passing state around.</p>
+<p>Sometimes you need to track multiple related conditions. A struct of booleans works, but it gets clunky once you start checking combinations or passing state around.</p>
 <p>Bit flags offer a simpler pattern: pack everything into a single integer. The real win isn't memory usage, it's composability. You get a single value representing your entire state that you can pass, store, and compare in one go.</p>
 <hr />
 <h2 id="the-pattern">the pattern</h2>
@@ -280,9 +280,9 @@
 </ul>
 <p>The pattern shines when state composition matters (events, options, validation results, capability bits). It's worse when conditions are truly independent and never need to travel together.</p>
 <hr />
-<h2 id="the-takeaway">the takeaway</h2>
+<h2 id="where-i-use-this">where I use this</h2>
 <p>Bit flags are about composability, not memory. One integer can represent any combination of states. You can pass it, store it, compare it, mask it.</p>
-<p>Use them when you're building up state from multiple sources and handling combinations. Use bools when you're not. The choice is about how state flows through your code, not how many bytes it takes.</p>
+<p>Use bit flags when state comes from multiple sources and combinations matter. Use bools when conditions are simple and independent. The real choice is how state moves through your code, not how many bytes it takes.</p>
   
 </article>
 </main>

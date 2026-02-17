@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Database buffer pools reimplement what the OS already does. On purpose." />
+<meta
+    name="keywords"
+    content="yazeed, blog, alharthi, yaz, yazeed1s"
+/>
+<link rel="canonical" href="https://yazeed1s.github.io/posts/buffer-pools/" />
+
+<title>A Buffer Pool Is Just Paging in User Space | Yazeed&#x27;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
+<meta property="og:title" content="A Buffer Pool Is Just Paging in User Space | Yazeed&#x27;s Blog" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://yazeed1s.github.io/posts/buffer-pools/" />
+<meta property="og:description" content="Database buffer pools reimplement what the OS already does. On purpose." />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="A Buffer Pool Is Just Paging in User Space" />
+<meta name="twitter:description" content="Database buffer pools reimplement what the OS already does. On purpose." />
+
+    <link rel="icon" href="&#x2F;favicon.ico" />
+    
+    <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
+    <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+
+           
+    
+    
+    
+
+          
+    
+    
+    
+    <style>
+        :root {
+            --nav-basis: 25%;
+            --light-bg: #eae6deff;
+            --light-text: #1a1410;
+            --light-text-muted: #1a1410;
+            --light-accent: #9E4440;
+            --light-accent-hover: #7A3533;
+            --light-code-bg: #e1ded6ff;
+            --light-border: #abaaaaff;
+            --light-bold: #1a1410;
+            --light-italic: #1a1410;
+            --light-headers: #1a1410;
+            --dark-bg: #303132;
+            --dark-text: #bebbb9ff;
+            --dark-text-muted: #d5d2cf;
+            --dark-accent: #e57665;
+            --dark-accent-hover: #888885;
+            --dark-code-bg: #282829;
+            --dark-border: #524f4c;
+            --dark-bold: #d5d2cf;
+            --dark-italic: #d5d2cf;
+            --dark-headers: #d5d2cf;
+        }
+    </style>
+    <meta name="theme-color" id="tc" />
+    <script>
+        (function () {
+            var m = matchMedia("(prefers-color-scheme:dark)"),
+                t = localStorage.theme || (m.matches ? "dark" : "light"),
+                h = document.documentElement,
+                c = document.getElementById("tc");
+            h.className = t;
+            function u() {
+                c.content = getComputedStyle(h).getPropertyValue("--tc");
+            }
+            u();
+            window.T = function () {
+                t = t === "dark" ? "light" : "dark";
+                localStorage.theme = t;
+                h.className = t;
+                u();
+            };
+        })();
+    </script>
+    
+</head>
+
+<body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><symbol id="light" viewBox="0 0 32 32"><rect x="15" y="2" width="2" height="5"/><rect x="21.6675" y="6.8536" width="4.958" height="1.9998" transform="translate(1.5191 19.3744) rotate(-45)"/><rect x="25" y="15" width="5" height="2"/><rect x="23.1466" y="21.6675" width="1.9998" height="4.958" transform="translate(-10.0018 24.1465) rotate(-45)"/><rect x="15" y="25" width="2" height="5"/><rect x="5.3745" y="23.1466" width="4.958" height="1.9998" transform="translate(-14.7739 12.6256) rotate(-45)"/><rect x="2" y="15" width="5" height="2"/><rect x="6.8536" y="5.3745" width="1.9998" height="4.958" transform="translate(-3.253 7.8535) rotate(-45)"/><path d="M16,12a4,4,0,1,1-4,4,4.0045,4.0045,0,0,1,4-4m0-2a6,6,0,1,0,6,6,6,6,0,0,0-6-6Z"/></symbol>
+<symbol id="asleep" viewBox="0 0 32 32"><path d="M13.5025,5.4136A15.0755,15.0755,0,0,0,25.096,23.6082a11.1134,11.1134,0,0,1-7.9749,3.3893c-.1385,0-.2782.0051-.4178,0A11.0944,11.0944,0,0,1,13.5025,5.4136M14.98,3a1.0024,1.0024,0,0,0-.1746.0156A13.0959,13.0959,0,0,0,16.63,28.9973c.1641.006.3282,0,.4909,0a13.0724,13.0724,0,0,0,10.702-5.5556,1.0094,1.0094,0,0,0-.7833-1.5644A13.08,13.08,0,0,1,15.8892,4.38,1.0149,1.0149,0,0,0,14.98,3Z"/></symbol>
+<symbol id="rss" viewBox="0 0 32 32"><path d="M8,18c-3.3,0-6,2.7-6,6s2.7,6,6,6s6-2.7,6-6C14,20.7,11.3,18,8,18z M8,28c-2.2,0-4-1.8-4-4s1.8-4,4-4s4,1.8,4,4C12,26.2,10.2,28,8,28z"/><path d="M30,24h-2C28,13,19,4,8,4V2C20.1,2,30,11.9,30,24z"/><path d="M22,24h-2c0-6.6-5.4-12-12-12v-2C15.7,10,22,16.3,22,24z"/></symbol>
+</svg>
+
+    <header id="site-header">
+        <div>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <nav>
+                <a href="https://yazeed1s.github.io/" >Home</a>
+                <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
+                <a href="https://yazeed1s.github.io/projects/" >Projects</a>
+                <a href="https://yazeed1s.github.io/tags/" >Tags</a>
+                </nav>
+            <a href="#" onclick="
+                        T();
+                        return false;
+                    " class="theme" aria-label="Toggle theme" title="Toggle theme">
+<svg><use href="#light"/></svg>
+<svg><use href="#asleep"/></svg></a>
+        </div>
+    </header>
+    <hr class="site-sep" />
+    <main id="main">
+<article>
+    <header>
+        <h1>A Buffer Pool Is Just Paging in User Space</h1>
+        <div class="post-meta">
+            <time datetime="2025-12-02">02 Dec 2025</time>
+            
+            <span>Database buffer pools reimplement what the OS already does. On purpose.</span>
+             
+            <span class="post-tags">
+                <span class="post-tags-label">Tags: </span>
+                
+                <a href="https://yazeed1s.github.io/tags/databases">Databases</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/memory">Memory</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/os">OS</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/performance">Performance</a>
+            </span>
+            
+        </div>
+    </header>
+     <p>A database buffer pool manages fixed-size pages in memory, decides which ones to keep and which to evict, tracks dirty pages, and writes them back to disk on its own schedule.</p>
+<p>That's what the OS virtual memory system does. Page frames, page tables, eviction policies, dirty bit tracking, write-back. The database reimplements all of it. In user space.</p>
+<h2 id="the-os-already-does-this">the OS already does this</h2>
+<p>The kernel manages physical memory in page frames (4KB). It maps virtual pages to physical frames through page tables. When memory is full, it evicts cold pages to disk. When a process touches an evicted page, it faults and the kernel loads it back. It tracks which pages are dirty and writes them back when it needs to.</p>
+<p>This is the exact same problem a database has. The database has pages on disk. Some of them need to be in memory. Not all of them fit. The database needs to decide which pages to keep, which to evict, and when to write dirty ones back.</p>
+<p>So why not just let the OS handle it? Map the database file with mmap and let the kernel manage everything. Some databases tried this. <a href="https://yazeed1s.github.io/posts/mmap-databases/">It didn't go well</a>.</p>
+<h2 id="why-databases-reimplement-it">why databases reimplement it</h2>
+<p>The OS page cache is general purpose. It has no concept of index pages vs temporary sort pages, no awareness that a range scan is about to need the next 50 pages, and no understanding that a dirty page has to hit the WAL before it hits the data file.</p>
+<p>A buffer pool knows all of that.</p>
+<p>The database builds its own page table: a hash map from <code>(file_id, page_number)</code> to a frame in the buffer pool. When a query needs a page, it looks up the hash map. If the page is there, it returns the pointer. If not, it picks a frame to evict, reads the page from disk into that frame, and updates the map.</p>
+<p>Page fault, but in user space. Controlled entirely by the database.</p>
+<h2 id="the-anatomy-of-a-buffer-pool">the anatomy of a buffer pool</h2>
+<p>The structure is simple:</p>
+<ul>
+<li><strong>Frame array</strong>: a fixed-size array of page-sized slots in memory (the "RAM" of the buffer pool).</li>
+<li><strong>Page table</strong>: a hash map from page ID to frame index (how the database translates a logical page reference into a memory location).</li>
+<li><strong>Eviction policy</strong>: decides which frame to reclaim when the pool is full (LRU, clock, LRU-K).</li>
+<li><strong>Dirty flag</strong>: each frame tracks whether its contents have been modified since it was read from disk.</li>
+<li><strong>Pin count</strong>: tracks how many operations are currently using a frame. A pinned page can't be evicted (same idea as the kernel's page reference count).</li>
+</ul>
+<p>When a page is requested:</p>
+<ol>
+<li>Check the page table. If the page is already in a frame, pin it and return the pointer.</li>
+<li>If not, find a victim frame (eviction policy). If the victim is dirty, write it to disk first.</li>
+<li>Read the requested page from disk into the victim frame.</li>
+<li>Update the page table. Return the pointer.</li>
+</ol>
+<p>That's page fault, find victim, write back if dirty, read page, update mapping. Same flow as an OS page fault handler, different layer.</p>
+<h2 id="eviction-the-database-knows-more">eviction: the database knows more</h2>
+<p>The OS uses something like clock or a modified LRU. It works across all processes, all files, all pages. It has no application-level knowledge.</p>
+<p>A database can do better because it knows the access patterns.</p>
+<p>A sequential scan will touch every page once. An LRU policy would fill the cache with scan pages and evict hot index pages. PostgreSQL handles this by using a small ring buffer for sequential scans, so scan pages cycle through a handful of frames instead of polluting the whole pool.</p>
+<p>A B+tree lookup traverses root, internal, then leaf. The root page is accessed on every lookup. It should basically never be evicted. LRU handles this naturally, but a database can also pin critical pages explicitly.</p>
+<p>Prefetching works better too. The database knows it's doing a range scan on a B+tree. It can issue async reads for the next few leaf pages before it needs them. The OS page cache can't do this because it only sees physical file offsets, not logical access patterns.</p>
+<h2 id="dirty-pages-and-write-back">dirty pages and write-back</h2>
+<p>This is where the difference matters most.</p>
+<p>The OS can flush a dirty page to disk whenever it wants. That's fine for normal files. For a database, it's dangerous. If a modified data page hits disk before the corresponding WAL record, crash recovery breaks. This is the write-ahead logging rule: log first, data page second.</p>
+<p>A buffer pool enforces this. Before writing a dirty page back to disk, it checks that the WAL has been flushed up to the page's last modification LSN (Log Sequence Number). The page doesn't go to disk until its log records are safe.</p>
+<p>This is impossible with mmap. The kernel has no concept of WAL ordering or LSNs. It flushes when it feels like it.</p>
+<h2 id="o-direct-bypassing-the-os-page-cache">O_DIRECT: bypassing the OS page cache</h2>
+<p>Most serious databases open their files with <code>O_DIRECT</code>. This tells the kernel to skip its own page cache entirely. Reads and writes go straight between the database's buffer pool and the disk.</p>
+<p>Without <code>O_DIRECT</code>, you'd have the data in two places: once in the database's buffer pool and once in the OS page cache. Double the memory usage for no benefit. The database already manages caching. The OS cache is redundant.</p>
+<p><code>O_DIRECT</code> also gives the database precise control over I/O timing, no surprises from kernel write-back threads or memory pressure from the kernel evicting buffer pool pages.</p>
+<blockquote>
+<p><code>O_DIRECT</code> isn't free to use. It requires buffers to be aligned to the filesystem block size (usually 512 bytes or 4KB), and I/O sizes must also be aligned. If you get the alignment wrong, the syscall fails with EINVAL. This is why most databases that use <code>O_DIRECT</code> implement their own aligned allocation routines.</p>
+</blockquote>
+<p>PostgreSQL is an exception. It uses the OS page cache (buffered I/O) rather than <code>O_DIRECT</code>, and relies on <code>fsync</code> to force data to disk. It simplifies some things but means PostgreSQL competes with the OS for memory management control.</p>
+<h2 id="it-s-the-same-problem-at-a-different-layer">it's the same problem at a different layer</h2>
+<p>The parallel is almost exact:</p>
+<table><thead><tr><th>OS Virtual Memory</th><th>Database Buffer Pool</th></tr></thead><tbody>
+<tr><td>Physical page frame</td><td>Buffer pool frame</td></tr>
+<tr><td>Page table (virtual to physical)</td><td>Page table (page ID to frame)</td></tr>
+<tr><td>Page fault handler</td><td>Buffer pool miss handler</td></tr>
+<tr><td>Dirty bit in PTE</td><td>Dirty flag per frame</td></tr>
+<tr><td>Reference count</td><td>Pin count</td></tr>
+<tr><td>kswapd (page reclaim)</td><td>Eviction policy (LRU, clock)</td></tr>
+<tr><td>Swap file</td><td>Data file on disk</td></tr>
+<tr><td><code>write-back</code> flush</td><td>WAL-ordered write-back</td></tr>
+</tbody></table>
+<p>The database takes this responsibility away from the OS because general-purpose policies don't work for database workloads. Eviction needs access-pattern awareness. Write-back needs WAL ordering. Prefetching needs query-plan knowledge. The OS has none of this context.</p>
+<h2 id="notes">notes</h2>
+<ul>
+<li>InnoDB (MySQL) uses a buffer pool with an LRU that splits into "young" and "old" sublists. New pages enter the old sublist, and only move to the young sublist if accessed again. This handles the scan-pollution problem.</li>
+<li>PostgreSQL's shared_buffers is its buffer pool. It uses a clock-sweep eviction policy.</li>
+<li>SQLite in WAL mode maintains its own page cache but sits on top of the OS page cache (no O_DIRECT). It works because SQLite targets small-to-medium databases where double-caching isn't expensive.</li>
+<li>The buffer pool is one of the first things a database student builds. It's simple in concept and brutal in the details (concurrency, latch ordering, I/O scheduling).</li>
+<li>Some databases are experimenting with letting the buffer pool manage allocation at finer granularity than pages. But pages have stuck around because they align with disk I/O boundaries.</li>
+</ul>
+  
+</article>
+</main>
+    <hr class="site-sep bottom-sep" />
+    <footer class="s">
+        
+    </footer>
+    
+
+    <script>
+        document.querySelectorAll("article img[srcset]").forEach((i) => {
+            if (i.closest("a")) return;
+            i.style.cursor = "pointer";
+            i.onclick = () => {
+                let d = document.createElement("div"),
+                    s = i.srcset.split(",").pop().trim().split(" ")[0];
+                d.className = "lb";
+                d.innerHTML = '<img src="' + s + '">';
+                document.body.style.overflow = "hidden";
+                d.onclick = () => {
+                    d.remove();
+                    document.body.style.overflow = "";
+                };
+                document.body.appendChild(d);
+            };
+        });
+    </script>
+    
+<button id="scroll-to-top" aria-label="Scroll to top" title="Scroll to top">↑</button>
+<script>
+    (function() {
+        var btn = document.getElementById("scroll-to-top");
+        if (btn) {
+            window.addEventListener("scroll", function() {
+                if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                    btn.classList.add("show");
+                } else {
+                    btn.classList.remove("show");
+                }
+            });
+            btn.addEventListener("click", function() {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        }
+    })();
+</script>
+</body>
+
+</html>

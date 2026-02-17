@@ -12,7 +12,7 @@
 [[projects]]
 title = "zwm"
 emoji = "#"
-description = "Minimal tiling window manager for X11 built with XCB, backed by a BSP tree. Multiple layouts (default/master/stack/grid), per-monitor workspaces, drag-and-drop moves, configurable rules, and reloadable config—all within ~2 MB memory."
+description = "Tiling window manager for X11. Uses a BSP tree for layouts, supports multiple modes (master/stack/grid), per-monitor workspaces, and drag-and-drop. Written in C with XCB. Runs at around 2 MB."
 url = "https://github.com/Yazeed1s/zwm"
 image = "img1.png"
 date = "2024–Present"
@@ -22,7 +22,7 @@ tags = ["C", "X11", "tiling WM", "BSP", "XCB"]
 [[projects]]
 title = "sqlweb"
 emoji = "#"
-description = "Lightweight web SQL client with built-in editor, schema SQL export, CSV/JSON export, editable cells, and saved connections. Connects to local/remote relational DBs; ~15 MB binary and <25 MB RAM."
+description = "Web-based SQL client. Has an editor, schema export, CSV/JSON export, and editable cells. Connects to PostgreSQL, MySQL, and SQLite (local or remote). Small binary, low memory."
 url = "https://github.com/Yazeed1s/sqlweb"
 image = "dbit1.png"
 date = "2023–Present"
@@ -32,7 +32,7 @@ tags = ["Go", "PostgreSQL", "MySQL", "SQLite", "Web"]
 [[projects]]
 title = "Strimo"
 emoji = "#"
-description = "Twitch-like streaming platform built for scalability over hacks: Go backend with CQRS, Outbox/Inbox reliability, NATS bus, Redis presence, PostgreSQL core, and SvelteKit frontend."
+description = "Streaming platform (like Twitch). Go backend with CQRS, outbox/inbox for reliability, NATS for messaging, Redis for presence tracking, PostgreSQL for storage, and a SvelteKit frontend."
 url = "https://github.com/Yazeed1s/strimo"
 image = "STRIMO.png"
 date = "2024–Present"

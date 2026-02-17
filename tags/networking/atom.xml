@@ -5,12 +5,12 @@
     <link rel="self" type="application/atom+xml" href="https://yazeed1s.github.io/tags/networking/atom.xml"/>
     <link rel="alternate" type="text/html" href="https://yazeed1s.github.io"/>
     <generator uri="https://www.getzola.org/">Zola</generator>
-    <updated>2025-12-28T00:00:00+00:00</updated>
+    <updated>2026-01-16T00:00:00+00:00</updated>
     <id>https://yazeed1s.github.io/tags/networking/atom.xml</id>
     <entry xml:lang="en">
         <title>RDMA: Bypassing the Kernel for Network I&#x2F;O</title>
-        <published>2025-12-28T00:00:00+00:00</published>
-        <updated>2025-12-28T00:00:00+00:00</updated>
+        <published>2026-01-16T00:00:00+00:00</published>
+        <updated>2026-01-16T00:00:00+00:00</updated>
         
         <author>
           <name>
@@ -24,34 +24,37 @@
         <id>https://yazeed1s.github.io/posts/rdma/</id>
         
         <content type="html" xml:base="https://yazeed1s.github.io/posts/rdma/">&lt;hr &#x2F;&gt;
-&lt;p&gt;I kept seeing RDMA in papers. Infiniswap uses it. FaRM uses it. Every memory disaggregation thing depends on it.&lt;&#x2F;p&gt;
-&lt;p&gt;I knew the idea: skip the kernel, be fast. But I didn&#x27;t understand how. Like, what does &quot;kernel bypass&quot; actually mean. So I went to figure it out.&lt;&#x2F;p&gt;
+&lt;p&gt;RDMA lets one machine read and write another machine&#x27;s memory. The network card handles it. The remote CPU doesn&#x27;t even know it happened.&lt;&#x2F;p&gt;
+&lt;p&gt;That sounded wrong to me at first. I knew the slogan, &quot;skip the kernel, go fast,&quot; but I didn&#x27;t understand what it meant at the hardware level.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;what-s-wrong-with-normal-networking&quot;&gt;what&#x27;s wrong with normal networking&lt;&#x2F;h2&gt;
 &lt;p&gt;When you use TCP, kernel is always involved.&lt;&#x2F;p&gt;
-&lt;p&gt;App calls &lt;code&gt;send()&lt;&#x2F;code&gt;. That&#x27;s a syscall. You go into kernel. Your data gets copied from app buffer to kernel buffer. TCP runs its state machine. Checksum. Segmentation. Put in queue. Eventually driver sends to NIC.&lt;&#x2F;p&gt;
+&lt;p&gt;The app calls &lt;code&gt;send()&lt;&#x2F;code&gt;, which is a syscall, so execution enters the kernel; your data gets copied from the app buffer to a kernel buffer, TCP runs its state machine (checksum, segmentation, queueing), and eventually the driver sends it to the NIC.&lt;&#x2F;p&gt;
 &lt;p&gt;Receive side same thing. NIC gets packet, interrupt, kernel wakes up, copies to socket buffer. App calls &lt;code&gt;recv()&lt;&#x2F;code&gt;, another copy into app buffer.&lt;&#x2F;p&gt;
-&lt;p&gt;So. Two copies. Multiple syscalls. Context switches every time. CPU is busy with all of this.&lt;&#x2F;p&gt;
+&lt;p&gt;So you end up with two copies, multiple syscalls, and context switches every time, and the CPU stays busy with all of it.&lt;&#x2F;p&gt;
 &lt;p&gt;If you&#x27;re moving big files, it&#x27;s OK. Overhead doesn&#x27;t matter much. But if you want millions of small operations per second, like key-value gets, this overhead is too much.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;what-rdma-does-different&quot;&gt;what rdma does different&lt;&#x2F;h2&gt;
 &lt;p&gt;With RDMA, the network card reads and writes directly to your app memory.&lt;&#x2F;p&gt;
-&lt;p&gt;You want to send? NIC reads from your buffer. DMA. You receive? NIC writes into your buffer. DMA. Kernel is not there. No copies.&lt;&#x2F;p&gt;
-&lt;p&gt;And there&#x27;s something called one-sided operations. RDMA_WRITE puts bytes into remote memory. RDMA_READ pulls bytes from there. Remote CPU doesn&#x27;t even know. It keeps running. Nobody woke it up.&lt;&#x2F;p&gt;
+&lt;p&gt;When you send, the NIC reads from your buffer via DMA, and when you receive, it writes into your buffer via DMA, so the kernel is off the fast path and extra copies disappear.&lt;&#x2F;p&gt;
+&lt;p&gt;There&#x27;s also one-sided operations: RDMA_WRITE puts bytes into remote memory and RDMA_READ pulls bytes from it, while the remote CPU keeps running because nobody wakes it up.&lt;&#x2F;p&gt;
 &lt;p&gt;First time I saw this it looked strange. You&#x27;re writing to memory on different machine, through network card, and that machine doesn&#x27;t know it happened.&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&quot;Doesn&#x27;t know&quot; means the remote CPU isn&#x27;t interrupted and doesn&#x27;t execute any code. But the NIC is still doing DMA over PCIe, which consumes memory bandwidth on the remote machine. At high throughput, one-sided RDMA operations can noticeably affect remote-side performance even though no software runs there.&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
 &lt;p&gt;&lt;img src=&quot;&#x2F;images&#x2F;rdma.png&quot; alt=&quot;TCP vs RDMA&quot; &#x2F;&gt;&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;setup-vs-data-path&quot;&gt;setup vs data path&lt;&#x2F;h2&gt;
 &lt;p&gt;OK but the kernel is still there. Just not on data path.&lt;&#x2F;p&gt;
-&lt;p&gt;Before you send anything you need to set things up. Open device. Create queues. Register memory. Connect to remote side. All this is syscalls. Kernel checks everything.&lt;&#x2F;p&gt;
-&lt;p&gt;Only after setup the fast path works. Then you post work to hardware directly. Poll completions. No syscalls for that part.&lt;&#x2F;p&gt;
+&lt;p&gt;Before you send anything, you have to set things up by opening the device, creating queues, registering memory, and connecting to the remote side; all of this goes through syscalls and kernel checks.&lt;&#x2F;p&gt;
+&lt;p&gt;Only after setup does the fast path work, where you post work directly to hardware and poll completions without syscalls for that part.&lt;&#x2F;p&gt;
 &lt;p&gt;So the trade is: expensive setup, cheap operations after. Good if you do many operations. Not good for connections that don&#x27;t last.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;queue-pairs&quot;&gt;queue pairs&lt;&#x2F;h2&gt;
 &lt;p&gt;RDMA doesn&#x27;t use sockets. Uses queues instead.&lt;&#x2F;p&gt;
 &lt;p&gt;&lt;strong&gt;Queue Pair&lt;&#x2F;strong&gt; is your connection. Has send queue and receive queue. You put work requests there, saying what to do (send this buffer, read from that address). NIC processes them when it can.&lt;&#x2F;p&gt;
 &lt;p&gt;&lt;strong&gt;Completion Queue&lt;&#x2F;strong&gt; is how you know things finished. NIC puts entries. You poll or wait.&lt;&#x2F;p&gt;
-&lt;p&gt;The annoying thing: queue pairs start in RESET state. You have to move them through states: RESET → INIT → RTR → RTS. If you miss one nothing works. No error. Just nothing happens. This took me a while to figure out first time.&lt;&#x2F;p&gt;
+&lt;p&gt;The annoying thing is that queue pairs start in RESET state and must move through RESET → INIT → RTR → RTS; if you miss one transition, nothing works and you usually don&#x27;t get a useful error, which took me a while to learn the first time.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;memory-registration&quot;&gt;memory registration&lt;&#x2F;h2&gt;
 &lt;p&gt;Before NIC can touch your memory, you register it.&lt;&#x2F;p&gt;
@@ -102,7 +105,7 @@
 &lt;p&gt;You need special NIC. Normal ones don&#x27;t do RDMA.&lt;&#x2F;p&gt;
 &lt;p&gt;&lt;strong&gt;InfiniBand.&lt;&#x2F;strong&gt; The original. Needs its own switches and cables. Very low latency, under microsecond. HPC clusters use this.&lt;&#x2F;p&gt;
 &lt;p&gt;&lt;strong&gt;RoCE.&lt;&#x2F;strong&gt; RDMA over Ethernet. Works on regular switches. But Ethernet drops packets and RDMA really doesn&#x27;t like that. So you configure switches for &quot;lossless&quot; mode. Priority flow control and so on. It gets complicated.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;iWARP.&lt;&#x2F;strong&gt; RDMA over TCP. Most compatible. But TCP adds latency.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;iWARP.&lt;&#x2F;strong&gt; RDMA over TCP, which is the most compatible option, but TCP adds latency.&lt;&#x2F;p&gt;
 &lt;p&gt;I think most datacenters use RoCE v2 now.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;some-numbers&quot;&gt;some numbers&lt;&#x2F;h2&gt;

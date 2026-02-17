@@ -115,7 +115,7 @@
     <header>
         <h1>CXL: Why Datacenter Memory is Getting a New Tier</h1>
         <div class="post-meta">
-            <time datetime="2026-02-05">05 Feb 2026</time>
+            <time datetime="2026-01-27">27 Jan 2026</time>
             
             <span>CXL creates a memory tier between local DRAM and everything else.</span>
              
@@ -131,7 +131,7 @@
             
         </div>
     </header>
-     <p>DRAM can be 50% of a server's cost. And most of it sits idle. One machine thrashes while the one next to it uses 30% of its memory. CXL is supposed to fix this.</p>
+     <p>DRAM can be half of server cost, and a lot of it still sits idle. One machine thrashes while the one next to it uses 30% of its memory. CXL is trying to fix that mismatch.</p>
 <h2 id="the-problem">the problem</h2>
 <p>Memory in datacenters is expensive and wasted at the same time. DRAM can be 50% of server cost, and research keeps showing that utilization is terrible. One machine is thrashing because it ran out of memory while another machine next to it is sitting at 30% usage. Some papers claim 70% of aggregate memory is underutilized across a cluster.</p>
 <p>The obvious thought: why not share memory across machines, like we do with storage. Pool it. If one server has idle memory another server could use it.</p>
@@ -139,13 +139,13 @@
 <p>CXL is supposed to bridge this gap.</p>
 <h2 id="what-it-actually-is">what it actually is</h2>
 <p>CXL stands for Compute Express Link. It runs on the PCIe physical layer, same cables and slots, but with a different protocol on top.</p>
-<p>The interesting thing is it's cache-coherent. The CPU can do normal load/store to CXL-attached memory. No special APIs. No verbs like RDMA. No memory registration. The memory controller just handles it like it's another region of memory. A different NUMA node basically.</p>
+<p>What matters is that it's cache-coherent. The CPU can do normal load/store to CXL-attached memory through the same memory path, without special APIs, RDMA-style verbs, or memory registration. The memory controller treats it like another memory region, basically another NUMA node.</p>
 <p>There are three protocols in the spec. CXL.io is basically just PCIe, for device discovery and config, boring stuff. CXL.cache lets devices cache host memory, useful for accelerators. CXL.mem is the interesting one, it lets the host access device-attached memory with load/store.</p>
 <p>CXL 1.0 and 1.1 are mostly local expansion. You plug a CXL card with DRAM into a PCIe slot and your system sees more memory. Latency is higher than native DIMMs, maybe 200-300ns instead of 100ns, but it's still memory, not storage. CXL 2.0 adds switching so multiple hosts can share a memory pool. CXL 3.0 goes further with fabric and shared memory semantics.</p>
 <h2 id="mixing-memory-types">mixing memory types</h2>
 <p>Normally your CPU's memory controller dictates what DRAM you can use. If it's a DDR5 system, all your DIMMs have to be DDR5. Same speed, same density rules, same timing specs. You can't just plug DDR4 into a DDR5 slot.</p>
 <p>CXL breaks this because the CXL device has its own memory controller. It can use whatever DRAM it wants. DDR4, DDR5, older cheaper stuff, slower but denser modules. The CPU doesn't care. It just sees CXL memory at some address range.</p>
-<p>So you could have local DDR5 for hot data and a CXL card with cheaper DDR4 as a slower tier. Or use high-capacity modules that wouldn't fit your motherboard's timing requirements. From a cost perspective this is interesting. You're not locked into whatever generation your motherboard supports.</p>
+<p>So you could keep local DDR5 for hot data and use a CXL card with cheaper DDR4 as a slower tier, or use high-capacity modules that wouldn't fit your motherboard timing rules. Cost-wise this is nice because you're not locked to whatever generation the motherboard supports.</p>
 <p>The tradeoff is latency. CXL adds overhead. But if you're using it for capacity expansion rather than latency-critical paths, maybe that's acceptable.</p>
 <h2 id="why-not-just-use-rdma">why not just use RDMA</h2>
 <p>RDMA is a different model. You need explicit verbs, post work requests, poll completions. It's not transparent load/store. You have to register memory, pin pages, exchange keys. One-sided operations are async so you don't know when remote writes land unless you add signaling. And latency is around 1-5μs which is fast for networking but slow for memory access patterns.</p>
@@ -154,7 +154,7 @@
 <h2 id="the-latency-thing">the latency thing</h2>
 <p>Local DRAM is ~100ns. CXL local expansion is ~200-300ns. CXL through a switch to a shared pool is ~500-1000ns.</p>
 <p>So pooled CXL is 5-10x slower than local. That's not nothing. For tight loops constantly hitting memory, that seems expensive. The pitch is that it's still way better than swapping to SSD (100μs) and you get more capacity. Which is true.</p>
-<p>I think the mental model is supposed to be tiering. Hot data lives in local DRAM. Warm data lives in CXL pool. Cold data goes to SSD. The kernel or some runtime migrates pages between tiers based on access patterns.</p>
+<p>The mental model is tiering: hot data in local DRAM, warm data in the CXL pool, cold data on SSD, and the kernel (or runtime) migrating pages based on access patterns.</p>
 <p>Linux already has machinery for this. NUMA balancing, DAMON for access pattern detection, tiered memory support that got merged recently. Whether this works well in practice with real workloads, I don't know yet. The theory sounds reasonable but there will be edge cases.</p>
 <h2 id="shared-memory-across-hosts">shared memory across hosts</h2>
 <p>CXL 3.0 talks about multiple hosts accessing the same memory with hardware-maintained cache coherence.</p>

@@ -115,7 +115,7 @@
     <header>
         <h1>Context Switches</h1>
         <div class="post-meta">
-            <time datetime="2025-12-01">01 Dec 2025</time>
+            <time datetime="2025-04-03">03 Apr 2025</time>
             
             <span>What context switches are, why we need them, and what they cost.</span>
              
@@ -131,10 +131,9 @@
             
         </div>
     </header>
-     <p>I wanted to write down what I understand about context switches because they keep coming up when I read about performance and scheduling.</p>
-<h2 id="what-is-a-context-switch">what is a context switch</h2>
-<p>A context switch is when the CPU stops running one process (or thread) and starts running another. The OS has to save everything about the current process so it can resume it later, then load everything about the next process so it can start running.</p>
-<p>"Everything" here means: the program counter (where the process was in its code), the register values, the stack pointer, and some other CPU state. This is called the process context.</p>
+     <p>A CPU can only run one thing at a time. When the OS needs to switch from one process to another, it saves everything about the current one and loads everything about the next. That's a context switch.</p>
+<h2 id="what-gets-saved">what gets saved</h2>
+<p>"Everything" means the program counter (where the process was in its code), the register values, the stack pointer, and some other CPU state. This is called the process context.</p>
 <p>The reason we need this is simple: we have more processes than CPUs. On my laptop I might have hundreds of processes but only 8 cores. They all need to run somehow, so they take turns. The OS gives each process a slice of time on a CPU, and when the slice is up (or something else happens), it switches to another process.</p>
 <h2 id="when-do-context-switches-happen">when do context switches happen</h2>
 <p>A few situations:</p>
@@ -153,6 +152,9 @@
 <li>Jump to wherever B left off</li>
 </ol>
 <p>If A and B are threads in the same process, step 3 is simpler because they share the same address space. This is one reason thread switches are cheaper than process switches.</p>
+<blockquote>
+<p>This is the common case, but not always true. With Spectre mitigations like KPTI enabled, the kernel uses separate page tables for user and kernel space. Even a thread switch within the same process pays for the kernel page table switch on entry and exit.</p>
+</blockquote>
 <h2 id="why-context-switches-are-expensive">why context switches are expensive</h2>
 <p>The direct cost isn't that bad. Saving and restoring registers takes maybe hundreds of nanoseconds to a few microseconds. The bigger costs are indirect:</p>
 <p><strong>TLB flush.</strong> The TLB caches virtual-to-physical address translations. If you switch to a process with a different address space, those cached translations are useless (or worse, wrong). The TLB gets flushed and the new process starts cold. Every memory access causes a TLB miss until the cache warms up again.</p>

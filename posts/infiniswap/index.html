@@ -134,7 +134,7 @@
         </div>
     </header>
      <p>I found this paper while reading about memory disaggregation. The idea is simple: when a machine runs out of RAM, page to another machine's unused memory instead of disk.</p>
-<p>What caught my attention is how they did it. No application changes. No core kernel patching. It's a kernel module that hooks into Linux's swap path. Remote RAM becomes the fast tier. Disk is just the fallback.</p>
+<p>What caught my attention is how they did it: it works without application changes or core kernel patches through a kernel module that hooks into Linux's swap path, where remote RAM becomes the fast tier and disk is just the fallback.</p>
 <h2 id="the-problem-they-re-solving">the problem they're solving</h2>
 <p>Production clusters waste a lot of memory. Some machines are memory-starved while others sit idle. The 99th percentile machine uses 2-3× more memory than the median. Over half the cluster's aggregate memory goes unused.</p>
 <p>When apps can't fit their working set in RAM, performance falls off a cliff. VoltDB drops from 95K TPS to 4K TPS. Memcached's tail latency shoots up 21×. Disk is just too slow (like 1000× slower than memory).</p>

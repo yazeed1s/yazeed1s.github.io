@@ -24,7 +24,7 @@
         <id>https://yazeed1s.github.io/posts/bsp/</id>
         
         <content type="html" xml:base="https://yazeed1s.github.io/posts/bsp/">&lt;hr &#x2F;&gt;
-&lt;p&gt;Some time ago, I decided to build my own tiling window manager from scratch. I was working with spatial data structures at work, and BSP trees seemed like a good fit for this kind of problem. And It all sounded like a fun challenge.&lt;&#x2F;p&gt;
+&lt;p&gt;At some point I decided to build my own tiling window manager from scratch. I was working with spatial data structures at work, and BSP trees looked like a good fit for this kind of problem. It also sounded like a fun challenge.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;what-s-a-tiling-window-manager&quot;&gt;What&#x27;s a Tiling Window Manager?&lt;&#x2F;h2&gt;
 &lt;p&gt;A tiling window manager arranges windows so they don&#x27;t overlap. Instead of floating windows on top of each other like macOS or Windows, it splits the screen into sections. You open a window, it goes into a tile. Open another, the screen splits. You don&#x27;t manually position anything.&lt;&#x2F;p&gt;
@@ -86,7 +86,7 @@
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;    bool&lt;&#x2F;span&gt;&lt;span&gt;        is_master&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;}&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
 &lt;p&gt;I include a parent pointer. Some implementations skip it to save memory, but having it makes traversal and sibling access trivial. Worth the extra 8 bytes per node.&lt;&#x2F;p&gt;
-&lt;p&gt;With the structure in place, let&#x27;s look at the core operations: insertion and deletion.&lt;&#x2F;p&gt;
+&lt;p&gt;With the structure in place, the next parts are insertion and deletion.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;insertion&quot;&gt;Insertion&lt;&#x2F;h2&gt;
 &lt;p&gt;When you open a new window, here&#x27;s what happens:&lt;&#x2F;p&gt;
 &lt;ol&gt;
@@ -359,9 +359,9 @@
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;    free_queue&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;q&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;    return&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;&#x2F;h2&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;&lt;h2 id=&quot;wrap-up&quot;&gt;wrap-up&lt;&#x2F;h2&gt;
 &lt;p&gt;BSP trees aren&#x27;t complicated once you see them as just recursive space division. The tree structure matches the visual layout, which makes most operations straightforward. Insertion splits a rectangle, deletion merges back up. Add&#x2F;remove windows, the tree adjusts.&lt;&#x2F;p&gt;
-&lt;p&gt;The full implementation handles more edge cases (floating windows, fullscreen, gaps, borders, multiple monitors), but the core idea is what I described above. If you&#x27;re interested, the code is at &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;yazeed1s&#x2F;zwm&quot;&gt;github.com&#x2F;yazeed1s&#x2F;zwm&lt;&#x2F;a&gt;.&lt;&#x2F;p&gt;
+&lt;p&gt;The full implementation handles more edge cases (floating windows, fullscreen, gaps, borders, multiple monitors), but the core idea is what I described here. Code is here: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;yazeed1s&#x2F;zwm&quot;&gt;github.com&#x2F;yazeed1s&#x2F;zwm&lt;&#x2F;a&gt;.&lt;&#x2F;p&gt;
 </content>
         
     </entry>

@@ -11,27 +11,39 @@
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/bit-flags/</loc>
-        <lastmod>2025-01-21</lastmod>
+        <lastmod>2024-10-01</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/bsp/</loc>
         <lastmod>2024-07-21</lastmod>
     </url>
     <url>
+        <loc>https://yazeed1s.github.io/posts/buffer-pools/</loc>
+        <lastmod>2025-12-02</lastmod>
+    </url>
+    <url>
         <loc>https://yazeed1s.github.io/posts/context-switches/</loc>
-        <lastmod>2025-12-01</lastmod>
+        <lastmod>2025-04-03</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/cxl/</loc>
-        <lastmod>2026-02-05</lastmod>
+        <lastmod>2026-01-27</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/ewmh-icccm/</loc>
-        <lastmod>2024-11-15</lastmod>
+        <lastmod>2024-06-02</lastmod>
+    </url>
+    <url>
+        <loc>https://yazeed1s.github.io/posts/exactly-once/</loc>
+        <lastmod>2025-08-04</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/force-memory-cleanup/</loc>
         <lastmod>2023-12-17</lastmod>
+    </url>
+    <url>
+        <loc>https://yazeed1s.github.io/posts/function-pointers/</loc>
+        <lastmod>2026-01-12</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/infiniswap/</loc>
@@ -39,39 +51,59 @@
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/interrupts-traps/</loc>
-        <lastmod>2025-03-15</lastmod>
+        <lastmod>2025-02-18</lastmod>
+    </url>
+    <url>
+        <loc>https://yazeed1s.github.io/posts/malloc-to-teired/</loc>
+        <lastmod>2026-02-16</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/memory-disaggregation/</loc>
-        <lastmod>2026-01-05</lastmod>
+        <lastmod>2026-02-02</lastmod>
+    </url>
+    <url>
+        <loc>https://yazeed1s.github.io/posts/memory-teiring/</loc>
+        <lastmod>2026-02-12</lastmod>
+    </url>
+    <url>
+        <loc>https://yazeed1s.github.io/posts/mmap-databases/</loc>
+        <lastmod>2025-12-18</lastmod>
+    </url>
+    <url>
+        <loc>https://yazeed1s.github.io/posts/mmap/</loc>
+        <lastmod>2025-11-21</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/multimonitor-wm/</loc>
-        <lastmod>2025-01-05</lastmod>
+        <lastmod>2024-09-01</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/my-monitor-was-dying/</loc>
-        <lastmod>2026-02-01</lastmod>
+        <lastmod>2025-12-12</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/outbox-inbox-patterns/</loc>
-        <lastmod>2025-11-25</lastmod>
+        <lastmod>2025-07-08</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/rdma/</loc>
-        <lastmod>2025-12-28</lastmod>
+        <lastmod>2026-01-16</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/swap-paging/</loc>
-        <lastmod>2025-12-05</lastmod>
+        <lastmod>2025-10-30</lastmod>
+    </url>
+    <url>
+        <loc>https://yazeed1s.github.io/posts/swap-to-tiered/</loc>
+        <lastmod>2026-02-08</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/what-a-process-owns/</loc>
-        <lastmod>2026-02-06</lastmod>
+        <lastmod>2026-01-05</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/x11-wm-basics/</loc>
-        <lastmod>2024-11-20</lastmod>
+        <lastmod>2024-05-08</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/projects/</loc>
@@ -95,6 +127,9 @@
         <loc>https://yazeed1s.github.io/tags/cxl/</loc>
     </url>
     <url>
+        <loc>https://yazeed1s.github.io/tags/databases/</loc>
+    </url>
+    <url>
         <loc>https://yazeed1s.github.io/tags/debugging/</loc>
     </url>
     <url>
@@ -102,6 +137,9 @@
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/event-driven/</loc>
+    </url>
+    <url>
+        <loc>https://yazeed1s.github.io/tags/glibc/</loc>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/hardware/</loc>
@@ -114,6 +152,9 @@
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/memory/</loc>
+    </url>
+    <url>
+        <loc>https://yazeed1s.github.io/tags/messaging/</loc>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/networking/</loc>
@@ -129,6 +170,9 @@
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/patterns/</loc>
+    </url>
+    <url>
+        <loc>https://yazeed1s.github.io/tags/performance/</loc>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/picom/</loc>

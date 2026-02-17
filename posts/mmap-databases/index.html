@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="mmap looks like free I&#x2F;O. It isn&#x27;t." />
+<meta
+    name="keywords"
+    content="yazeed, blog, alharthi, yaz, yazeed1s"
+/>
+<link rel="canonical" href="https://yazeed1s.github.io/posts/mmap-databases/" />
+
+<title>Why Databases Stopped Using mmap | Yazeed&#x27;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
+<meta property="og:title" content="Why Databases Stopped Using mmap | Yazeed&#x27;s Blog" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://yazeed1s.github.io/posts/mmap-databases/" />
+<meta property="og:description" content="mmap looks like free I&#x2F;O. It isn&#x27;t." />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Why Databases Stopped Using mmap" />
+<meta name="twitter:description" content="mmap looks like free I&#x2F;O. It isn&#x27;t." />
+
+    <link rel="icon" href="&#x2F;favicon.ico" />
+    
+    <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
+    <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+
+           
+    
+    
+    
+
+          
+    
+    
+    
+    <style>
+        :root {
+            --nav-basis: 25%;
+            --light-bg: #eae6deff;
+            --light-text: #1a1410;
+            --light-text-muted: #1a1410;
+            --light-accent: #9E4440;
+            --light-accent-hover: #7A3533;
+            --light-code-bg: #e1ded6ff;
+            --light-border: #abaaaaff;
+            --light-bold: #1a1410;
+            --light-italic: #1a1410;
+            --light-headers: #1a1410;
+            --dark-bg: #303132;
+            --dark-text: #bebbb9ff;
+            --dark-text-muted: #d5d2cf;
+            --dark-accent: #e57665;
+            --dark-accent-hover: #888885;
+            --dark-code-bg: #282829;
+            --dark-border: #524f4c;
+            --dark-bold: #d5d2cf;
+            --dark-italic: #d5d2cf;
+            --dark-headers: #d5d2cf;
+        }
+    </style>
+    <meta name="theme-color" id="tc" />
+    <script>
+        (function () {
+            var m = matchMedia("(prefers-color-scheme:dark)"),
+                t = localStorage.theme || (m.matches ? "dark" : "light"),
+                h = document.documentElement,
+                c = document.getElementById("tc");
+            h.className = t;
+            function u() {
+                c.content = getComputedStyle(h).getPropertyValue("--tc");
+            }
+            u();
+            window.T = function () {
+                t = t === "dark" ? "light" : "dark";
+                localStorage.theme = t;
+                h.className = t;
+                u();
+            };
+        })();
+    </script>
+    
+</head>
+
+<body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><symbol id="light" viewBox="0 0 32 32"><rect x="15" y="2" width="2" height="5"/><rect x="21.6675" y="6.8536" width="4.958" height="1.9998" transform="translate(1.5191 19.3744) rotate(-45)"/><rect x="25" y="15" width="5" height="2"/><rect x="23.1466" y="21.6675" width="1.9998" height="4.958" transform="translate(-10.0018 24.1465) rotate(-45)"/><rect x="15" y="25" width="2" height="5"/><rect x="5.3745" y="23.1466" width="4.958" height="1.9998" transform="translate(-14.7739 12.6256) rotate(-45)"/><rect x="2" y="15" width="5" height="2"/><rect x="6.8536" y="5.3745" width="1.9998" height="4.958" transform="translate(-3.253 7.8535) rotate(-45)"/><path d="M16,12a4,4,0,1,1-4,4,4.0045,4.0045,0,0,1,4-4m0-2a6,6,0,1,0,6,6,6,6,0,0,0-6-6Z"/></symbol>
+<symbol id="asleep" viewBox="0 0 32 32"><path d="M13.5025,5.4136A15.0755,15.0755,0,0,0,25.096,23.6082a11.1134,11.1134,0,0,1-7.9749,3.3893c-.1385,0-.2782.0051-.4178,0A11.0944,11.0944,0,0,1,13.5025,5.4136M14.98,3a1.0024,1.0024,0,0,0-.1746.0156A13.0959,13.0959,0,0,0,16.63,28.9973c.1641.006.3282,0,.4909,0a13.0724,13.0724,0,0,0,10.702-5.5556,1.0094,1.0094,0,0,0-.7833-1.5644A13.08,13.08,0,0,1,15.8892,4.38,1.0149,1.0149,0,0,0,14.98,3Z"/></symbol>
+<symbol id="rss" viewBox="0 0 32 32"><path d="M8,18c-3.3,0-6,2.7-6,6s2.7,6,6,6s6-2.7,6-6C14,20.7,11.3,18,8,18z M8,28c-2.2,0-4-1.8-4-4s1.8-4,4-4s4,1.8,4,4C12,26.2,10.2,28,8,28z"/><path d="M30,24h-2C28,13,19,4,8,4V2C20.1,2,30,11.9,30,24z"/><path d="M22,24h-2c0-6.6-5.4-12-12-12v-2C15.7,10,22,16.3,22,24z"/></symbol>
+</svg>
+
+    <header id="site-header">
+        <div>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <nav>
+                <a href="https://yazeed1s.github.io/" >Home</a>
+                <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
+                <a href="https://yazeed1s.github.io/projects/" >Projects</a>
+                <a href="https://yazeed1s.github.io/tags/" >Tags</a>
+                </nav>
+            <a href="#" onclick="
+                        T();
+                        return false;
+                    " class="theme" aria-label="Toggle theme" title="Toggle theme">
+<svg><use href="#light"/></svg>
+<svg><use href="#asleep"/></svg></a>
+        </div>
+    </header>
+    <hr class="site-sep" />
+    <main id="main">
+<article>
+    <header>
+        <h1>Why Databases Stopped Using mmap</h1>
+        <div class="post-meta">
+            <time datetime="2025-12-18">18 Dec 2025</time>
+            
+            <span>mmap looks like free I&#x2F;O. It isn&#x27;t.</span>
+             
+            <span class="post-tags">
+                <span class="post-tags-label">Tags: </span>
+                
+                <a href="https://yazeed1s.github.io/tags/databases">Databases</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/linux">Linux</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/memory">Memory</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/performance">Performance</a>
+            </span>
+            
+        </div>
+    </header>
+     <p>mmap lets you map a file into your address space and access it like memory through pointer dereferences instead of <code>read()</code> calls and user-space buffers. The OS handles paging transparently.</p>
+<p>For a database, this looks perfect at first: map data files, access pages through pointers, let the kernel decide what stays in memory, and skip writing a buffer pool. Several databases tried it, and most backed away from it.</p>
+<h2 id="why-it-s-tempting">why it's tempting</h2>
+<p>A traditional DBMS maintains its own buffer pool. It tracks which pages are in memory, decides what to evict, handles I/O explicitly. That's a lot of code. Thousands of lines just to manage what's cached.</p>
+<p>With mmap you skip all that because the kernel already has a page cache, already tracks access patterns, and already evicts pages under memory pressure, so the question becomes: why duplicate it?</p>
+<p>LMDB does it, MongoDB used to do it, LevelDB did it, MonetDB did it, and SQLite has an mmap mode, so the idea is clearly attractive.</p>
+<h2 id="the-transactional-safety-problem">the transactional safety problem</h2>
+<p>The OS can flush dirty pages to disk whenever it wants. You don't control when.</p>
+<p>If your DBMS modifies a page through the mmap'd region, that change can hit disk before the transaction commits. Crash at the wrong time and your database is inconsistent. You've violated durability, or atomicity, or both.</p>
+<p>A buffer pool doesn't have this problem. Pages live in user-space memory. The DBMS decides when to write them to disk. It writes the WAL first, then the data pages. Control flow is explicit.</p>
+<p>With mmap, you need workarounds. MongoDB's MMAPv1 engine used <code>MAP_PRIVATE</code> to create a copy-on-write workspace. Two copies of the database in memory. SQLite copies pages to user-space buffers before modifying them, which defeats the purpose of mmap. LMDB uses shadow paging, which forces single-writer concurrency.</p>
+<p>All of these are complex. And all of them give back the simplicity that mmap was supposed to provide.</p>
+<h2 id="i-o-stalls-you-can-t-control">I/O stalls you can't control</h2>
+<p>When you access an mmap'd page that's been evicted, you get a page fault. The thread blocks until the OS reads the page from disk.</p>
+<p>You can't do anything about this. There isn't an async page-fault interface to say "I'm going to need this page soon, start loading it." The thread just stops.</p>
+<p>With a buffer pool, you control I/O explicitly. You can use <code>io_uring</code> or <code>libaio</code> for async reads. You can prefetch pages you know you'll need. A B+tree range scan can issue reads for the next few leaf pages ahead of time.</p>
+<p>With mmap, a range scan hits a page fault on every cold page. Sequentially. Each one blocks. You can try <code>madvise(MADV_SEQUENTIAL)</code> but it's a hint, not a guarantee, and it doesn't help for non-sequential access patterns.</p>
+<blockquote>
+<p><code>madvise</code> behavior varies between kernel versions and is not standardized across operating systems. On Linux, <code>MADV_SEQUENTIAL</code> triggers aggressive readahead and drops pages behind, but the readahead window size and eviction behavior are kernel implementation details that can change. Don't rely on specific behavior across versions.</p>
+</blockquote>
+<h2 id="error-handling-gets-weird">error handling gets weird</h2>
+<p>With a buffer pool, error handling is centralized. You read a page, check the checksum, handle I/O errors, all in one place.</p>
+<p>With mmap, pages can be evicted and reloaded transparently. So you'd need to verify checksums on every access, not just the first read. An I/O error during transparent page-in doesn't return an error code. It raises SIGBUS. Your error handling is now a signal handler scattered across the codebase.</p>
+<p>If a page in your buffer gets corrupted, you catch it before writing to disk. With mmap, the OS can flush a corrupted page without asking. Silent data corruption.</p>
+<h2 id="the-performance-collapse">the performance collapse</h2>
+<p>This is the part that surprised me. A CIDR 2022 paper by Crotty, Leis, and Pavlo benchmarked mmap against traditional I/O and the results are bad.</p>
+<p>Random reads on a 2TB dataset with 100GB of page cache (so ~95% of accesses are page faults):</p>
+<ul>
+<li>Traditional I/O with <code>O_DIRECT</code>: stable ~900K reads/sec</li>
+<li>mmap: starts fine, then collapses to near-zero when the page cache fills and eviction kicks in. Recovers to about half the throughput of traditional I/O</li>
+</ul>
+<p>The collapse happens because of TLB shootdowns. When the kernel evicts a page, it has to invalidate the TLB entry on every CPU core that might have it cached. CPUs don't keep TLB entries coherent automatically. The kernel sends inter-processor interrupts—thousands of cycles each. Under heavy eviction, TLB shootdowns hit 2 million per second.</p>
+<p>Sequential scans on 10 NVMe SSDs in RAID 0: mmap gets ~3 GB/s. Traditional I/O gets ~60 GB/s. That's 20x worse. And mmap showed basically no improvement going from 1 SSD to 10. It can't scale with modern storage bandwidth because the bottleneck is in the kernel's page eviction path, not the drives.</p>
+<p>The page eviction itself is another problem. Linux uses a single kswapd thread per NUMA node. Under high I/O pressure it becomes the bottleneck. And the page table is a shared data structure that all threads hit during faults, creating contention.</p>
+<h2 id="the-graveyard">the graveyard</h2>
+<p>The paper tracks which databases tried mmap and what happened:</p>
+<ul>
+<li><strong>MongoDB</strong> deprecated MMAPv1 in 2015, removed it in 2019. Couldn't compress data, too complex to maintain.</li>
+<li><strong>InfluxDB</strong> replaced mmap after severe I/O spikes when databases exceeded a few GB.</li>
+<li><strong>SingleStore</strong> found mmap calls took 10-20ms per query from write lock contention.</li>
+<li><strong>RocksDB</strong> exists partly because LevelDB's mmap usage had performance bottlenecks.</li>
+<li><strong>TileDB, Scylla, VictoriaMetrics</strong> all evaluated mmap during development and rejected it.</li>
+</ul>
+<h2 id="when-mmap-is-fine">when mmap is fine</h2>
+<p>If your entire dataset fits in memory and you're read-only, mmap works: eviction never kicks in, so you avoid TLB shootdowns, and transactional write hazards don't apply. LMDB operates in this sweet spot for some workloads.</p>
+<p>But if your data exceeds memory, or you need writes with ACID guarantees, or you want to use fast storage at full bandwidth, mmap is the wrong tool.</p>
+<h2 id="what-this-really-comes-down-to">what this really comes down to</h2>
+<p>For me this comes down to one thing: the OS page cache is general-purpose, while databases need very specific control. General-purpose is fine for generic workloads, but databases have specific access patterns, durability rules, and error-handling paths that the OS cannot infer.</p>
+<p>It's similar to the tiered memory problem. The OS tries to manage page placement transparently, but transparency breaks down when the application knows something the kernel doesn't. Buffer pool vs mmap is the same tension. Do you trust the OS abstraction, or do you manage things yourself because you know your workload better?</p>
+<h2 id="notes">notes</h2>
+<ul>
+<li>Paper: <a rel="external" href="https://db.cs.cmu.edu/papers/2022/cidr2022-p13-crotty.pdf">Crotty, Leis, Pavlo — "Are You Sure You Want to Use MMAP in Your Database Management System?", CIDR 2022</a></li>
+<li>Andy Pavlo has a lecture on this topic too. Worth watching if you want the full rant.</li>
+<li>TLB shootdowns are also a cost in page migration for tiered memory. Same mechanism, different context.</li>
+<li><code>O_DIRECT</code> bypasses the page cache entirely, which is why buffer pool implementations prefer it. The DBMS manages its own cache.</li>
+<li>PostgreSQL has never used mmap for data access. It has its own buffer pool (shared_buffers). This was the right call.</li>
+</ul>
+  
+</article>
+</main>
+    <hr class="site-sep bottom-sep" />
+    <footer class="s">
+        
+    </footer>
+    
+
+    <script>
+        document.querySelectorAll("article img[srcset]").forEach((i) => {
+            if (i.closest("a")) return;
+            i.style.cursor = "pointer";
+            i.onclick = () => {
+                let d = document.createElement("div"),
+                    s = i.srcset.split(",").pop().trim().split(" ")[0];
+                d.className = "lb";
+                d.innerHTML = '<img src="' + s + '">';
+                document.body.style.overflow = "hidden";
+                d.onclick = () => {
+                    d.remove();
+                    document.body.style.overflow = "";
+                };
+                document.body.appendChild(d);
+            };
+        });
+    </script>
+    
+<button id="scroll-to-top" aria-label="Scroll to top" title="Scroll to top">↑</button>
+<script>
+    (function() {
+        var btn = document.getElementById("scroll-to-top");
+        if (btn) {
+            window.addEventListener("scroll", function() {
+                if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                    btn.classList.add("show");
+                } else {
+                    btn.classList.remove("show");
+                }
+            });
+            btn.addEventListener("click", function() {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        }
+    })();
+</script>
+</body>
+
+</html>
