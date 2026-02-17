@@ -1,6 +1,6 @@
 +++
 title = "EWMH and ICCCM: What a WM Actually Needs to Implement"
-date = 2024-11-15
+date = 2024-06-02
 description = "The two specs that define how X11 window managers communicate with clients."
 [taxonomies]
 tags = ["Linux", "x11", "Window Manager"]
@@ -66,6 +66,7 @@ Apps set these on their windows:
 **`_NET_WM_NAME`** — UTF-8 window title. Prefer over `WM_NAME`.
 
 **`_NET_WM_WINDOW_TYPE`** — what kind of window is this:
+
 - `_NET_WM_WINDOW_TYPE_NORMAL` — regular app window
 - `_NET_WM_WINDOW_TYPE_DOCK` — panels/bars (like polybar)
 - `_NET_WM_WINDOW_TYPE_DIALOG` — dialog windows
@@ -76,6 +77,7 @@ Apps set these on their windows:
 This is how you know to auto-float dialogs or keep docks above other windows.
 
 **`_NET_WM_STATE`** — current window state flags:
+
 - `_NET_WM_STATE_FULLSCREEN` — fullscreen
 - `_NET_WM_STATE_MAXIMIZED_HORZ/VERT` — maximized
 - `_NET_WM_STATE_HIDDEN` — minimized
@@ -108,6 +110,7 @@ Apps send these to the WM to request things:
 For a tiling WM, here's the bare minimum that makes things work:
 
 **Must have:**
+
 - `_NET_SUPPORTED` — advertise what you support
 - `_NET_SUPPORTING_WM_CHECK` — prove you're EWMH compliant
 - `_NET_CLIENT_LIST` — pagers need this
@@ -119,12 +122,14 @@ For a tiling WM, here's the bare minimum that makes things work:
 - `WM_DELETE_WINDOW` — to close windows properly
 
 **Good to have:**
+
 - `_NET_WM_NAME` — for UTF-8 titles
 - `_NET_CLIENT_LIST_STACKING` — for stacking-aware pagers
 - `_NET_DESKTOP_NAMES` — for named workspaces
 - `_NET_WM_DESKTOP` — for moving windows between desktops
 
 **Can skip in tiling WM:**
+
 - `_NET_WM_STATE_MAXIMIZED_*` — tiling windows are already maximized in a sense
 - `_NET_WM_MOVERESIZE` — for interactive resize/move, not really relevant if everything tiles
 

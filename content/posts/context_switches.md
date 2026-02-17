@@ -1,18 +1,16 @@
 +++
 title = "Context Switches"
-date = 2025-12-01
+date = 2025-04-03
 description = "What context switches are, why we need them, and what they cost."
 [taxonomies]
 tags = ["OS", "CPU", "Scheduling"]
 +++
 
-I wanted to write down what I understand about context switches because they keep coming up when I read about performance and scheduling.
+A CPU can only run one thing at a time. When the OS needs to switch from one process to another, it saves everything about the current one and loads everything about the next. That's a context switch.
 
-## what is a context switch
+## what gets saved
 
-A context switch is when the CPU stops running one process (or thread) and starts running another. The OS has to save everything about the current process so it can resume it later, then load everything about the next process so it can start running.
-
-"Everything" here means: the program counter (where the process was in its code), the register values, the stack pointer, and some other CPU state. This is called the process context.
+"Everything" means the program counter (where the process was in its code), the register values, the stack pointer, and some other CPU state. This is called the process context.
 
 The reason we need this is simple: we have more processes than CPUs. On my laptop I might have hundreds of processes but only 8 cores. They all need to run somehow, so they take turns. The OS gives each process a slice of time on a CPU, and when the slice is up (or something else happens), it switches to another process.
 
@@ -40,6 +38,8 @@ When the kernel decides to switch from process A to process B:
 6. Jump to wherever B left off
 
 If A and B are threads in the same process, step 3 is simpler because they share the same address space. This is one reason thread switches are cheaper than process switches.
+
+> This is the common case, but not always true. With Spectre mitigations like KPTI enabled, the kernel uses separate page tables for user and kernel space. Even a thread switch within the same process pays for the kernel page table switch on entry and exit.
 
 ## why context switches are expensive
 

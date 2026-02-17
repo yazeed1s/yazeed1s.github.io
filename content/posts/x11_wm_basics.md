@@ -1,6 +1,6 @@
 +++
 title = "How a Window Manager Talks to X11"
-date = 2024-11-20
+date = 2024-05-08
 description = "XCB event masks, SubstructureRedirect, and how a WM becomes the WM."
 [taxonomies]
 tags = ["Linux", "x11", "Window Manager"]

@@ -8,7 +8,7 @@ tags = ["C", "Spatial Data Structures", "Tiling Window Manager"]
 
 ---
 
-Some time ago, I decided to build my own tiling window manager from scratch. I was working with spatial data structures at work, and BSP trees seemed like a good fit for this kind of problem. And It all sounded like a fun challenge. 
+At some point I decided to build my own tiling window manager from scratch. I was working with spatial data structures at work, and BSP trees looked like a good fit for this kind of problem. It also sounded like a fun challenge.
 
 ---
 
@@ -100,7 +100,7 @@ struct node_t {
 
 I include a parent pointer. Some implementations skip it to save memory, but having it makes traversal and sibling access trivial. Worth the extra 8 bytes per node.
 
-With the structure in place, let's look at the core operations: insertion and deletion.
+With the structure in place, the next parts are insertion and deletion.
 
 ## Insertion
 
@@ -435,8 +435,8 @@ render_tree(node_t *node)
 }
 ```
 
-## Conclusion
+## wrap-up
 
 BSP trees aren't complicated once you see them as just recursive space division. The tree structure matches the visual layout, which makes most operations straightforward. Insertion splits a rectangle, deletion merges back up. Add/remove windows, the tree adjusts.
 
-The full implementation handles more edge cases (floating windows, fullscreen, gaps, borders, multiple monitors), but the core idea is what I described above. If you're interested, the code is at [github.com/yazeed1s/zwm](https://github.com/yazeed1s/zwm).
+The full implementation handles more edge cases (floating windows, fullscreen, gaps, borders, multiple monitors), but the core idea is what I described here. Code is here: [github.com/yazeed1s/zwm](https://github.com/yazeed1s/zwm).

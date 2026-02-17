@@ -1,6 +1,6 @@
 +++
 title = "Swap and Paging: What Actually Happens When Memory Fills Up"
-date = 2025-12-05
+date = 2025-10-30
 description = "How the OS shuffles memory between RAM and disk."
 [taxonomies]
 tags = ["Operating Systems", "Memory", "Linux", "Paging"]
@@ -16,7 +16,7 @@ I kept hitting concepts like "page fault" and "swap" while reading memory disagg
 
 Swap is disk space that acts as overflow for RAM. When physical memory fills up, the kernel moves some data to swap. Later, if that data is needed again, it gets loaded back.
 
-That's sort of it. The complication is in the details.
+That's basically it. The messy part is the details.
 
 ---
 
@@ -34,9 +34,9 @@ When you allocate memory, you get pages. When data moves to disk, it moves as pa
 
 The CPU doesn't know about virtual addresses on its own. There's a **Memory Management Unit (MMU)** that translates virtual addresses to physical ones.
 
-How does it know the mapping? **Page tables**. Data structures the kernel maintains. The MMU walks these to find where a virtual page actually lives (which physical frame, or if it's not in RAM at all).
+How does it know the mapping? Through **page tables**, data structures the kernel maintains that the MMU walks to find where a virtual page actually lives (which physical frame, or if it's not in RAM at all).
 
-Walking page tables on every memory access would be slow. So the MMU has a cache called the **TLB (Translation Lookaside Buffer)**. Recent translations are stored there. Hit the TLB = fast. Miss = pay for the walk.
+Walking page tables on every memory access would be slow, so the MMU keeps a cache called the **TLB (Translation Lookaside Buffer)** where recent translations are stored: a hit is fast, and a miss pays for the walk.
 
 Most accesses hit the TLB. That's what makes virtual memory practical.
 
@@ -60,7 +60,7 @@ Two kinds:
 
 **Minor fault.** Page is already somewhere in memory (page cache, shared mapping). Kernel just fixes the page table. Fast.
 
-**Major fault.** Page has to be read from disk. Slow. Really slow.
+**Major fault.** The page has to be read from disk, which is really slow.
 
 Some faults are expected:
 
@@ -92,7 +92,7 @@ RAM:  [A][E][C][D]
 Swap: [B]
 ```
 
-If B is accessed again? Major fault. Load B. Evict something else. This happens constantly under memory pressure.
+If B is accessed again, you take a major fault, load B, and evict something else; this happens constantly under memory pressure.
 
 ---
 
@@ -108,11 +108,11 @@ Anonymous memory (heap, stack) that's dirty goes to swap. File-backed memory tha
 
 ## why disk access hurts
 
-| Access    | Latency           |
-| --------- | ----------------- |
-| RAM       | ~100 nanoseconds  |
-| SSD       | ~100 microseconds |
-| HDD       | ~10 milliseconds  |
+| Access | Latency           |
+| ------ | ----------------- |
+| RAM    | ~100 nanoseconds  |
+| SSD    | ~100 microseconds |
+| HDD    | ~10 milliseconds  |
 
 SSD is 1,000× slower than RAM. HDD is 100,000× slower.
 
@@ -199,15 +199,17 @@ $ cat /proc/sys/vm/overcommit_memory
 
 Mode 2 is safer but breaks things. Mode 1 is living dangerously.
 
+> Mode 0 isn't blind. The kernel uses heuristics that account for total RAM, swap space, and current usage. It will still refuse obviously absurd allocations. Mode 2 enforces a strict limit based on `overcommit_ratio` (default 50%) of physical RAM plus swap. So "always allow" vs "strict" is more nuanced than it looks.
+
 ---
 
 ## why this matters for remote memory
 
 Main problem: disk is slow. 1,000-100,000× slower than RAM.
 
-Systems like Infiniswap replace swap with network access to remote memory. RDMA gives single-digit microsecond latency. Still slower than local RAM. But 10-1000× faster than disk.
+Systems like Infiniswap replace swap with network access to remote memory; RDMA gives single-digit microsecond latency, which is still slower than local RAM but 10-1000× faster than disk.
 
-Keep the paging model. Replace the slow part. Cliff becomes slope.
+Keep the paging model, replace the slow part, and the performance cliff becomes a slope.
 
 The interesting thing: Linux has a **frontswap** interface. It's a hook that lets you intercept pages before they go to disk. Implement a few callbacks and your module becomes an alternative swap backend. That's how Infiniswap plugs into the kernel. Pages that would go to disk get redirected over the network instead.
 

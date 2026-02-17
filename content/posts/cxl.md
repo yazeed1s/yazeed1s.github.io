@@ -1,12 +1,12 @@
 +++
 title = "CXL: Why Datacenter Memory is Getting a New Tier"
-date = 2026-02-05
+date = 2026-01-27
 description = "CXL creates a memory tier between local DRAM and everything else."
 [taxonomies]
 tags = ["Memory", "CXL", "Hardware"]
 +++
 
-DRAM can be 50% of a server's cost. And most of it sits idle. One machine thrashes while the one next to it uses 30% of its memory. CXL is supposed to fix this.
+DRAM can be half of server cost, and a lot of it still sits idle. One machine thrashes while the one next to it uses 30% of its memory. CXL is trying to fix that mismatch.
 
 ## the problem
 
@@ -22,7 +22,7 @@ CXL is supposed to bridge this gap.
 
 CXL stands for Compute Express Link. It runs on the PCIe physical layer, same cables and slots, but with a different protocol on top.
 
-The interesting thing is it's cache-coherent. The CPU can do normal load/store to CXL-attached memory. No special APIs. No verbs like RDMA. No memory registration. The memory controller just handles it like it's another region of memory. A different NUMA node basically.
+What matters is that it's cache-coherent. The CPU can do normal load/store to CXL-attached memory through the same memory path, without special APIs, RDMA-style verbs, or memory registration. The memory controller treats it like another memory region, basically another NUMA node.
 
 There are three protocols in the spec. CXL.io is basically just PCIe, for device discovery and config, boring stuff. CXL.cache lets devices cache host memory, useful for accelerators. CXL.mem is the interesting one, it lets the host access device-attached memory with load/store.
 
@@ -34,7 +34,7 @@ Normally your CPU's memory controller dictates what DRAM you can use. If it's a 
 
 CXL breaks this because the CXL device has its own memory controller. It can use whatever DRAM it wants. DDR4, DDR5, older cheaper stuff, slower but denser modules. The CPU doesn't care. It just sees CXL memory at some address range.
 
-So you could have local DDR5 for hot data and a CXL card with cheaper DDR4 as a slower tier. Or use high-capacity modules that wouldn't fit your motherboard's timing requirements. From a cost perspective this is interesting. You're not locked into whatever generation your motherboard supports.
+So you could keep local DDR5 for hot data and use a CXL card with cheaper DDR4 as a slower tier, or use high-capacity modules that wouldn't fit your motherboard timing rules. Cost-wise this is nice because you're not locked to whatever generation the motherboard supports.
 
 The tradeoff is latency. CXL adds overhead. But if you're using it for capacity expansion rather than latency-critical paths, maybe that's acceptable.
 
@@ -52,7 +52,7 @@ Local DRAM is ~100ns. CXL local expansion is ~200-300ns. CXL through a switch to
 
 So pooled CXL is 5-10x slower than local. That's not nothing. For tight loops constantly hitting memory, that seems expensive. The pitch is that it's still way better than swapping to SSD (100μs) and you get more capacity. Which is true.
 
-I think the mental model is supposed to be tiering. Hot data lives in local DRAM. Warm data lives in CXL pool. Cold data goes to SSD. The kernel or some runtime migrates pages between tiers based on access patterns.
+The mental model is tiering: hot data in local DRAM, warm data in the CXL pool, cold data on SSD, and the kernel (or runtime) migrating pages based on access patterns.
 
 Linux already has machinery for this. NUMA balancing, DAMON for access pattern detection, tiered memory support that got merged recently. Whether this works well in practice with real workloads, I don't know yet. The theory sounds reasonable but there will be edge cases.
 

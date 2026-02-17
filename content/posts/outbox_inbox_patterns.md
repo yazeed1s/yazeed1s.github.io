@@ -1,14 +1,14 @@
 +++
 title = "Outbox and Inbox Patterns"
-date = 2025-11-25
+date = 2025-07-08
 description = "Why you need transactional outbox and idempotent inbox when building event-driven systems."
 [taxonomies]
 tags = ["Distributed Systems", "Event Driven", "Patterns"]
 +++
 
-I've been working on an event-driven system and ran into a classic problem: how do I make sure that when I save something to my database, the corresponding event actually gets published to the message broker. And on the receiving side, how do I make sure I don't process the same event twice when the broker delivers it multiple times.
+I was working on an event-driven system and hit a classic problem: when I save to the database, how do I make sure the event actually gets published to the broker. And on the consumer side, how do I avoid processing the same event twice when the broker redelivers.
 
-These are the Outbox and Inbox patterns. Not new ideas. But I had to actually implement them to understand why they matter.
+These are the Outbox and Inbox patterns. Not new ideas, but I only really understood them after implementing them.
 
 ## the fundamental problem
 
@@ -126,7 +126,7 @@ You don't get exactly-once. The outbox worker might publish, then crash before m
 Both tables need maintenance:
 
 - **Batch reads.** Don't poll one row at a time. Read 100 or whatever.
-- **Polling interval.** Too fast wastes CPU. Too slow adds latency. We use 500ms.
+- **Polling interval.** If it's too fast it wastes CPU, and if it's too slow it adds latency, so we use 500ms.
 - **Cleanup job.** Delete `SENT`/`PROCESSED` rows older than X days.
 - **Monitoring.** Track how many `PENDING` rows are piling up. Alert if growing.
 - **Failure handling.** After N retries, mark `FAILED`. Maybe route to a dead letter table for manual inspection.

@@ -1,18 +1,19 @@
 +++
 title = "Interrupts, Traps, and the Kernel Boundary"
-date = 2025-03-15
+date = 2025-02-18
 description = "How the CPU switches between user and kernel mode, and what triggers those switches."
 [taxonomies]
 tags = ["OS", "CPU", "Linux"]
 +++
 
-Your app calls a syscall. A packet arrives on the network card. The timer fires. These all interrupt normal execution, but they're not the same thing. The terminology gets confusing because people use interrupt, trap, and exception loosely.
+Your app might call a syscall, a packet might arrive on the network card, or the timer might fire; all of these interrupt normal execution, but they're not the same thing. The terminology gets confusing because people use interrupt, trap, and exception loosely.
 
 ## user space vs kernel space
 
-First the basics. Modern CPUs have privilege levels. On x86 these are called rings. Ring 0 is the most privileged (kernel). Ring 3 is least privileged (user applications).
+First the basics: modern CPUs have privilege levels called rings on x86, where ring 0 is the most privileged (kernel) and ring 3 is least privileged (user applications).
 
 Your application runs in ring 3. It can execute normal instructions, access its own memory, do math. But it cannot:
+
 - Access hardware directly
 - Read/write arbitrary memory addresses
 - Execute privileged instructions (like changing page tables or disabling interrupts)
@@ -21,13 +22,14 @@ The kernel runs in ring 0. It can do all of those things.
 
 When you call `read()` to read from a file, your code can't just talk to the disk controller. It has to ask the kernel. The CPU has to switch from ring 3 to ring 0, do the privileged work, then switch back.
 
-This switch is the kernel boundary. Crossing it has a cost. You save registers, change privilege level, potentially flush caches. This is why syscalls aren't free.
+This switch is the kernel boundary, and crossing it costs you: register save/restore, privilege change, and sometimes cache disruption. That's why syscalls aren't free.
 
 ## interrupts
 
 An interrupt is a signal from hardware that says "stop what you're doing, I need attention."
 
 Examples:
+
 - Keyboard: "a key was pressed"
 - Network card: "a packet arrived"
 - Timer: "your time slice is up"
@@ -36,6 +38,7 @@ Examples:
 Interrupts are asynchronous. They happen whenever the hardware needs attention, regardless of what the CPU is currently doing. You could be in the middle of a for loop and suddenly an interrupt fires.
 
 When an interrupt happens:
+
 1. CPU stops executing current instruction stream
 2. Saves current state (registers, instruction pointer, flags)
 3. Looks up the interrupt handler in the Interrupt Descriptor Table (IDT)
@@ -62,6 +65,7 @@ User code calls read()
 The difference from interrupts: you asked for this. The code executing triggered it. It happens at a specific point in your instruction stream, not randomly.
 
 Other traps/exceptions:
+
 - Page fault — you accessed memory that isn't mapped. Could be a bug, or could be demand paging doing its job.
 - Division by zero — arithmetic error
 - Invalid opcode — tried to execute garbage
@@ -88,6 +92,7 @@ What matters: understand whether the trigger is external (hardware) or internal 
 The CPU needs to know where to jump for each interrupt/exception. This is stored in the IDT, a table in memory. The kernel sets this up at boot.
 
 Each entry has:
+
 - Handler address
 - What privilege level can trigger it
 - Gate type (interrupt gate, trap gate)
@@ -95,6 +100,7 @@ Each entry has:
 For hardware interrupts, the entries point to kernel interrupt handlers. For the syscall trap, it points to the syscall entry point.
 
 When an interrupt fires, the CPU:
+
 1. Uses the interrupt number as an index into IDT
 2. Checks privilege
 3. Switches to ring 0 if needed
@@ -105,6 +111,7 @@ When an interrupt fires, the CPU:
 When a device needs attention, it signals an interrupt request (IRQ). On modern systems this goes through an interrupt controller (APIC).
 
 The kernel has to:
+
 1. Acknowledge the interrupt
 2. Figure out which device caused it
 3. Call the right driver's handler
@@ -113,16 +120,19 @@ The kernel has to:
 Handling needs to be fast because interrupts are disabled (or that IRQ is masked) while you're in the handler. If you take too long, you miss other interrupts.
 
 Linux splits this into top half and bottom half:
+
 - **Top half**: runs in interrupt context, does minimum work, schedules bottom half
 - **Bottom half**: runs later with interrupts enabled, does the real work (softirqs, tasklets, workqueues)
 
 For example, network card interrupt:
+
 - Top half: grab the packet from hardware, queue it, schedule bottom half
 - Bottom half: process the packet up the network stack
 
 ## syscall cost
 
 Crossing the kernel boundary isn't free. You pay for:
+
 - Saving/restoring registers
 - Switching stacks (user stack -> kernel stack)
 - TLB and cache effects
@@ -130,7 +140,8 @@ Crossing the kernel boundary isn't free. You pay for:
 
 On a modern system, a syscall might take a few hundred nanoseconds. Doesn't sound like much, but if you're doing thousands per second, it adds up.
 
-This is why people use:
+That cost is why people use:
+
 - Batching (fewer syscalls, more work per call)
 - io_uring (submit many I/O requests with one syscall)
 - mmap (access files without read() syscalls)

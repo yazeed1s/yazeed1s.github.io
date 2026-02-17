@@ -8,7 +8,7 @@ tags = ["Memory", "RDMA", "Paging", "Linux"]
 
 I found this paper while reading about memory disaggregation. The idea is simple: when a machine runs out of RAM, page to another machine's unused memory instead of disk.
 
-What caught my attention is how they did it. No application changes. No core kernel patching. It's a kernel module that hooks into Linux's swap path. Remote RAM becomes the fast tier. Disk is just the fallback.
+What caught my attention is how they did it: it works without application changes or core kernel patches through a kernel module that hooks into Linux's swap path, where remote RAM becomes the fast tier and disk is just the fallback.
 
 ## the problem they're solving
 

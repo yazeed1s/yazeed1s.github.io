@@ -1,6 +1,6 @@
 +++
 title = "What a Process Really Owns"
-date = 2026-02-06
+date = 2026-01-05
 description = "Breaking down what resources a process actually has and what the kernel tracks for it."
 [taxonomies]
 tags = ["os", "processes", "linux"]
@@ -11,6 +11,7 @@ I wanted to think through what a process actually "owns" because I realized I ha
 ## the short version
 
 A process owns:
+
 - Its own virtual address space
 - File descriptors
 - Signal handlers
@@ -25,6 +26,7 @@ When you fork(), the child gets copies of most of these. When you exec(), most o
 This is the big one. Every process gets its own virtual address space. On a 64-bit system that's a huge range of addresses (48 bits usable on x86-64, so 256 TB of virtual space).
 
 The address space contains:
+
 - **Text segment**: the executable code, usually read-only
 - **Data segment**: initialized global/static variables
 - **BSS**: uninitialized globals (zeroed on startup)
@@ -53,6 +55,7 @@ Each line is a region with its address range, permissions, offset, device, inode
 A process has a table of open file descriptors. These are just small integers (0, 1, 2, 3, ...) that refer to open files, pipes, sockets, devices, whatever.
 
 By convention:
+
 - 0 = stdin
 - 1 = stdout
 - 2 = stderr
@@ -74,6 +77,7 @@ lr-x------ 1 user user 64 Jan  1 00:00 3 -> /proc/12345/fd
 ## credentials and IDs
 
 A process has:
+
 - **PID**: unique process ID
 - **PPID**: parent process ID
 - **UID/GID**: user and group IDs (real, effective, saved)
@@ -84,6 +88,7 @@ The UID/GID stuff is more complicated than I expected. There's the real UID (who
 ## signal handling
 
 A process has a table of signal handlers. Each signal (SIGINT, SIGTERM, SIGSEGV, etc.) can have:
+
 - Default action (terminate, ignore, stop, etc.)
 - A custom handler function
 - Ignored
@@ -93,6 +98,7 @@ Plus there's a signal mask (which signals are currently blocked) and pending sig
 ## resource limits
 
 Every process has limits on things like:
+
 - Maximum file size it can create
 - Number of open files
 - Stack size
@@ -106,6 +112,7 @@ You can see these with `ulimit -a` in bash. The kernel enforces these.
 Here's where it gets a bit confusing. On Linux, threads are really just processes that share stuff. When you create a thread (via clone() with the right flags), the new "thread" shares the address space, file descriptors, signal handlers, etc. with the parent.
 
 So a "process" might have multiple threads, and they all share most of the resources I listed above. But each thread has its own:
+
 - Thread ID
 - Stack
 - Register state
@@ -150,6 +157,7 @@ You can think of it like this: the PCB holds "what resources does this process o
 ## what happens on fork()
 
 When you fork():
+
 - Address space is copied (or copy-on-write, so it's cheap until you modify things)
 - File descriptors are copied (but point to the same file objects)
 - Signal handlers are copied

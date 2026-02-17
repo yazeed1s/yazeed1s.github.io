@@ -1,6 +1,6 @@
 +++
 title = "My monitor was dying"
-date = 2026-02-01
+date = 2025-12-12
 description = "debugging what looked like panel failure, turned out to be a shadow from polybar crossing monitor boundaries."
 [taxonomies]
 tags = ["Linux", "x11", "Picom", "Debugging"]
@@ -24,7 +24,7 @@ So the monitor was fine. This had to be something in my X11 setup.
 
 I tried to think about what was different. I had updated ZWM (my window manager) a few days ago, right around when this started. Everything else was the same: same picom config, same polybar, same everything.
 
-Quick test: rolled back the ZWM changes. Shadow gone. Restored the changes. Shadow back.
+Quick test: when I rolled back the ZWM changes the shadow disappeared, and when I restored them the shadow came back.
 
 So I broke something.
 

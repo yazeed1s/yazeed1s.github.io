@@ -1,6 +1,6 @@
 +++
 title = "Using Bit Flags to Pack Multiple States Efficiently"
-date = 2025-01-21
+date = 2024-10-01
 description = "A simple way to embed multiple boolean conditions in a single integer."
 [taxonomies]
 tags = ["C", "Bit Manipulation", "Systems Programming"]
@@ -8,7 +8,7 @@ tags = ["C", "Bit Manipulation", "Systems Programming"]
 
 ---
 
-Sometimes you need to track multiple related conditions. Using a struct of booleans works, but it gets clunky when checking combinations or passing state around.
+Sometimes you need to track multiple related conditions. A struct of booleans works, but it gets clunky once you start checking combinations or passing state around.
 
 Bit flags offer a simpler pattern: pack everything into a single integer. The real win isn't memory usage, it's composability. You get a single value representing your entire state that you can pass, store, and compare in one go.
 
@@ -211,8 +211,8 @@ The pattern shines when state composition matters (events, options, validation r
 
 ---
 
-## the takeaway
+## where I use this
 
 Bit flags are about composability, not memory. One integer can represent any combination of states. You can pass it, store it, compare it, mask it.
 
-Use them when you're building up state from multiple sources and handling combinations. Use bools when you're not. The choice is about how state flows through your code, not how many bytes it takes.
+Use bit flags when state comes from multiple sources and combinations matter. Use bools when conditions are simple and independent. The real choice is how state moves through your code, not how many bytes it takes.

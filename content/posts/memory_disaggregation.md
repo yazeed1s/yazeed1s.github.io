@@ -1,14 +1,14 @@
 +++
 title = "Memory Disaggregation"
-date = 2026-01-05
+date = 2026-02-02
 description = "What memory disaggregation is and why people are talking about it now."
 [taxonomies]
 tags = ["Memory", "Distributed Systems"]
 +++
 
-I've been reading about memory disaggregation lately and wanted to write down what I understand so far. This is mostly from a VMware Research paper that asks a question I found interesting: why hasn't memory disaggregation happened already?
+Memory is expensive. In some clusters it's half the server cost, and a lot of it sits idle. Over 70% of the time, more than half of aggregate cluster memory is unused while some machines are paging to disk because they ran out.
 
-The idea has been around since the 90s. Intel pushed Rack Scale Architecture in 2013. It didn't take off. The paper argues two things finally align now: the economics are painful enough and the technology exists to actually do something about it.
+Memory disaggregation is the idea: pull memory out of servers, pool it, let machines use what they need. A VMware Research paper I read recently asks why this hasn't happened already. Their answer: the economics were bad but tolerable, and the technology didn't exist. Now both are changing.
 
 ## the basic idea
 
@@ -32,11 +32,11 @@ The pool can even use cheaper denser slower DRAM since it's already the "slow ti
 
 ## what I found interesting
 
-It's not just about capacity. Most remote memory systems like Infiniswap focus on paging to remote RAM. That's useful but limited. CXL promises memory that actually looks like memory: load/store access to a larger pool. With the right fabric features you could map the same bytes into multiple hosts. That's different from shipping pages around.
+This isn't only about capacity. Most remote-memory systems like Infiniswap focus on paging to remote RAM, which helps but stays limited. CXL is aiming for memory that still behaves like memory, with load/store access to a larger pool. With the right fabric features, you can even map the same bytes into multiple hosts, which is very different from shipping pages around.
 
-The OS problems are hard though. The paper is mostly about what's unsolved. Memory allocation at scale. Scheduling with memory locality. Pointer sharing across servers. Failure handling for "optional" memory. Security for hot-swappable pools. These need fundamental rethinking.
+The OS problems are hard though, and the paper mostly focuses on what's still unsolved: memory allocation at scale, scheduling with memory locality, pointer sharing across servers, failure handling for "optional" memory, and security for hot-swappable pools. These all need fundamental rethinking.
 
-The timeline matches what happened with storage disaggregation. Start small with few hosts per pool. Add switches for rack-scale. Push the fabric boundary outward. Whether it ends up being "CXL over something" or something else is open. But the trajectory rhymes with how storage disaggregation went.
+The timeline matches what happened with storage disaggregation: start small with a few hosts per pool, add switches for rack-scale, and then push the fabric boundary outward. Whether it ends up being "CXL over something" or something else is open, but the trajectory rhymes with how storage disaggregation went.
 
 ## where it fits and where it doesn't
 
