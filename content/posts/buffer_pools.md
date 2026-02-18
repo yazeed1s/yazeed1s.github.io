@@ -3,7 +3,7 @@ title = "A Buffer Pool Is Just Paging in User Space"
 date = 2025-12-02
 description = "Database buffer pools reimplement what the OS already does. On purpose."
 [taxonomies]
-tags = ["Databases", "Memory", "OS", "Performance"]
+tags = ["databases", "memory", "OS"]
 +++
 
 A database buffer pool manages fixed-size pages in memory, decides which ones to keep and which to evict, tracks dirty pages, and writes them back to disk on its own schedule.

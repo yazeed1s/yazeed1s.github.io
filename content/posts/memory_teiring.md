@@ -3,7 +3,7 @@ title = "Tiered Memory"
 date = 2026-02-12
 description = "Understanding tiered memory from an OS and systems perspective"
 [taxonomies]
-tags = ["Memory", "Hardware", "Performance"]
+tags = ["memory", "hardware", "performance"]
 +++
 
 The OS always assumed memory is uniform. Every page frame is the same speed, same cost, same latency. With CXL and tiered memory that assumption breaks. You now have fast DRAM and slower memory in the same machine.

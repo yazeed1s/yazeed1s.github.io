@@ -3,7 +3,7 @@ title = "Interrupts, Traps, and the Kernel Boundary"
 date = 2025-02-18
 description = "How the CPU switches between user and kernel mode, and what triggers those switches."
 [taxonomies]
-tags = ["OS", "CPU", "Linux"]
+tags = ["OS", "CPU", "linux"]
 +++
 
 Your app might call a syscall, a packet might arrive on the network card, or the timer might fire; all of these interrupt normal execution, but they're not the same thing. The terminology gets confusing because people use interrupt, trap, and exception loosely.

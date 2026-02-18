@@ -3,7 +3,7 @@ title = "Swap and Paging: What Actually Happens When Memory Fills Up"
 date = 2025-10-30
 description = "How the OS shuffles memory between RAM and disk."
 [taxonomies]
-tags = ["Operating Systems", "Memory", "Linux", "Paging"]
+tags = ["OS", "memory", "paging"]
 +++
 
 I kept hitting concepts like "page fault" and "swap" while reading memory disaggregation papers, so I figured I should actually understand what these mean at a low level before going further.

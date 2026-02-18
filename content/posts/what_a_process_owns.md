@@ -3,7 +3,7 @@ title = "What a Process Owns"
 date = 2025-10-19
 description = "Everything a process has: address space, file descriptors, signals, credentials, and scheduling context."
 [taxonomies]
-tags = ["OS", "Linux", "Processes"]
+tags = ["OS", "linux", "processes"]
 +++
 
 A process isn't just "running code." It's a container that owns a set of resources the kernel manages on its behalf, and understanding what those resources are helps explain why certain operations behave the way they do.

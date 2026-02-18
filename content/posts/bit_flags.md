@@ -3,7 +3,7 @@ title = "Using Bit Flags to Pack Multiple States Efficiently"
 date = 2024-10-01
 description = "A simple way to embed multiple boolean conditions in a single integer."
 [taxonomies]
-tags = ["C", "Bit Manipulation", "Systems Programming"]
+tags = ["C", "bit manipulation", "systems programming"]
 +++
 
 ---

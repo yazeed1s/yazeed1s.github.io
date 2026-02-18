@@ -3,7 +3,7 @@ title = "How Live Streaming Actually Works"
 date = 2025-12-22
 description = "The full pipeline from OBS to your screen, and where it gets expensive."
 [taxonomies]
-tags = ["Streaming", "Video", "Infrastructure", "Networking"]
+tags = ["streaming", "video", "networking"]
 +++
 
 I spent a lot of time thinking about this because of Strimo. Most people look at a Twitch stream and think it's just video going from a camera to their browser, but between the streamer's screen and yours there's encoding, protocol negotiation, transcoding into multiple qualities, segmentation into tiny files, CDN distribution, and adaptive playback. And each step adds latency and cost.

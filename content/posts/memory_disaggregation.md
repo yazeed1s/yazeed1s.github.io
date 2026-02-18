@@ -3,7 +3,7 @@ title = "Memory Disaggregation"
 date = 2026-02-02
 description = "What memory disaggregation is and why people are talking about it now."
 [taxonomies]
-tags = ["Memory", "Distributed Systems"]
+tags = ["memory", "distributed systems"]
 +++
 
 Memory is expensive, and in some clusters it's half the server cost while a lot of it sits idle. Over 70% of the time more than half of aggregate cluster memory is unused, yet some machines are paging to disk because they ran out.

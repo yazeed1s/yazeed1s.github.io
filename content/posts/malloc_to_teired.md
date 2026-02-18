@@ -3,7 +3,7 @@ title = "Should malloc Know About Tiered Memory?"
 date = 2026-02-16
 description = "glibc malloc was designed for uniform DRAM. Tiered memory changes the rules."
 [taxonomies]
-tags = ["OS", "Memory", "Linux", "glibc"]
+tags = ["OS", "memory", "linux"]
 +++
 
 When you call `malloc()`, the allocator gives you a pointer. It doesn't know or care whether the physical page behind it sits in fast local DRAM or slower CXL-attached memory. From user space, memory still looks flat. But it isn't anymore. Machines now have 2–3x latency differences between memory tiers, and the allocator is completely blind to that.

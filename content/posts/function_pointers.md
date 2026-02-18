@@ -3,7 +3,7 @@ title = "Function Pointers as Poor Man's Polymorphism"
 date = 2026-01-12
 description = "How C uses structs of function pointers to get dispatch without inheritance."
 [taxonomies]
-tags = ["C", "Systems Programming", "Patterns"]
+tags = ["C", "systems programming", "patterns"]
 +++
 
 C doesn't have interfaces, virtual methods, or inheritance. But it has function pointers. And a struct of function pointers is basically an interface.

@@ -3,7 +3,7 @@ title = "RDMA: Bypassing the Kernel for Network I/O"
 date = 2026-01-16
 description = "How RDMA bypasses the kernel on the data path."
 [taxonomies]
-tags = ["RDMA", "Networking", "Kernel Bypass", "Systems Programming"]
+tags = ["RDMA", "networking", "systems programming"]
 +++
 
 RDMA lets one machine read and write another machine's memory, the network card handles it, and the remote CPU doesn't even know it happened.

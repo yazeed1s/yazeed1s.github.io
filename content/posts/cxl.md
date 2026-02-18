@@ -3,7 +3,7 @@ title = "CXL: Why Datacenter Memory is Getting a New Tier"
 date = 2026-01-27
 description = "CXL creates a memory tier between local DRAM and everything else."
 [taxonomies]
-tags = ["Memory", "CXL", "Hardware"]
+tags = ["memory", "CXL", "hardware"]
 +++
 
 DRAM can be half of server cost, and a lot of it still sits idle. One machine thrashes while the one next to it uses 30% of its memory. CXL is trying to fix that mismatch.

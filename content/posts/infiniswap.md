@@ -3,7 +3,7 @@ title = "Infiniswap"
 date = 2026-01-18
 description = "How Infiniswap uses RDMA to swap pages to remote memory instead of disk."
 [taxonomies]
-tags = ["Memory", "RDMA", "Paging", "Linux"]
+tags = ["memory", "RDMA", "paging"]
 +++
 
 I found this paper while reading about memory disaggregation. The idea is simple: when a machine runs out of RAM, page to another machine's unused memory instead of disk.

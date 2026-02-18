@@ -3,7 +3,7 @@ title = "My monitor was dying"
 date = 2025-12-12
 description = "debugging what looked like panel failure, turned out to be a shadow from polybar crossing monitor boundaries."
 [taxonomies]
-tags = ["Linux", "x11", "Picom", "Debugging"]
+tags = ["linux", "x11", "debugging"]
 +++
 
 I got a new Dell monitor and a few days in I noticed a dim shadow in the top-left corner. It looked physical. Like backlight bleed or panel uniformity issues. Like I bought a defective unit.

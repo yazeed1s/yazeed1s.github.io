@@ -3,7 +3,7 @@ title = "Multi-Monitor Support in a Tiling WM"
 date = 2024-09-01
 description = "How ZWM handles multiple monitors: linked list of monitors, per-monitor desktops, and hotplug."
 [taxonomies]
-tags = ["Linux", "x11", "Window Manager"]
+tags = ["linux", "x11", "window manager"]
 +++
 
 I figured I should write down how multi-monitor actually works in ZWM.

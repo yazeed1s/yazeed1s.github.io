@@ -3,7 +3,7 @@ title = "Exactly-Once Is a Lie"
 date = 2025-08-04
 description = "What brokers actually give you when they say exactly-once."
 [taxonomies]
-tags = ["Distributed Systems", "Event Driven", "Messaging"]
+tags = ["distributed systems", "event driven", "messaging"]
 +++
 
 Every message broker eventually puts "exactly-once" somewhere in its docs. Kafka has it, Pulsar claims it, NATS JetStream has a version of it, and it sounds like the thing you want: send a message, it arrives once, nobody worries.

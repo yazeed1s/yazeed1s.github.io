@@ -3,7 +3,7 @@ title = "From Swap to Tiered Memory: Same Idea, Different Scale"
 date = 2026-02-08
 description = "Comparing traditional swap with modern tiered memory systems"
 [taxonomies]
-tags = ["Memory", "Linux", "Performance"]
+tags = ["memory", "linux", "performance"]
 +++
 
 Tiered memory is swap. Kind of.

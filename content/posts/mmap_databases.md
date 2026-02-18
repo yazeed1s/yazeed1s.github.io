@@ -3,7 +3,7 @@ title = "Why Databases Stopped Using mmap"
 date = 2025-12-18
 description = "mmap looks like free I/O. It isn't."
 [taxonomies]
-tags = ["Databases", "Linux", "Memory", "Performance"]
+tags = ["databases", "memory", "performance"]
 +++
 
 mmap lets you map a file into your address space and access it like memory through pointer dereferences instead of `read()` calls and user-space buffers. The OS handles paging transparently.

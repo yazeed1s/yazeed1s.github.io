@@ -3,7 +3,7 @@ title = "Context Switches: What Actually Happens"
 date = 2024-11-18
 description = "A context switch is the mechanism that lets the OS multitask."
 [taxonomies]
-tags = ["OS", "CPU", "Linux"]
+tags = ["OS", "CPU", "linux"]
 +++
 
 A context switch is what happens when the OS takes one process off the CPU and puts another one on. It happens constantly, thousands of times per second, and your programs never notice because the whole point is that it looks seamless.

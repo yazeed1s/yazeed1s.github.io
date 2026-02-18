@@ -3,7 +3,7 @@ title = "mmap: Mapping Files into Memory"
 date = 2024-11-08
 description = "How mmap works, when to use it, and when not to."
 [taxonomies]
-tags = ["Linux", "Memory", "Systems Programming"]
+tags = ["linux", "memory", "systems programming"]
 +++
 
 `mmap` maps a file (or anonymous memory) into your process's address space so you can access it through pointers instead of read/write syscalls. The kernel sets up page table entries pointing to the file's pages, and when you access a mapped region the data appears in memory through the standard page fault mechanism.

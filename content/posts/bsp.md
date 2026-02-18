@@ -3,7 +3,7 @@ title = "BSP Trees for Tiling Window Management"
 date = 2024-07-21
 description = "How I use binary space partitioning to manage windows in my X11 window manager."
 [taxonomies]
-tags = ["C", "Spatial Data Structures", "Tiling Window Manager"]
+tags = ["C", "spatial data structures", "tiling window manager"]
 +++
 
 ---

@@ -3,7 +3,7 @@ title = "Outbox and Inbox Patterns"
 date = 2025-07-08
 description = "Why you need transactional outbox and idempotent inbox when building event-driven systems."
 [taxonomies]
-tags = ["Distributed Systems", "Event Driven", "Patterns"]
+tags = ["distributed systems", "event driven", "patterns"]
 +++
 
 I was working on an event-driven system and hit a classic problem: when I save to the database, how do I make sure the event actually gets published to the broker, and on the consumer side, how do I avoid processing the same event twice when the broker redelivers.

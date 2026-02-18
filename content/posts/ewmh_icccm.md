@@ -3,7 +3,7 @@ title = "EWMH and ICCCM: What a WM Actually Needs to Implement"
 date = 2024-06-02
 description = "The two specs that define how X11 window managers communicate with clients."
 [taxonomies]
-tags = ["Linux", "x11", "Window Manager"]
+tags = ["linux", "x11", "window manager"]
 +++
 
 EWMH and ICCCM are the two specs that define how window managers and clients talk to each other through properties on windows, atoms, and message formats. Without them every app would need to know specifically how to talk to your particular WM, and with them apps can just assume standard behavior. Every WM implements some subset of these, and here's what actually matters.

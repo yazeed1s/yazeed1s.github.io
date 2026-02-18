@@ -3,7 +3,7 @@ title = "Signal Handlers for Cleanup in C Programs"
 date = 2023-12-17
 description = "When your program crashes, how do you run cleanup code?"
 [taxonomies]
-tags = ["C", "Signals", "Linux"]
+tags = ["C", "signals", "linux"]
 +++
 
 In C, you put cleanup code at the end of `main()` to free your allocations, close your files, and so on. But what if your program crashes before reaching that code?

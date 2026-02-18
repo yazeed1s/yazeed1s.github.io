@@ -3,7 +3,7 @@ title = "How a Window Manager Talks to X11"
 date = 2024-05-08
 description = "XCB event masks, SubstructureRedirect, and how a WM becomes the WM."
 [taxonomies]
-tags = ["Linux", "x11", "Window Manager"]
+tags = ["linux", "x11", "window manager"]
 +++
 
 When I started writing ZWM I didn't understand how a window manager intercepts window creation, because applications create windows by talking to the X server directly so how does the WM get in the middle? turns out the WM is just another X client, but it asks the server to redirect certain events to it instead of handling them normally.
