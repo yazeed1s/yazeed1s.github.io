@@ -148,7 +148,7 @@ And the `self` pointer pattern is verbose. Every method takes a `self` parameter
 
 ## it's still worth it
 
-Despite the rough edges, the pattern is useful. It gives you the main thing polymorphism provides: code that operates on behavior rather than concrete types. The VFS layer works because it dispatches through function pointers. Device drivers work the same way. My event loop works the same way.
+The pattern is still useful though. It gives you the main thing polymorphism provides: code that operates on behavior rather than concrete types. The VFS layer works because it dispatches through function pointers. Device drivers work the same way. My event loop works the same way.
 
 You don't get compile-time safety. But you get a clean separation between interface and implementation in a language that has no keyword for either.
 

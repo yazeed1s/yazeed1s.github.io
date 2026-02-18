@@ -260,7 +260,6 @@
 <p>For SIGSEGV/SIGABRT, I mostly just let it crash and let the OS clean up. Unless there's shared state that needs explicit cleanup, adding a handler for crash signals just complicates things without much benefit.</p>
 <h2 id="notes">notes</h2>
 <ul>
-<li>The Summary section from the original was integrated into the prose above</li>
 <li><code>signal()</code> behavior varies by platform, <code>sigaction()</code> is more portable and predictable</li>
 <li>You can use <code>SA_RESETHAND</code> flag with sigaction to restore default behavior after catching a crash signal once</li>
 </ul>

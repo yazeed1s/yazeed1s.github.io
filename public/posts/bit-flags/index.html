@@ -263,7 +263,7 @@
 <hr />
 <h2 id="why-not-just-use-bools">why not just use bools</h2>
 <p>A <code>bool</code> in C is typically 1 byte, not 1 bit, and arrays and structs of bools don't pack bits either since each element takes a full byte. Memory savings only matter when you have many flags (5+).</p>
-<p>But memory isn't the point, the point is that bit flags compose. A single integer can represent "connected AND layout changed" or "disconnected OR error"—and you can pass that combined state to a function, store it, or compare it in one operation.</p>
+<p>But memory isn't the point, the point is that bit flags compose. A single integer can represent "connected AND layout changed" or "disconnected OR error" and you can pass that combined state to a function, store it, or compare it in one operation.</p>
 <hr />
 <h2 id="when-bit-flags-hurt">when bit flags hurt</h2>
 <p>Bit flags aren't always better:</p>
@@ -279,10 +279,6 @@
 </li>
 </ul>
 <p>The pattern shines when state composition matters (events, options, validation results, capability bits). It's worse when conditions are truly independent and never need to travel together.</p>
-<hr />
-<h2 id="where-i-use-this">where I use this</h2>
-<p>Bit flags are about composability, not memory, because one integer can represent any combination of states and you can pass it, store it, compare it, mask it.</p>
-<p>Use bit flags when state comes from multiple sources and combinations matter, and use bools when conditions are simple and independent. The real choice is how state moves through your code, not how many bytes it takes.</p>
   
 </article>
 </main>

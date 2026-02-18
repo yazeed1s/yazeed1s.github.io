@@ -244,7 +244,7 @@
 <pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="plain"><span class="giallo-l"><span>After managing (non-reparenting):</span></span>
 <span class="giallo-l"><span>  root -&gt; client</span></span></code></pre>
 <p>No frame. If you want borders, you manipulate the client window's X11 border directly (<code>xcb_configure_window</code> with <code>XCB_CONFIG_WINDOW_BORDER_WIDTH</code>). dwm does this. ZWM does this too.</p>
-<p>The tradeoff is that reparenting gives you more flexibility for decorations but adds complexity: you have to handle ReparentNotify events, manage the frame lifecycle, and deal with apps that don't like being reparented. Non-reparenting is simpler but you're limited to what X11 window borders can do (basically solid color rectangles).</p>
+<p>Reparenting gives you more flexibility for decorations but adds complexity: you have to handle ReparentNotify events, manage the frame lifecycle, and deal with apps that don't like being reparented. Non-reparenting is simpler but you're limited to what X11 window borders can do (basically solid color rectangles).</p>
 <p>Some apps behave differently under reparenting WMs. Java apps ARE THE WORST, they historically had issues with reparenting and they still do and expect things to work a certain way and a certain order. Chrome/Electron apps sometimes need hints. Most modern apps handle it fine though.</p>
 <h2 id="what-i-learned">what I learned</h2>
 <p>The WM isn't special at all, it's just a client that grabbed redirect on root first. The X server doesn't even know what a "window manager" is, it just follows the rules about who gets which events.</p>

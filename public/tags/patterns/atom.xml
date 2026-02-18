@@ -118,7 +118,7 @@
 &lt;p&gt;Function signature mismatches are silent if you&#x27;re not careful. If &lt;code&gt;ops-&amp;gt;read&lt;&#x2F;code&gt; expects three arguments and you assign a function that takes two, some compilers will warn, some won&#x27;t. Depends on how you typedef things.&lt;&#x2F;p&gt;
 &lt;p&gt;And the &lt;code&gt;self&lt;&#x2F;code&gt; pointer pattern is verbose. Every method takes a &lt;code&gt;self&lt;&#x2F;code&gt; parameter. Every call passes it. C++ hides this with &lt;code&gt;this&lt;&#x2F;code&gt;. C makes you type it every time.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;it-s-still-worth-it&quot;&gt;it&#x27;s still worth it&lt;&#x2F;h2&gt;
-&lt;p&gt;Despite the rough edges, the pattern is useful. It gives you the main thing polymorphism provides: code that operates on behavior rather than concrete types. The VFS layer works because it dispatches through function pointers. Device drivers work the same way. My event loop works the same way.&lt;&#x2F;p&gt;
+&lt;p&gt;The pattern is still useful though. It gives you the main thing polymorphism provides: code that operates on behavior rather than concrete types. The VFS layer works because it dispatches through function pointers. Device drivers work the same way. My event loop works the same way.&lt;&#x2F;p&gt;
 &lt;p&gt;You don&#x27;t get compile-time safety. But you get a clean separation between interface and implementation in a language that has no keyword for either.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
 &lt;ul&gt;

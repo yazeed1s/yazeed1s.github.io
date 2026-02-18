@@ -28,7 +28,7 @@ So Kafka doesn't deliver messages exactly once. It uses at-least-once delivery w
 
 ## delivery vs processing
 
-This distinction matters. **Exactly-once delivery** would mean the network guarantees each message arrives once, and no system does this because the network is unreliable: acks get lost, connections drop, machines crash between receiving and acknowledging.
+These are different things. **Exactly-once delivery** would mean the network guarantees each message arrives once, and no system does this because the network is unreliable: acks get lost, connections drop, machines crash between receiving and acknowledging.
 
 **Exactly-once processing** means the side effects of handling a message happen once, even if the message itself arrives more than once. That's achievable, but it requires work: deduplication, idempotency, transactions. It's not a delivery guarantee, it's an application-level property.
 

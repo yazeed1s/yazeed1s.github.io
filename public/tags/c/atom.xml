@@ -118,7 +118,7 @@
 &lt;p&gt;Function signature mismatches are silent if you&#x27;re not careful. If &lt;code&gt;ops-&amp;gt;read&lt;&#x2F;code&gt; expects three arguments and you assign a function that takes two, some compilers will warn, some won&#x27;t. Depends on how you typedef things.&lt;&#x2F;p&gt;
 &lt;p&gt;And the &lt;code&gt;self&lt;&#x2F;code&gt; pointer pattern is verbose. Every method takes a &lt;code&gt;self&lt;&#x2F;code&gt; parameter. Every call passes it. C++ hides this with &lt;code&gt;this&lt;&#x2F;code&gt;. C makes you type it every time.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;it-s-still-worth-it&quot;&gt;it&#x27;s still worth it&lt;&#x2F;h2&gt;
-&lt;p&gt;Despite the rough edges, the pattern is useful. It gives you the main thing polymorphism provides: code that operates on behavior rather than concrete types. The VFS layer works because it dispatches through function pointers. Device drivers work the same way. My event loop works the same way.&lt;&#x2F;p&gt;
+&lt;p&gt;The pattern is still useful though. It gives you the main thing polymorphism provides: code that operates on behavior rather than concrete types. The VFS layer works because it dispatches through function pointers. Device drivers work the same way. My event loop works the same way.&lt;&#x2F;p&gt;
 &lt;p&gt;You don&#x27;t get compile-time safety. But you get a clean separation between interface and implementation in a language that has no keyword for either.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
 &lt;ul&gt;
@@ -278,7 +278,7 @@
 &lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;why-not-just-use-bools&quot;&gt;why not just use bools&lt;&#x2F;h2&gt;
 &lt;p&gt;A &lt;code&gt;bool&lt;&#x2F;code&gt; in C is typically 1 byte, not 1 bit, and arrays and structs of bools don&#x27;t pack bits either since each element takes a full byte. Memory savings only matter when you have many flags (5+).&lt;&#x2F;p&gt;
-&lt;p&gt;But memory isn&#x27;t the point, the point is that bit flags compose. A single integer can represent &quot;connected AND layout changed&quot; or &quot;disconnected OR error&quot;—and you can pass that combined state to a function, store it, or compare it in one operation.&lt;&#x2F;p&gt;
+&lt;p&gt;But memory isn&#x27;t the point, the point is that bit flags compose. A single integer can represent &quot;connected AND layout changed&quot; or &quot;disconnected OR error&quot; and you can pass that combined state to a function, store it, or compare it in one operation.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;when-bit-flags-hurt&quot;&gt;when bit flags hurt&lt;&#x2F;h2&gt;
 &lt;p&gt;Bit flags aren&#x27;t always better:&lt;&#x2F;p&gt;
@@ -294,10 +294,6 @@
 &lt;&#x2F;li&gt;
 &lt;&#x2F;ul&gt;
 &lt;p&gt;The pattern shines when state composition matters (events, options, validation results, capability bits). It&#x27;s worse when conditions are truly independent and never need to travel together.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;where-i-use-this&quot;&gt;where I use this&lt;&#x2F;h2&gt;
-&lt;p&gt;Bit flags are about composability, not memory, because one integer can represent any combination of states and you can pass it, store it, compare it, mask it.&lt;&#x2F;p&gt;
-&lt;p&gt;Use bit flags when state comes from multiple sources and combinations matter, and use bools when conditions are simple and independent. The real choice is how state moves through your code, not how many bytes it takes.&lt;&#x2F;p&gt;
 </content>
         
     </entry>
@@ -499,7 +495,7 @@
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                   r6)     r7)    r4)      r5)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
 &lt;p&gt;Each internal node&#x27;s rectangle contains its children. The tree structure directly mirrors the screen layout.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;deletion&quot;&gt;Deletion&lt;&#x2F;h2&gt;
-&lt;p&gt;Insertion is the easy part, deletion is where tree operations get interesting. When you close a window the node gets removed, but you can&#x27;t just delete it because the tree needs to stay valid. The key insight is that when you remove a leaf, its parent (an internal node) now has only one child, and that&#x27;s not valid, so the sibling &quot;takes over&quot; the parent&#x27;s position.&lt;&#x2F;p&gt;
+&lt;p&gt;Insertion is the easy part, deletion is where tree operations get interesting. When you close a window the node gets removed, but you can&#x27;t just delete it because the tree needs to stay valid. The thing is, when you remove a leaf, its parent (an internal node) now has only one child, and that&#x27;s not valid, so the sibling &quot;takes over&quot; the parent&#x27;s position.&lt;&#x2F;p&gt;
 &lt;h3 id=&quot;case-1-simple-deletion-sibling-is-external-parent-is-root&quot;&gt;Case 1: Simple deletion (sibling is external, parent is root)&lt;&#x2F;h3&gt;
 &lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    Before:                             After:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    +-----------------------+           +-----------------------+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
@@ -799,7 +795,6 @@
 &lt;p&gt;For SIGSEGV&#x2F;SIGABRT, I mostly just let it crash and let the OS clean up. Unless there&#x27;s shared state that needs explicit cleanup, adding a handler for crash signals just complicates things without much benefit.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
 &lt;ul&gt;
-&lt;li&gt;The Summary section from the original was integrated into the prose above&lt;&#x2F;li&gt;
 &lt;li&gt;&lt;code&gt;signal()&lt;&#x2F;code&gt; behavior varies by platform, &lt;code&gt;sigaction()&lt;&#x2F;code&gt; is more portable and predictable&lt;&#x2F;li&gt;
 &lt;li&gt;You can use &lt;code&gt;SA_RESETHAND&lt;&#x2F;code&gt; flag with sigaction to restore default behavior after catching a crash signal once&lt;&#x2F;li&gt;
 &lt;&#x2F;ul&gt;

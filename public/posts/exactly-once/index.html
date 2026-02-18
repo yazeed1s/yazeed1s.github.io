@@ -142,7 +142,7 @@
 <p><strong>Transactions.</strong> Kafka lets you wrap a consume-process-produce cycle in a transaction: read from input topic, do work, write to output topic, commit offsets, all atomically. If anything fails, everything rolls back.</p>
 <p>So Kafka doesn't deliver messages exactly once. It uses at-least-once delivery with deduplication and atomic commits to make the <em>processing</em> behave as if messages were delivered once, but the duplicates still happen at the transport layer and the broker just hides them.</p>
 <h2 id="delivery-vs-processing">delivery vs processing</h2>
-<p>This distinction matters. <strong>Exactly-once delivery</strong> would mean the network guarantees each message arrives once, and no system does this because the network is unreliable: acks get lost, connections drop, machines crash between receiving and acknowledging.</p>
+<p>These are different things. <strong>Exactly-once delivery</strong> would mean the network guarantees each message arrives once, and no system does this because the network is unreliable: acks get lost, connections drop, machines crash between receiving and acknowledging.</p>
 <p><strong>Exactly-once processing</strong> means the side effects of handling a message happen once, even if the message itself arrives more than once. That's achievable, but it requires work: deduplication, idempotency, transactions. It's not a delivery guarantee, it's an application-level property.</p>
 <p>When brokers say "exactly-once" they mean the second thing, and they don't say that clearly.</p>
 <h2 id="the-broker-can-t-save-you-everywhere">the broker can't save you everywhere</h2>

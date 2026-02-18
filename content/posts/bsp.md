@@ -250,7 +250,7 @@ Each internal node's rectangle contains its children. The tree structure directl
 
 ## Deletion
 
-Insertion is the easy part, deletion is where tree operations get interesting. When you close a window the node gets removed, but you can't just delete it because the tree needs to stay valid. The key insight is that when you remove a leaf, its parent (an internal node) now has only one child, and that's not valid, so the sibling "takes over" the parent's position.
+Insertion is the easy part, deletion is where tree operations get interesting. When you close a window the node gets removed, but you can't just delete it because the tree needs to stay valid. The thing is, when you remove a leaf, its parent (an internal node) now has only one child, and that's not valid, so the sibling "takes over" the parent's position.
 
 ### Case 1: Simple deletion (sibling is external, parent is root)
 

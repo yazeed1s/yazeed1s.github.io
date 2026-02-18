@@ -313,7 +313,7 @@
 <span class="giallo-l"><span>                                   r6)     r7)    r4)      r5)</span></span></code></pre>
 <p>Each internal node's rectangle contains its children. The tree structure directly mirrors the screen layout.</p>
 <h2 id="deletion">Deletion</h2>
-<p>Insertion is the easy part, deletion is where tree operations get interesting. When you close a window the node gets removed, but you can't just delete it because the tree needs to stay valid. The key insight is that when you remove a leaf, its parent (an internal node) now has only one child, and that's not valid, so the sibling "takes over" the parent's position.</p>
+<p>Insertion is the easy part, deletion is where tree operations get interesting. When you close a window the node gets removed, but you can't just delete it because the tree needs to stay valid. The thing is, when you remove a leaf, its parent (an internal node) now has only one child, and that's not valid, so the sibling "takes over" the parent's position.</p>
 <h3 id="case-1-simple-deletion-sibling-is-external-parent-is-root">Case 1: Simple deletion (sibling is external, parent is root)</h3>
 <pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="plain"><span class="giallo-l"><span>    Before:                             After:</span></span>
 <span class="giallo-l"><span>    +-----------------------+           +-----------------------+</span></span>

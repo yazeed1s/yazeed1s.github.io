@@ -49,7 +49,7 @@ This is one reason why multi-threaded servers outperform multi-process ones for 
 
 ## voluntary vs involuntary
 
-A **voluntary** context switch happens when a process can't continue: it calls `read()` and waits for disk, calls `sleep()`, waits on a mutex, or does any blocking operation. The process essentially says "I have nothing to do, give the CPU to someone else."
+A **voluntary** context switch happens when a process can't continue: it calls `read()` and waits for disk, calls `sleep()`, waits on a mutex, or does any blocking operation. The process is saying "I have nothing to do, give the CPU to someone else."
 
 An **involuntary** context switch happens when the scheduler preempts the process because its time slice expired (the timer interrupt fires and the scheduler decides it's someone else's turn), a higher-priority process becomes runnable, or load balancing moves the process to another core. You can see both types in `/proc/<pid>/status` under `voluntary_ctxt_switches` and `nonvoluntary_ctxt_switches`.
 

@@ -155,7 +155,7 @@
 &lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;why-not-just-use-bools&quot;&gt;why not just use bools&lt;&#x2F;h2&gt;
 &lt;p&gt;A &lt;code&gt;bool&lt;&#x2F;code&gt; in C is typically 1 byte, not 1 bit, and arrays and structs of bools don&#x27;t pack bits either since each element takes a full byte. Memory savings only matter when you have many flags (5+).&lt;&#x2F;p&gt;
-&lt;p&gt;But memory isn&#x27;t the point, the point is that bit flags compose. A single integer can represent &quot;connected AND layout changed&quot; or &quot;disconnected OR error&quot;—and you can pass that combined state to a function, store it, or compare it in one operation.&lt;&#x2F;p&gt;
+&lt;p&gt;But memory isn&#x27;t the point, the point is that bit flags compose. A single integer can represent &quot;connected AND layout changed&quot; or &quot;disconnected OR error&quot; and you can pass that combined state to a function, store it, or compare it in one operation.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;when-bit-flags-hurt&quot;&gt;when bit flags hurt&lt;&#x2F;h2&gt;
 &lt;p&gt;Bit flags aren&#x27;t always better:&lt;&#x2F;p&gt;
@@ -171,10 +171,6 @@
 &lt;&#x2F;li&gt;
 &lt;&#x2F;ul&gt;
 &lt;p&gt;The pattern shines when state composition matters (events, options, validation results, capability bits). It&#x27;s worse when conditions are truly independent and never need to travel together.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;where-i-use-this&quot;&gt;where I use this&lt;&#x2F;h2&gt;
-&lt;p&gt;Bit flags are about composability, not memory, because one integer can represent any combination of states and you can pass it, store it, compare it, mask it.&lt;&#x2F;p&gt;
-&lt;p&gt;Use bit flags when state comes from multiple sources and combinations matter, and use bools when conditions are simple and independent. The real choice is how state moves through your code, not how many bytes it takes.&lt;&#x2F;p&gt;
 </content>
         
     </entry>

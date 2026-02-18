@@ -175,6 +175,5 @@ For SIGSEGV/SIGABRT, I mostly just let it crash and let the OS clean up. Unless 
 
 ## notes
 
-- The Summary section from the original was integrated into the prose above
 - `signal()` behavior varies by platform, `sigaction()` is more portable and predictable
 - You can use `SA_RESETHAND` flag with sigaction to restore default behavior after catching a crash signal once
