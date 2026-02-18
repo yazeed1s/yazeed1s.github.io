@@ -100,8 +100,6 @@ Disaggregation means memory can be separated from compute and accessed over a fa
 
 At that point memory management isn't just a local kernel concern. It interacts with cluster design, resource allocation, and even scheduling across machines. The boundary between OS and infrastructure gets thinner.
 
----
-
 ## notes / random thoughts
 
 - Page abstraction worked well when memory was uniform. Now it feels slightly strained.

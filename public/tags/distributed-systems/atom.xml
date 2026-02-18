@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <title>Yazeed&#x27;s Blog - Distributed Systems</title>
+    <subtitle>Notes on systems and low-level software.</subtitle>
+    <link rel="self" type="application/atom+xml" href="https://yazeed1s.github.io/tags/distributed-systems/atom.xml"/>
+    <link rel="alternate" type="text/html" href="https://yazeed1s.github.io"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2026-02-02T00:00:00+00:00</updated>
+    <id>https://yazeed1s.github.io/tags/distributed-systems/atom.xml</id>
+    <entry xml:lang="en">
+        <title>Memory Disaggregation</title>
+        <published>2026-02-02T00:00:00+00:00</published>
+        <updated>2026-02-02T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/memory-disaggregation/"/>
+        <id>https://yazeed1s.github.io/posts/memory-disaggregation/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/memory-disaggregation/">&lt;p&gt;Memory is expensive, and in some clusters it&#x27;s half the server cost while a lot of it sits idle. Over 70% of the time more than half of aggregate cluster memory is unused, yet some machines are paging to disk because they ran out.&lt;&#x2F;p&gt;
+&lt;p&gt;Memory disaggregation is the idea that you pull memory out of servers, pool it, and let machines use what they need. A VMware Research paper I read recently asks why this hasn&#x27;t happened already, and their answer is that the economics were bad but tolerable and the technology didn&#x27;t exist, but now both are changing.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-basic-idea&quot;&gt;the basic idea&lt;&#x2F;h2&gt;
+&lt;p&gt;Traditional servers bundle CPU, memory, and storage into one box. Need more RAM? Buy a bigger box or add DIMMs if you haven&#x27;t hit the motherboard limit. Don&#x27;t use all your RAM? It sits idle and you can&#x27;t share it.&lt;&#x2F;p&gt;
+&lt;p&gt;Memory disaggregation pulls memory out into separate pools that multiple servers can access, similar to how we went from local storage to SAN&#x2F;NAS but for memory instead.&lt;&#x2F;p&gt;
+&lt;p&gt;This gives you two things: capacity expansion where a server can use more memory than it physically contains by reaching into the pool (similar to what Infiniswap does but with hardware support instead of software paging tricks), and data sharing where pool memory can be mapped into multiple hosts at once so they can load&#x2F;store to the same bytes without serializing everything into messages. You still need software to handle ownership and synchronization and failures, but the access itself looks like memory, not network messages.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;why-is-this-coming-up-now&quot;&gt;why is this coming up now&lt;&#x2F;h2&gt;
+&lt;p&gt;The economics are getting painful because memory is like 50% of server cost and 37% of TCO, three companies control DRAM production, and demand is exploding from data centers and ML and in-memory databases. And here&#x27;s the frustrating part: clusters waste a lot of memory where over 70% of the time more than half of aggregate memory sits unused while some machines are paging to disk because they ran out.&lt;&#x2F;p&gt;
+&lt;p&gt;The technology also finally exists since RDMA gives single-digit microsecond latencies, but the bigger thing is CXL which gives you cache-coherent load&#x2F;store access over PCIe, plus there&#x27;s a roadmap toward switches and pooling and shared memory fabrics. The pool can even use cheaper denser slower DRAM since it&#x27;s already the &quot;slow tier&quot; compared to local DIMMs anyway.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-i-found-interesting&quot;&gt;what I found interesting&lt;&#x2F;h2&gt;
+&lt;p&gt;This isn&#x27;t only about capacity because most remote-memory systems like Infiniswap focus on paging to remote RAM, which helps but stays limited. CXL is aiming for memory that still behaves like memory with load&#x2F;store access to a larger pool, and with the right fabric features you can even map the same bytes into multiple hosts, which is very different from shipping pages around.&lt;&#x2F;p&gt;
+&lt;p&gt;The OS problems are hard though, and the paper mostly focuses on what&#x27;s still unsolved: memory allocation at scale, scheduling with memory locality, pointer sharing across servers, failure handling for &quot;optional&quot; memory, and security for hot-swappable pools, all of which need fundamental rethinking.&lt;&#x2F;p&gt;
+&lt;p&gt;The timeline matches what happened with storage disaggregation: start small with a few hosts per pool, add switches for rack-scale, then push the fabric boundary outward. Whether it ends up being &quot;CXL over something&quot; or something else is open, but the trajectory rhymes with how storage disaggregation went.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;where-it-fits-and-where-it-doesn-t&quot;&gt;where it fits and where it doesn&#x27;t&lt;&#x2F;h2&gt;
+&lt;p&gt;Good for data-intensive workloads like Spark or Ray or distributed DBs that spend cycles serializing and copying, working sets that barely fit in local memory, clusters with memory imbalance, and places where memory is already 50%+ of server cost.&lt;&#x2F;p&gt;
+&lt;p&gt;Bad for workloads that already fit in local memory (you&#x27;re just adding latency for no reason), latency-sensitive apps that can&#x27;t handle hundreds of extra nanoseconds, and traditional apps that don&#x27;t share data across processes anyway.&lt;&#x2F;p&gt;
+&lt;p&gt;Pool memory is slower than local (hundreds of ns vs ~100ns) but still way faster than SSD or disk. For workloads that currently page to disk this could be big, but for workloads that don&#x27;t page at all adding a slower tier might just make things worse.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Paper: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;dl.acm.org&#x2F;doi&#x2F;10.1145&#x2F;3606557.3606563&quot;&gt;Aguilera et al., &quot;Memory disaggregation: why now and what are the challenges&quot;, ACM SIGOPS, 2023&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
+&lt;li&gt;Position paper, no benchmarks, just analysis of the problem space&lt;&#x2F;li&gt;
+&lt;li&gt;CXL 1.0: local memory expansion cards (shipping now)&lt;&#x2F;li&gt;
+&lt;li&gt;CXL 2.0&#x2F;3.0: fabric switches for pool memory (maybe 3-5 years out)&lt;&#x2F;li&gt;
+&lt;li&gt;Latency estimates: local ~100ns, CXL local ~200-300ns, CXL pool ~500-1000ns, RDMA ~1-5μs, SSD ~100μs&lt;&#x2F;li&gt;
+&lt;li&gt;Memory population rules (balanced channels, identical DIMMs) make upgrades nearly impossible in practice&lt;&#x2F;li&gt;
+&lt;li&gt;Distributed shared memory from 90s taught us: cache coherence doesn&#x27;t scale beyond rack&lt;&#x2F;li&gt;
+&lt;li&gt;Security: DRAM retains data after power-down and pool memory is hot-swappable so encryption matters&lt;&#x2F;li&gt;
+&lt;li&gt;Related work: Infiniswap, LegoOS, The Machine (HPE, discontinued)&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>Exactly-Once Is a Lie</title>
+        <published>2025-08-04T00:00:00+00:00</published>
+        <updated>2025-08-04T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/exactly-once/"/>
+        <id>https://yazeed1s.github.io/posts/exactly-once/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/exactly-once/">&lt;p&gt;Every message broker eventually puts &quot;exactly-once&quot; somewhere in its docs. Kafka has it, Pulsar claims it, NATS JetStream has a version of it, and it sounds like the thing you want: send a message, it arrives once, nobody worries.&lt;&#x2F;p&gt;
+&lt;p&gt;But exactly-once delivery doesn&#x27;t exist. What exists is engineering around the fact that it doesn&#x27;t.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-can-actually-happen&quot;&gt;what can actually happen&lt;&#x2F;h2&gt;
+&lt;p&gt;A producer sends a message to a broker, and there are three outcomes: the broker receives it, acknowledges, and the producer gets the ack (success); the broker receives it, acknowledges, but the ack is lost so the producer doesn&#x27;t know it worked and retries, creating two copies; or the broker never receives it and the message is gone.&lt;&#x2F;p&gt;
+&lt;p&gt;That&#x27;s it, those are the options on an unreliable network. You can avoid case 3 by retrying, but retrying introduces case 2, and you cannot eliminate both. At the network level you get at-most-once (don&#x27;t retry, accept losses) or at-least-once (retry, accept duplicates), and there&#x27;s no third option that the network gives you for free.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-kafka-actually-does&quot;&gt;what Kafka actually does&lt;&#x2F;h2&gt;
+&lt;p&gt;Kafka advertises exactly-once semantics, but what it actually implements is two things working together.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Idempotent producer.&lt;&#x2F;strong&gt; Each producer gets an ID, and each message gets a sequence number. If the broker sees the same producer ID + sequence number twice, it drops the duplicate, which handles the lost-ack problem: the producer retries, the broker deduplicates. This only works within a single producer session though; if the producer crashes and restarts with a new ID, the deduplication state is gone.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Transactions.&lt;&#x2F;strong&gt; Kafka lets you wrap a consume-process-produce cycle in a transaction: read from input topic, do work, write to output topic, commit offsets, all atomically. If anything fails, everything rolls back.&lt;&#x2F;p&gt;
+&lt;p&gt;So Kafka doesn&#x27;t deliver messages exactly once. It uses at-least-once delivery with deduplication and atomic commits to make the &lt;em&gt;processing&lt;&#x2F;em&gt; behave as if messages were delivered once, but the duplicates still happen at the transport layer and the broker just hides them.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;delivery-vs-processing&quot;&gt;delivery vs processing&lt;&#x2F;h2&gt;
+&lt;p&gt;This distinction matters. &lt;strong&gt;Exactly-once delivery&lt;&#x2F;strong&gt; would mean the network guarantees each message arrives once, and no system does this because the network is unreliable: acks get lost, connections drop, machines crash between receiving and acknowledging.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Exactly-once processing&lt;&#x2F;strong&gt; means the side effects of handling a message happen once, even if the message itself arrives more than once. That&#x27;s achievable, but it requires work: deduplication, idempotency, transactions. It&#x27;s not a delivery guarantee, it&#x27;s an application-level property.&lt;&#x2F;p&gt;
+&lt;p&gt;When brokers say &quot;exactly-once&quot; they mean the second thing, and they don&#x27;t say that clearly.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-broker-can-t-save-you-everywhere&quot;&gt;the broker can&#x27;t save you everywhere&lt;&#x2F;h2&gt;
+&lt;p&gt;Even with Kafka transactions, exactly-once only works within Kafka: read from Kafka, write to Kafka, commit. That&#x27;s a closed system where Kafka controls both sides.&lt;&#x2F;p&gt;
+&lt;p&gt;The moment your consumer does something outside Kafka, the guarantee breaks. Write to a database? Send an HTTP request? Call an external API? Kafka doesn&#x27;t know about those. If your consumer processes a message, writes to Postgres, then crashes before committing the Kafka offset, it&#x27;ll reprocess on restart and Postgres gets the write twice.&lt;&#x2F;p&gt;
+&lt;p&gt;This is where the inbox pattern from my &lt;a href=&quot;https:&#x2F;&#x2F;yazeed1s.github.io&#x2F;posts&#x2F;outbox-inbox-patterns&#x2F;&quot;&gt;outbox&#x2F;inbox post&lt;&#x2F;a&gt; comes in: you need idempotency at your handler level, recording that you processed this message before doing the work, so if you see it again you skip it.&lt;&#x2F;p&gt;
+&lt;p&gt;The broker gives you tools, it doesn&#x27;t give you a complete solution.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;idempotency-is-always-your-problem&quot;&gt;idempotency is always your problem&lt;&#x2F;h2&gt;
+&lt;p&gt;Regardless of what your broker promises, if your consumer has side effects you need to handle duplicates. Either make the operation naturally idempotent (SET is idempotent, INCREMENT is not), track processed message IDs and skip duplicates, or use transactions that span both the broker offset and your external state (hard, often impractical).&lt;&#x2F;p&gt;
+&lt;p&gt;At-least-once delivery + idempotent handling gives you the effect of exactly-once, and that&#x27;s what production systems actually do. The &quot;exactly-once&quot; label is marketing over a real but narrower mechanism.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Two Generals Problem: you can&#x27;t get agreement over an unreliable channel with finite messages, which is why ack-loss is unavoidable&lt;&#x2F;li&gt;
+&lt;li&gt;Kafka&#x27;s exactly-once (KIP-98) was controversial when introduced, and the original blog post title was literally &quot;Exactly-once Semantics are Possible&quot; which tells you something&lt;&#x2F;li&gt;
+&lt;li&gt;NATS JetStream does deduplication by message ID with a configurable window, similar idea but simpler scope&lt;&#x2F;li&gt;
+&lt;li&gt;Pulsar transactions work similarly to Kafka: read-process-write atomically within Pulsar&lt;&#x2F;li&gt;
+&lt;li&gt;If you&#x27;re using a broker without deduplication, you&#x27;re getting at-least-once at best, plan for it&lt;&#x2F;li&gt;
+&lt;li&gt;&quot;Effectively exactly-once&quot; is the more honest term some people use, and I prefer it&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>Outbox and Inbox Patterns</title>
+        <published>2025-07-08T00:00:00+00:00</published>
+        <updated>2025-07-08T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/outbox-inbox-patterns/"/>
+        <id>https://yazeed1s.github.io/posts/outbox-inbox-patterns/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/outbox-inbox-patterns/">&lt;p&gt;I was working on an event-driven system and hit a classic problem: when I save to the database, how do I make sure the event actually gets published to the broker, and on the consumer side, how do I avoid processing the same event twice when the broker redelivers.&lt;&#x2F;p&gt;
+&lt;p&gt;These are the Outbox and Inbox patterns, not new ideas, but I only really understood them after implementing them.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-fundamental-problem&quot;&gt;the fundamental problem&lt;&#x2F;h2&gt;
+&lt;p&gt;Say you save a user to the database and then publish a &lt;code&gt;UserCreated&lt;&#x2F;code&gt; event:&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;1. save user to DB&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;2. publish event to broker&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;3. done&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;What if you crash between step 1 and step 2? The user is saved, but the event is never published, and the system is now inconsistent because some service was waiting for that event to do something and it will never hear about this user.&lt;&#x2F;p&gt;
+&lt;p&gt;The obvious thought is &quot;just do both in a transaction,&quot; but you can&#x27;t because the database and the message broker are two separate systems. You can&#x27;t wrap them in the same ACID transaction, and distributed transactions (2PC) exist but they&#x27;re slow and fragile and most message brokers don&#x27;t even support them.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-outbox-pattern&quot;&gt;the outbox pattern&lt;&#x2F;h2&gt;
+&lt;p&gt;The outbox pattern helps with the publishing side: instead of publishing directly to the broker, you write the event to a table in the same database, in the same transaction as your domain data.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;1. BEGIN transaction&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;2. save user to DB&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;3. save &amp;quot;UserCreated&amp;quot; event to outbox_events table&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;4. COMMIT&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;If step 2 and 3 succeed, they succeed together, and if anything fails, both roll back. Now the database is the source of truth for &quot;what events need to be published.&quot;&lt;&#x2F;p&gt;
+&lt;p&gt;A separate background worker polls the outbox table, picks up pending events, publishes them to the broker, and when it gets confirmation it marks the row as sent. The table looks something like:&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;sql&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;CREATE&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt; TABLE&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt; outbox_events&lt;&#x2F;span&gt;&lt;span&gt; (&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    id UUID &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;PRIMARY KEY&lt;&#x2F;span&gt;&lt;span&gt;,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    aggregate_id UUID &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;NOT NULL&lt;&#x2F;span&gt;&lt;span&gt;,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    aggregate_type &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;VARCHAR&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;100&lt;&#x2F;span&gt;&lt;span&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt; NOT NULL&lt;&#x2F;span&gt;&lt;span&gt;,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    event_type &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;VARCHAR&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;100&lt;&#x2F;span&gt;&lt;span&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt; NOT NULL&lt;&#x2F;span&gt;&lt;span&gt;,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    payload JSONB &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;NOT NULL&lt;&#x2F;span&gt;&lt;span&gt;,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;    status&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt; TEXT&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt; NOT NULL&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt; CHECK&lt;&#x2F;span&gt;&lt;span&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;status&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt; IN&lt;&#x2F;span&gt;&lt;span&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;PENDING&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;SENT&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;FAILED&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span&gt;)),&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    created_at &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;TIMESTAMP&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;TZ&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt; DEFAULT&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt; now&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span&gt;,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    sent_at &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;TIMESTAMP&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;TZ&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;);&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;The worker reads rows where &lt;code&gt;status = &#x27;PENDING&#x27;&lt;&#x2F;code&gt;, publishes to the broker, and updates to &lt;code&gt;SENT&lt;&#x2F;code&gt;, and if publish fails it leaves it pending or marks it failed after some retry threshold.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-can-go-wrong-with-outbox&quot;&gt;what can go wrong with outbox&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;strong&gt;Ordering.&lt;&#x2F;strong&gt; If you run multiple worker instances for throughput, they might publish events out of order: event B commits after event A, but worker 2 publishes B before worker 1 publishes A. If your consumers care about ordering, you need to partition by aggregate or use a single worker.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Dual write illusion.&lt;&#x2F;strong&gt; The outbox doesn&#x27;t magically solve the dual write problem, it just moves it. Now the dual write is between &quot;mark row as SENT&quot; and &quot;broker actually received it.&quot; If you mark SENT before the broker confirms and the broker was down, you lose the event, and if you mark SENT after the broker confirms and you crash before marking, you&#x27;ll republish on restart. The second is safer because inbox handles duplicates.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Broker down.&lt;&#x2F;strong&gt; If the broker is unreachable for a long time, your outbox table grows unbounded, and depending on your write rate this can become a real problem. You need monitoring and maybe backpressure if the table gets too large.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-inbox-pattern&quot;&gt;the inbox pattern&lt;&#x2F;h2&gt;
+&lt;p&gt;Publishing is one half, consuming is the other.&lt;&#x2F;p&gt;
+&lt;p&gt;Delivery guarantees depend on your broker: some offer exactly-once (Kafka with transactions), some offer at-least-once (most durable brokers with acknowledgment), and some offer at-most-once (fire and forget). If you&#x27;re using something like core NATS with no persistence, you get at-most-once where the message is gone the moment it&#x27;s published if no one is listening. With a durable broker that retries on no-ack, you get at-least-once, which means your handler might receive the same event multiple times, and processing it every time means you double-create things, double-charge customers, or whatever your handler does happens twice.&lt;&#x2F;p&gt;
+&lt;p&gt;The inbox is the mirror of the outbox: before processing, you record that you received this event, and if you see it again, you skip it.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;sql&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;CREATE&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt; TABLE&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt; inbox_events&lt;&#x2F;span&gt;&lt;span&gt; (&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    id UUID &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;PRIMARY KEY&lt;&#x2F;span&gt;&lt;span&gt;,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    event_id UUID &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;NOT NULL&lt;&#x2F;span&gt;&lt;span&gt;,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    handler_name &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;VARCHAR&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;100&lt;&#x2F;span&gt;&lt;span&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt; NOT NULL&lt;&#x2F;span&gt;&lt;span&gt;,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;    status&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt; TEXT&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt; NOT NULL&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt; CHECK&lt;&#x2F;span&gt;&lt;span&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;status&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt; IN&lt;&#x2F;span&gt;&lt;span&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;PENDING&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;PROCESSED&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;FAILED&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;#39;&lt;&#x2F;span&gt;&lt;span&gt;)),&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    received_at &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;TIMESTAMP&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;TZ&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt; DEFAULT&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt; now&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span&gt;,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    processed_at &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;TIMESTAMP&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;TZ&lt;&#x2F;span&gt;&lt;span&gt;,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;    UNIQUE&lt;&#x2F;span&gt;&lt;span&gt;(event_id, handler_name)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;);&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;The unique constraint on &lt;code&gt;(event_id, handler_name)&lt;&#x2F;code&gt; is the key. When a message arrives, you try to insert into inbox with that event_id and handler_name; if insert fails (constraint violation) you already handled this event so you ACK and return; if insert succeeds you process the event and update status to &lt;code&gt;PROCESSED&lt;&#x2F;code&gt;. This gives you idempotency at the handler level, where the same handler won&#x27;t process the same event twice.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-can-go-wrong-with-inbox&quot;&gt;what can go wrong with inbox&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;strong&gt;Ghosting.&lt;&#x2F;strong&gt; You insert the inbox row, then crash before doing the actual work, and now the event is &quot;locked&quot; because the row exists but the work never happened. Next delivery will see the row and skip it.&lt;&#x2F;p&gt;
+&lt;p&gt;This is a real problem. One mitigation is to only insert the inbox row after successful processing, but then you&#x27;re back to the crash-between-work-and-record problem just in a different order. Another is to have a timeout or &quot;last touched&quot; timestamp and treat old pending rows as abandoned.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Pruning.&lt;&#x2F;strong&gt; Same as outbox, &lt;code&gt;PROCESSED&lt;&#x2F;code&gt; rows accumulate and need cleanup.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;some-brokers-handle-parts-of-this&quot;&gt;some brokers handle parts of this&lt;&#x2F;h2&gt;
+&lt;p&gt;Before implementing all of this, check what your broker does. Some brokers (like Kafka or NATS JetStream) persist messages to disk and support exactly-once semantics with proper configuration, tracking what has been delivered and acknowledged, and if a subscriber is down, the message waits. If you publish with a deduplication ID, the broker won&#x27;t double-publish.&lt;&#x2F;p&gt;
+&lt;p&gt;This doesn&#x27;t eliminate the need for these patterns entirely, but it might simplify things. With a proper durable broker, the outbox is still useful if you need the DB write and event publish to be atomic (broker acknowledgment happens after publish, not as part of the same transaction), and the inbox might be less critical if the broker guarantees exactly-once delivery, but &quot;exactly-once&quot; is tricky and often has caveats so I would still keep inbox for safety.&lt;&#x2F;p&gt;
+&lt;p&gt;If you&#x27;re using a fire-and-forget broker with no persistence (like core NATS), you absolutely need both patterns because the message is gone the moment it&#x27;s published if no one is listening.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-at-least-once-guarantee&quot;&gt;the at-least-once guarantee&lt;&#x2F;h2&gt;
+&lt;p&gt;This whole setup gives you at-least-once delivery from end to end: you&#x27;re guaranteed the event will eventually reach the handler (outbox retries until success), and the handler is guaranteed to not double-process (inbox deduplicates).&lt;&#x2F;p&gt;
+&lt;p&gt;You don&#x27;t get exactly-once because the outbox worker might publish, then crash before marking &lt;code&gt;SENT&lt;&#x2F;code&gt;, then on restart publish again. That&#x27;s fine because the inbox catches the duplicate.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;operational-stuff&quot;&gt;operational stuff&lt;&#x2F;h2&gt;
+&lt;p&gt;Both tables need maintenance: batch reads instead of one row at a time (read 100 or whatever), a polling interval that balances CPU waste vs latency (we use 500ms), a cleanup job that deletes &lt;code&gt;SENT&lt;&#x2F;code&gt;&#x2F;&lt;code&gt;PROCESSED&lt;&#x2F;code&gt; rows older than X days, monitoring to track how many &lt;code&gt;PENDING&lt;&#x2F;code&gt; rows are piling up and alert if growing, and failure handling that marks events &lt;code&gt;FAILED&lt;&#x2F;code&gt; after N retries and maybe routes them to a dead letter table for manual inspection.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Polling isn&#x27;t the only way, some DBs support change data capture (CDC) which can trigger on outbox inserts, and Debezium does this with Postgres&lt;&#x2F;li&gt;
+&lt;li&gt;Some people use the inbox pattern even for HTTP requests, not just events, same idea: deduplicate by request ID&lt;&#x2F;li&gt;
+&lt;li&gt;The outbox pattern is sometimes called &quot;transactional outbox&quot; or &quot;outbox polling&quot;&lt;&#x2F;li&gt;
+&lt;li&gt;Kafka has built-in exactly-once if you use transactions correctly, still worth understanding what&#x27;s happening underneath&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+</feed>

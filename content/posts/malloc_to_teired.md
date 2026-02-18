@@ -8,15 +8,11 @@ tags = ["OS", "Memory", "Linux", "glibc"]
 
 When you call `malloc()`, the allocator gives you a pointer. It doesn't know or care whether the physical page behind it sits in fast local DRAM or slower CXL-attached memory. From user space, memory still looks flat. But it isn't anymore. Machines now have 2–3x latency differences between memory tiers, and the allocator is completely blind to that.
 
----
-
 ## how glibc malloc sees the world
 
 glibc's allocator (ptmalloc2) was designed in a mostly uniform DRAM world. It manages arenas, splits and coalesces chunks, decides when to use `brk` and when to use `mmap`, and tries to reduce lock contention between threads. But it doesn't care about which NUMA node backs an allocation unless the application explicitly asks for it. In the common case, it just requests virtual memory and leaves physical placement to the kernel.
 
 So from the allocator's perspective, memory is virtual address space. It doesn't know whether the physical pages will come from local DRAM, remote NUMA, CXL-attached memory, or something else. That blindness was perfectly reasonable when latency differences were small and mostly about bandwidth balancing. The allocator could afford to ignore placement because the hardware was close to uniform.
-
----
 
 ## what tiered memory changes
 
@@ -25,8 +21,6 @@ In tiered memory systems, the kernel often treats slow memory as another NUMA no
 But the pattern is always the same: allocate first, observe later, migrate if needed. The allocator places data somewhere, the kernel watches page faults or samples accesses, then corrects the placement. We're always reacting.
 
 Migration isn't free. It involves copying 4KB pages, updating page tables, invalidating TLB entries, and potentially disturbing caches. Work like M5 shows that misclassification and migration overhead can actually hurt performance if not handled carefully. So you're paying a correction cost because the initial allocation was blind. I keep wondering how much of this cost could be avoided if the allocator had any information at all about what's hot.
-
----
 
 ## the allocator knows nothing about temperature
 
@@ -44,8 +38,6 @@ The application often already knows which data is critical. A database knows its
 
 That naturally leads to the question: are we solving the problem too late?
 
----
-
 ## should malloc become tier-aware?
 
 One idea, not that exotic: let the allocator express intent.
@@ -61,8 +53,6 @@ This avoids some migration entirely. Fewer TLB shootdowns, less page copying. Pl
 
 But now the deeper question comes up.
 
----
-
 ## is OS transparency still sacred?
 
 Virtual memory was designed to hide physical placement. That abstraction is powerful because developers don't need to care where bytes live. They just allocate and use.
@@ -75,15 +65,11 @@ Or you can leak some abstraction. Let developers label allocations as hot or col
 
 I honestly don't know which is better. The second approach sounds cleaner until you think about what happens when developers misclassify. What if everything gets labeled "fast"? Do you override their hints? Ignore them? Once you expose placement, you also expose responsibility, and most application developers probably don't want that.
 
----
-
 ## huge pages make it worse
 
 Memtis shows that access inside a 2MB huge page can be highly skewed. Promoting an entire huge page to fast memory because a small region is hot wastes precious capacity. The allocator doesn't know how its allocations align with huge pages. The kernel may split or merge them later.
 
 So page size, allocation strategy, and tier placement are all interacting and I'm not sure anyone has a clean model for how they should interact. The original layering between allocator and kernel assumed these things were independent. They're not anymore.
-
----
 
 ## a possible middle ground
 

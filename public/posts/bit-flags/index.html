@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="A simple way to embed multiple boolean conditions in a single integer." />
+<meta
+    name="keywords"
+    content="yazeed, blog, alharthi, yaz, yazeed1s"
+/>
+<link rel="canonical" href="https://yazeed1s.github.io/posts/bit-flags/" />
+
+<title>Using Bit Flags to Pack Multiple States Efficiently | Yazeed&#x27;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
+<meta property="og:title" content="Using Bit Flags to Pack Multiple States Efficiently | Yazeed&#x27;s Blog" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://yazeed1s.github.io/posts/bit-flags/" />
+<meta property="og:description" content="A simple way to embed multiple boolean conditions in a single integer." />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Using Bit Flags to Pack Multiple States Efficiently" />
+<meta name="twitter:description" content="A simple way to embed multiple boolean conditions in a single integer." />
+
+    <link rel="icon" href="&#x2F;favicon.ico" />
+    
+    <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
+    <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+
+           
+    
+    
+    
+
+          
+    
+    
+    
+    <style>
+        :root {
+            --nav-basis: 25%;
+            --light-bg: #eae6deff;
+            --light-text: #1a1410;
+            --light-text-muted: #1a1410;
+            --light-accent: #9E4440;
+            --light-accent-hover: #7A3533;
+            --light-code-bg: #e1ded6ff;
+            --light-border: #abaaaaff;
+            --light-bold: #1a1410;
+            --light-italic: #1a1410;
+            --light-headers: #1a1410;
+            --dark-bg: #303132;
+            --dark-text: #bebbb9ff;
+            --dark-text-muted: #d5d2cf;
+            --dark-accent: #e57665;
+            --dark-accent-hover: #888885;
+            --dark-code-bg: #282829;
+            --dark-border: #524f4c;
+            --dark-bold: #d5d2cf;
+            --dark-italic: #d5d2cf;
+            --dark-headers: #d5d2cf;
+        }
+    </style>
+    <meta name="theme-color" id="tc" />
+    <script>
+        (function () {
+            var m = matchMedia("(prefers-color-scheme:dark)"),
+                t = localStorage.theme || (m.matches ? "dark" : "light"),
+                h = document.documentElement,
+                c = document.getElementById("tc");
+            h.className = t;
+            function u() {
+                c.content = getComputedStyle(h).getPropertyValue("--tc");
+            }
+            u();
+            window.T = function () {
+                t = t === "dark" ? "light" : "dark";
+                localStorage.theme = t;
+                h.className = t;
+                u();
+            };
+        })();
+    </script>
+    
+</head>
+
+<body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><symbol id="light" viewBox="0 0 32 32"><rect x="15" y="2" width="2" height="5"/><rect x="21.6675" y="6.8536" width="4.958" height="1.9998" transform="translate(1.5191 19.3744) rotate(-45)"/><rect x="25" y="15" width="5" height="2"/><rect x="23.1466" y="21.6675" width="1.9998" height="4.958" transform="translate(-10.0018 24.1465) rotate(-45)"/><rect x="15" y="25" width="2" height="5"/><rect x="5.3745" y="23.1466" width="4.958" height="1.9998" transform="translate(-14.7739 12.6256) rotate(-45)"/><rect x="2" y="15" width="5" height="2"/><rect x="6.8536" y="5.3745" width="1.9998" height="4.958" transform="translate(-3.253 7.8535) rotate(-45)"/><path d="M16,12a4,4,0,1,1-4,4,4.0045,4.0045,0,0,1,4-4m0-2a6,6,0,1,0,6,6,6,6,0,0,0-6-6Z"/></symbol>
+<symbol id="asleep" viewBox="0 0 32 32"><path d="M13.5025,5.4136A15.0755,15.0755,0,0,0,25.096,23.6082a11.1134,11.1134,0,0,1-7.9749,3.3893c-.1385,0-.2782.0051-.4178,0A11.0944,11.0944,0,0,1,13.5025,5.4136M14.98,3a1.0024,1.0024,0,0,0-.1746.0156A13.0959,13.0959,0,0,0,16.63,28.9973c.1641.006.3282,0,.4909,0a13.0724,13.0724,0,0,0,10.702-5.5556,1.0094,1.0094,0,0,0-.7833-1.5644A13.08,13.08,0,0,1,15.8892,4.38,1.0149,1.0149,0,0,0,14.98,3Z"/></symbol>
+<symbol id="rss" viewBox="0 0 32 32"><path d="M8,18c-3.3,0-6,2.7-6,6s2.7,6,6,6s6-2.7,6-6C14,20.7,11.3,18,8,18z M8,28c-2.2,0-4-1.8-4-4s1.8-4,4-4s4,1.8,4,4C12,26.2,10.2,28,8,28z"/><path d="M30,24h-2C28,13,19,4,8,4V2C20.1,2,30,11.9,30,24z"/><path d="M22,24h-2c0-6.6-5.4-12-12-12v-2C15.7,10,22,16.3,22,24z"/></symbol>
+</svg>
+
+    <header id="site-header">
+        <div>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <nav>
+                <a href="https://yazeed1s.github.io/" >Home</a>
+                <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
+                <a href="https://yazeed1s.github.io/projects/" >Projects</a>
+                <a href="https://yazeed1s.github.io/tags/" >Tags</a>
+                </nav>
+            <a href="#" onclick="
+                        T();
+                        return false;
+                    " class="theme" aria-label="Toggle theme" title="Toggle theme">
+<svg><use href="#light"/></svg>
+<svg><use href="#asleep"/></svg></a>
+        </div>
+    </header>
+    <hr class="site-sep" />
+    <main id="main">
+<article>
+    <header>
+        <h1>Using Bit Flags to Pack Multiple States Efficiently</h1>
+        <div class="post-meta">
+            <time datetime="2024-10-01">01 Oct 2024</time>
+            
+            <span>A simple way to embed multiple boolean conditions in a single integer.</span>
+             
+            <span class="post-tags">
+                <span class="post-tags-label">Tags: </span>
+                
+                <a href="https://yazeed1s.github.io/tags/c">C</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/bit-manipulation">Bit Manipulation</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/systems-programming">Systems Programming</a>
+            </span>
+            
+        </div>
+    </header>
+     <hr />
+<p>Sometimes you need to track multiple related conditions and a struct of booleans works, but it gets clunky once you start checking combinations or passing state around.</p>
+<p>Bit flags offer a simpler pattern: pack everything into a single integer. The real win isn't memory usage, it's composability because you get a single value representing your entire state that you can pass, store, and compare in one go.</p>
+<hr />
+<h2 id="the-pattern">the pattern</h2>
+<p>Each bit represents one condition, and you use powers of 2 so they don't overlap:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">typedef</span><span style="color: light-dark(#784367, #D4B399);"> enum</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span>    FLAG_NONE </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span>    FLAG_A    </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#784367, #CA9D7D);">1</span><span style="color: light-dark(#784367, #D4B399);">U</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> &lt;&lt;</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span>    FLAG_B    </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#784367, #CA9D7D);">1</span><span style="color: light-dark(#784367, #D4B399);">U</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> &lt;&lt;</span><span style="color: light-dark(#784367, #CA9D7D);"> 1</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span>    FLAG_C    </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#784367, #CA9D7D);">1</span><span style="color: light-dark(#784367, #D4B399);">U</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> &lt;&lt;</span><span style="color: light-dark(#784367, #CA9D7D);"> 2</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span>    FLAG_D    </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#784367, #CA9D7D);">1</span><span style="color: light-dark(#784367, #D4B399);">U</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> &lt;&lt;</span><span style="color: light-dark(#784367, #CA9D7D);"> 3</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span><span style="color: light-dark(#855959, #A6BCAD);"> flags_t</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span></code></pre>
+<p>The <code>1U</code> avoids signed overflow when shifting into bit 31.</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="plain"><span class="giallo-l"><span>Bit position:    7   6   5   4   3   2   1   0</span></span>
+<span class="giallo-l"><span>               +---+---+---+---+---+---+---+---+</span></span>
+<span class="giallo-l"><span>               | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0 |  = 0x0E</span></span>
+<span class="giallo-l"><span>               +---+---+---+---+---+---+---+---+</span></span>
+<span class="giallo-l"><span>                                 ^   ^   ^</span></span>
+<span class="giallo-l"><span>                                 D   C   B</span></span></code></pre>
+<p>Set with <code>|=</code>, clear with <code>&amp;= ~</code>, check with <code>&amp;</code>:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span>flags </span><span style="color: light-dark(#4B4B48, #CB8B8B);">|=</span><span> FLAG_A</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">           /*</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> set </span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">*/</span></span>
+<span class="giallo-l"><span>flags </span><span style="color: light-dark(#4B4B48, #CB8B8B);">&amp;=</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> ~</span><span>FLAG_A</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">          /*</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> clear </span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">*/</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>flags </span><span style="color: light-dark(#4B4B48, #CB8B8B);">&amp;</span><span> FLAG_A</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span><span>...</span><span style="color: light-dark(#4B4B48, #7F7C77);">}</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">  /*</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> check </span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">*/</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">/*</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> check if ALL of A and B are set </span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">*/</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>flags </span><span style="color: light-dark(#4B4B48, #CB8B8B);">&amp;</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>FLAG_A </span><span style="color: light-dark(#4B4B48, #CB8B8B);">|</span><span> FLAG_B</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> ==</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>FLAG_A </span><span style="color: light-dark(#4B4B48, #CB8B8B);">|</span><span> FLAG_B</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span><span>...</span><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre>
+<hr />
+<h2 id="example-monitor-state-changes">example: monitor state changes</h2>
+<p>In my window manager, I track what changed when monitors are plugged in or unplugged:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">typedef</span><span style="color: light-dark(#784367, #D4B399);"> enum</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span>    MON_CHANGE_NONE         </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span>    MON_CHANGE_CONNECTED    </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#784367, #CA9D7D);">1</span><span style="color: light-dark(#784367, #D4B399);">U</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> &lt;&lt;</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span>    MON_CHANGE_DISCONNECTED </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#784367, #CA9D7D);">1</span><span style="color: light-dark(#784367, #D4B399);">U</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> &lt;&lt;</span><span style="color: light-dark(#784367, #CA9D7D);"> 1</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span>    MON_CHANGE_LAYOUT       </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#784367, #CA9D7D);">1</span><span style="color: light-dark(#784367, #D4B399);">U</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> &lt;&lt;</span><span style="color: light-dark(#784367, #CA9D7D);"> 2</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span><span style="color: light-dark(#855959, #A6BCAD);"> monitor_change_t</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#3C6362, #A2BD90);"> update_monitors</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">uint32_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#7D4242, #D4D4C0);">changes</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #CB8B8B);">    *</span><span>changes </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span> MON_CHANGE_NONE</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>new_monitor_added</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #CB8B8B);">        *</span><span>changes </span><span style="color: light-dark(#4B4B48, #CB8B8B);">|=</span><span> MON_CHANGE_CONNECTED</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    }</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>monitor_removed</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #CB8B8B);">        *</span><span>changes </span><span style="color: light-dark(#4B4B48, #CB8B8B);">|=</span><span> MON_CHANGE_DISCONNECTED</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    }</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>resolution_changed</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #CB8B8B);">        *</span><span>changes </span><span style="color: light-dark(#4B4B48, #CB8B8B);">|=</span><span> MON_CHANGE_LAYOUT</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    }</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre>
+<p>If you plug in a monitor and its resolution differs from expected, both events fire:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="plain"><span class="giallo-l"><span>Start:               00000000  (MON_CHANGE_NONE)</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>New monitor detected:</span></span>
+<span class="giallo-l"><span>  set CONNECTED      |=  00000001  -&gt; 00000001</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>Resolution differs:</span></span>
+<span class="giallo-l"><span>  set LAYOUT         |=  00000100  -&gt; 00000101</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>Final:</span></span>
+<span class="giallo-l"><span>+---+---+---+---+---+---+---+---+</span></span>
+<span class="giallo-l"><span>| 0 | 0 | 0 | 0 | 0 | 1 | 0 | 1 |  = 0x05</span></span>
+<span class="giallo-l"><span>+---+---+---+---+---+---+---+---+</span></span>
+<span class="giallo-l"><span>  7   6   5   4   3   2   1   0</span></span>
+<span class="giallo-l"><span>                      L       C</span></span></code></pre>
+<p>One integer captures CONNECTED + LAYOUT. Now I can handle both:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#3C6362, #A2BD90);"> handle_monitor_changes</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    uint32_t</span><span> m_change </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span> MON_CHANGE_NONE</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    update_monitors</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#4B4B48, #CB8B8B);">&amp;</span><span>m_change</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>m_change </span><span style="color: light-dark(#4B4B48, #CB8B8B);">==</span><span> MON_CHANGE_NONE</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#784367, #D4B399);"> return</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>m_change </span><span style="color: light-dark(#4B4B48, #CB8B8B);">&amp;</span><span> MON_CHANGE_CONNECTED</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">    {</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> /*</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> ... </span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">*/</span><span style="color: light-dark(#4B4B48, #7F7C77);"> }</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>m_change </span><span style="color: light-dark(#4B4B48, #CB8B8B);">&amp;</span><span> MON_CHANGE_DISCONNECTED</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> /*</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> ... </span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">*/</span><span style="color: light-dark(#4B4B48, #7F7C77);"> }</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>m_change </span><span style="color: light-dark(#4B4B48, #CB8B8B);">&amp;</span><span> MON_CHANGE_LAYOUT</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">       {</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> /*</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> ... </span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">*/</span><span style="color: light-dark(#4B4B48, #7F7C77);"> }</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre>
+<p>With a single integer I can track and respond to any combination of events.</p>
+<h2 id="another-example-red-black-tree">Another example: Red-Black Tree</h2>
+<p>A while back I implemented a red-black tree. To validate the tree invariants, I used bit flags to track which rules were violated:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">/*</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> Red-black tree rules:</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> * 1- Every node is either red or black.</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> * 2- Root is always black.</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> * 3- Every leaf (NULL) is black.</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> * 4- If a node is red, both its children are black.</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> * 5- Every path from root to leaf has the same number of black nodes.</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> */</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">typedef</span><span style="color: light-dark(#784367, #D4B399);"> enum</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span>    RB_VALID               </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span>    RB_RED_ROOT            </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#784367, #CA9D7D);">1</span><span style="color: light-dark(#784367, #D4B399);">U</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> &lt;&lt;</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span>    RB_RED_CHILD_OF_RED    </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#784367, #CA9D7D);">1</span><span style="color: light-dark(#784367, #D4B399);">U</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> &lt;&lt;</span><span style="color: light-dark(#784367, #CA9D7D);"> 1</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span>    RB_UNEQUAL_BLACK_PATHS </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#784367, #CA9D7D);">1</span><span style="color: light-dark(#784367, #D4B399);">U</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> &lt;&lt;</span><span style="color: light-dark(#784367, #CA9D7D);"> 2</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span><span style="color: light-dark(#855959, #A6BCAD);"> rb_violation_t</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">uint32_t</span><span style="color: light-dark(#3C6362, #A2BD90);"> validate_rbtree</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#855959, #A6BCAD);">node_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#7D4242, #D4D4C0);">root</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    uint32_t</span><span> result </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span> RB_VALID</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#7D4242, #D4D4C0);">root</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">color</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> ==</span><span> RED</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span></span>
+<span class="giallo-l"><span>        result </span><span style="color: light-dark(#4B4B48, #CB8B8B);">|=</span><span> RB_RED_ROOT</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#3C6362, #A2BD90);">has_red_child_of_red</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>root</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span></span>
+<span class="giallo-l"><span>        result </span><span style="color: light-dark(#4B4B48, #CB8B8B);">|=</span><span> RB_RED_CHILD_OF_RED</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#4B4B48, #CB8B8B);">!</span><span style="color: light-dark(#3C6362, #A2BD90);">paths_have_equal_black_count</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>root</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span></span>
+<span class="giallo-l"><span>        result </span><span style="color: light-dark(#4B4B48, #CB8B8B);">|=</span><span> RB_UNEQUAL_BLACK_PATHS</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    return</span><span> result</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre>
+<p>The caller checks specific violations:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">uint32_t</span><span> v </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#3C6362, #A2BD90);"> validate_rbtree</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>tree</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>v </span><span style="color: light-dark(#4B4B48, #CB8B8B);">==</span><span> RB_VALID</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    printf</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#4B4B48, #7F7C77);">&quot;</span><span style="color: light-dark(#4A6934, #CB8B8B);">tree is valid</span><span style="color: light-dark(#784367, #CA9D7D);">\n</span><span style="color: light-dark(#4B4B48, #7F7C77);">&quot;</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span><span style="color: light-dark(#784367, #D4B399);"> else</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>v </span><span style="color: light-dark(#4B4B48, #CB8B8B);">&amp;</span><span> RB_RED_ROOT</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">        printf</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#4B4B48, #7F7C77);">&quot;</span><span style="color: light-dark(#4A6934, #CB8B8B);">violation: root is red</span><span style="color: light-dark(#784367, #CA9D7D);">\n</span><span style="color: light-dark(#4B4B48, #7F7C77);">&quot;</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>v </span><span style="color: light-dark(#4B4B48, #CB8B8B);">&amp;</span><span> RB_RED_CHILD_OF_RED</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">        printf</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#4B4B48, #7F7C77);">&quot;</span><span style="color: light-dark(#4A6934, #CB8B8B);">violation: red node has red child</span><span style="color: light-dark(#784367, #CA9D7D);">\n</span><span style="color: light-dark(#4B4B48, #7F7C77);">&quot;</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre>
+<p>One return value, multiple possible problems, which is cleaner than an array of error codes or a struct with boolean fields.</p>
+<hr />
+<h2 id="why-uint32-t-not-uint8-t">why uint32_t, not uint8_t</h2>
+<p>You might think: "I only have 4 flags. Why not <code>uint8_t</code>?"</p>
+<p>Integer promotion. In C, bitwise operations promote smaller types to <code>int</code>:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">uint8_t</span><span> flags </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#784367, #D4B399);"> 0x</span><span style="color: light-dark(#784367, #CA9D7D);">FF</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#4B4B48, #CB8B8B);">~</span><span>flags </span><span style="color: light-dark(#4B4B48, #CB8B8B);">==</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span><span> ... </span><span style="color: light-dark(#4B4B48, #7F7C77);">}</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">  /*</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> false! ~flags is 0xFFFFFF00, not 0x00 </span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">*/</span></span></code></pre>
+<p>The comparison happens at <code>int</code> width before truncation. This is easy to write and hard to debug.</p>
+<p>Shifts have their own footguns too: the shift happens after integer promotions, and shifting by &gt;= the width of the promoted type is undefined behavior (e.g., <code>1U &lt;&lt; 32</code> on a system where <code>unsigned int</code> is 32-bit).</p>
+<p>If you really want <code>uint8_t</code> you can store it as <code>uint8_t</code> and be explicit about casts in your bit-twiddling, but in most code <code>uint32_t</code> is the boring option: it fits in a register, avoids promotion surprises, and gives you room for 32 flags.</p>
+<hr />
+<h2 id="why-not-just-use-bools">why not just use bools</h2>
+<p>A <code>bool</code> in C is typically 1 byte, not 1 bit, and arrays and structs of bools don't pack bits either since each element takes a full byte. Memory savings only matter when you have many flags (5+).</p>
+<p>But memory isn't the point, the point is that bit flags compose. A single integer can represent "connected AND layout changed" or "disconnected OR error"—and you can pass that combined state to a function, store it, or compare it in one operation.</p>
+<hr />
+<h2 id="when-bit-flags-hurt">when bit flags hurt</h2>
+<p>Bit flags aren't always better:</p>
+<ul>
+<li>
+<p><strong>Readability.</strong> <code>flags &amp; FLAG_A</code> isn't as obvious as <code>state.is_connected</code> at first glance. If the code isn't systems-level or performance-sensitive, the clarity cost may not be worth it.</p>
+</li>
+<li>
+<p><strong>Debugging.</strong> Printing <code>0x0A</code> is less helpful than printing <code>"connected=true, layout=true"</code>. You'll want helper functions to decode flags when debugging.</p>
+</li>
+<li>
+<p><strong>Overkill for few flags.</strong> If you have 2-3 independent conditions and never combine them, a struct of bools is simpler.</p>
+</li>
+</ul>
+<p>The pattern shines when state composition matters (events, options, validation results, capability bits). It's worse when conditions are truly independent and never need to travel together.</p>
+<hr />
+<h2 id="where-i-use-this">where I use this</h2>
+<p>Bit flags are about composability, not memory, because one integer can represent any combination of states and you can pass it, store it, compare it, mask it.</p>
+<p>Use bit flags when state comes from multiple sources and combinations matter, and use bools when conditions are simple and independent. The real choice is how state moves through your code, not how many bytes it takes.</p>
+  
+</article>
+</main>
+    <hr class="site-sep bottom-sep" />
+    <footer class="s">
+        
+    </footer>
+    
+
+    <script>
+        document.querySelectorAll("article img[srcset]").forEach((i) => {
+            if (i.closest("a")) return;
+            i.style.cursor = "pointer";
+            i.onclick = () => {
+                let d = document.createElement("div"),
+                    s = i.srcset.split(",").pop().trim().split(" ")[0];
+                d.className = "lb";
+                d.innerHTML = '<img src="' + s + '">';
+                document.body.style.overflow = "hidden";
+                d.onclick = () => {
+                    d.remove();
+                    document.body.style.overflow = "";
+                };
+                document.body.appendChild(d);
+            };
+        });
+    </script>
+    
+<button id="scroll-to-top" aria-label="Scroll to top" title="Scroll to top">↑</button>
+<script>
+    (function() {
+        var btn = document.getElementById("scroll-to-top");
+        if (btn) {
+            window.addEventListener("scroll", function() {
+                if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                    btn.classList.add("show");
+                } else {
+                    btn.classList.remove("show");
+                }
+            });
+            btn.addEventListener("click", function() {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        }
+    })();
+</script>
+</body>
+
+</html>

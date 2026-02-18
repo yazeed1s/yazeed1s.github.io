@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Everything a process has: address space, file descriptors, signals, credentials, and scheduling context." />
+<meta
+    name="keywords"
+    content="yazeed, blog, alharthi, yaz, yazeed1s"
+/>
+<link rel="canonical" href="https://yazeed1s.github.io/posts/what-a-process-owns/" />
+
+<title>What a Process Owns | Yazeed&#x27;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
+<meta property="og:title" content="What a Process Owns | Yazeed&#x27;s Blog" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://yazeed1s.github.io/posts/what-a-process-owns/" />
+<meta property="og:description" content="Everything a process has: address space, file descriptors, signals, credentials, and scheduling context." />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="What a Process Owns" />
+<meta name="twitter:description" content="Everything a process has: address space, file descriptors, signals, credentials, and scheduling context." />
+
+    <link rel="icon" href="&#x2F;favicon.ico" />
+    
+    <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
+    <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+
+           
+    
+    
+    
+
+          
+    
+    
+    
+    <style>
+        :root {
+            --nav-basis: 25%;
+            --light-bg: #eae6deff;
+            --light-text: #1a1410;
+            --light-text-muted: #1a1410;
+            --light-accent: #9E4440;
+            --light-accent-hover: #7A3533;
+            --light-code-bg: #e1ded6ff;
+            --light-border: #abaaaaff;
+            --light-bold: #1a1410;
+            --light-italic: #1a1410;
+            --light-headers: #1a1410;
+            --dark-bg: #303132;
+            --dark-text: #bebbb9ff;
+            --dark-text-muted: #d5d2cf;
+            --dark-accent: #e57665;
+            --dark-accent-hover: #888885;
+            --dark-code-bg: #282829;
+            --dark-border: #524f4c;
+            --dark-bold: #d5d2cf;
+            --dark-italic: #d5d2cf;
+            --dark-headers: #d5d2cf;
+        }
+    </style>
+    <meta name="theme-color" id="tc" />
+    <script>
+        (function () {
+            var m = matchMedia("(prefers-color-scheme:dark)"),
+                t = localStorage.theme || (m.matches ? "dark" : "light"),
+                h = document.documentElement,
+                c = document.getElementById("tc");
+            h.className = t;
+            function u() {
+                c.content = getComputedStyle(h).getPropertyValue("--tc");
+            }
+            u();
+            window.T = function () {
+                t = t === "dark" ? "light" : "dark";
+                localStorage.theme = t;
+                h.className = t;
+                u();
+            };
+        })();
+    </script>
+    
+</head>
+
+<body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><symbol id="light" viewBox="0 0 32 32"><rect x="15" y="2" width="2" height="5"/><rect x="21.6675" y="6.8536" width="4.958" height="1.9998" transform="translate(1.5191 19.3744) rotate(-45)"/><rect x="25" y="15" width="5" height="2"/><rect x="23.1466" y="21.6675" width="1.9998" height="4.958" transform="translate(-10.0018 24.1465) rotate(-45)"/><rect x="15" y="25" width="2" height="5"/><rect x="5.3745" y="23.1466" width="4.958" height="1.9998" transform="translate(-14.7739 12.6256) rotate(-45)"/><rect x="2" y="15" width="5" height="2"/><rect x="6.8536" y="5.3745" width="1.9998" height="4.958" transform="translate(-3.253 7.8535) rotate(-45)"/><path d="M16,12a4,4,0,1,1-4,4,4.0045,4.0045,0,0,1,4-4m0-2a6,6,0,1,0,6,6,6,6,0,0,0-6-6Z"/></symbol>
+<symbol id="asleep" viewBox="0 0 32 32"><path d="M13.5025,5.4136A15.0755,15.0755,0,0,0,25.096,23.6082a11.1134,11.1134,0,0,1-7.9749,3.3893c-.1385,0-.2782.0051-.4178,0A11.0944,11.0944,0,0,1,13.5025,5.4136M14.98,3a1.0024,1.0024,0,0,0-.1746.0156A13.0959,13.0959,0,0,0,16.63,28.9973c.1641.006.3282,0,.4909,0a13.0724,13.0724,0,0,0,10.702-5.5556,1.0094,1.0094,0,0,0-.7833-1.5644A13.08,13.08,0,0,1,15.8892,4.38,1.0149,1.0149,0,0,0,14.98,3Z"/></symbol>
+<symbol id="rss" viewBox="0 0 32 32"><path d="M8,18c-3.3,0-6,2.7-6,6s2.7,6,6,6s6-2.7,6-6C14,20.7,11.3,18,8,18z M8,28c-2.2,0-4-1.8-4-4s1.8-4,4-4s4,1.8,4,4C12,26.2,10.2,28,8,28z"/><path d="M30,24h-2C28,13,19,4,8,4V2C20.1,2,30,11.9,30,24z"/><path d="M22,24h-2c0-6.6-5.4-12-12-12v-2C15.7,10,22,16.3,22,24z"/></symbol>
+</svg>
+
+    <header id="site-header">
+        <div>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <nav>
+                <a href="https://yazeed1s.github.io/" >Home</a>
+                <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
+                <a href="https://yazeed1s.github.io/projects/" >Projects</a>
+                <a href="https://yazeed1s.github.io/tags/" >Tags</a>
+                </nav>
+            <a href="#" onclick="
+                        T();
+                        return false;
+                    " class="theme" aria-label="Toggle theme" title="Toggle theme">
+<svg><use href="#light"/></svg>
+<svg><use href="#asleep"/></svg></a>
+        </div>
+    </header>
+    <hr class="site-sep" />
+    <main id="main">
+<article>
+    <header>
+        <h1>What a Process Owns</h1>
+        <div class="post-meta">
+            <time datetime="2025-10-19">19 Oct 2025</time>
+            
+            <span>Everything a process has: address space, file descriptors, signals, credentials, and scheduling context.</span>
+             
+            <span class="post-tags">
+                <span class="post-tags-label">Tags: </span>
+                
+                <a href="https://yazeed1s.github.io/tags/os">OS</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/linux">Linux</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/processes">Processes</a>
+            </span>
+            
+        </div>
+    </header>
+     <p>A process isn't just "running code." It's a container that owns a set of resources the kernel manages on its behalf, and understanding what those resources are helps explain why certain operations behave the way they do.</p>
+<h2 id="address-space">address space</h2>
+<p>Each process gets its own virtual address space, which is a complete illusion of having memory all to itself. On 64-bit Linux a process gets a 128TB virtual space (48-bit addressing), split into user space (lower half) and kernel space (upper half, shared across all processes but inaccessible from user mode).</p>
+<p>Inside this space you have the text segment (your compiled code, read-only and executable), the data segment for initialized globals, BSS for uninitialized globals (zeroed by the kernel), the heap growing upward from the end of BSS (managed by malloc/brk/mmap), the stack growing downward from near the top of user space, and memory-mapped regions scattered in between for shared libraries, mmap'd files, and anonymous mappings.</p>
+<p>Two processes can have the same virtual address pointing to completely different physical memory because each process has its own page table. The kernel switches page tables on every context switch by writing a new value to CR3 on x86.</p>
+<p>You can look at a process's memory map through <code>/proc/&lt;pid&gt;/maps</code>, which shows each VMA (Virtual Memory Area) with its address range, permissions, offset, device, inode, and pathname.</p>
+<h2 id="file-descriptors">file descriptors</h2>
+<p>A file descriptor is an integer index into a per-process table of open files. When you call <code>open()</code>, the kernel creates an entry pointing to the underlying file object and returns the lowest available integer, which is why <code>stdin</code> is 0, <code>stdout</code> is 1, and <code>stderr</code> is 2 (they're opened first).</p>
+<p>Each process has its own file descriptor table, so fd 5 in one process is completely unrelated to fd 5 in another. The file descriptor carries the current read/write position, flags (like <code>O_NONBLOCK</code>), and a reference to the underlying inode.</p>
+<p>File descriptors aren't just for files on disk: they represent pipes, sockets, eventfd, timerfd, signalfd, epoll instances, and even directories. The "everything is a file" philosophy means one interface for many types of I/O.</p>
+<p>There's a per-process limit on open file descriptors (check with <code>ulimit -n</code>, default often 1024) and a system-wide limit. Leaking file descriptors is a common bug, especially in long-running services that open connections and forget to close them.</p>
+<p>You can see all open file descriptors for a process in <code>/proc/&lt;pid&gt;/fd/</code>, where each entry is a symlink to the actual file, socket, or pipe.</p>
+<h2 id="signals">signals</h2>
+<p>Each process has a signal disposition table describing what happens for each signal. The default action depends on the signal: <code>SIGTERM</code> terminates, <code>SIGSTOP</code> suspends, <code>SIGCHLD</code> is ignored by default. You can override most defaults with signal handlers, except for <code>SIGKILL</code> and <code>SIGSTOP</code> which can't be caught or ignored.</p>
+<p>A process also has a signal mask that blocks specific signals from being delivered (they queue up until unblocked), and a set of pending signals that have been sent but not yet handled.</p>
+<p>Signal handling is per-process (signal disposition) but delivery can target specific threads. <code>kill(pid, sig)</code> sends to the process, <code>pthread_kill(tid, sig)</code> targets a thread.</p>
+<h2 id="credentials">credentials</h2>
+<p>Every process has a set of UIDs and GIDs that determine what it can access. There are three sets: <strong>real</strong> (who actually started the process), <strong>effective</strong> (what's checked for access), and <strong>saved</strong> (the previous effective, so you can drop and regain privileges).</p>
+<p>Usually real and effective are the same, but setuid programs differ. When you run <code>passwd</code>, the file has the setuid bit set, so the effective UID becomes root (owner of the file) while the real UID stays yours. The process can access <code>/etc/shadow</code> because effective UID is root, but the program knows who actually called it through the real UID.</p>
+<p>Groups work the same way, and there's also a supplementary group list for all the groups you belong to. All of this is stored in the process's credential structure in the kernel.</p>
+<h2 id="scheduling-context">scheduling context</h2>
+<p>The kernel tracks scheduling metadata for each process: its priority (nice value from -20 to 19, and real-time priority if applicable), which scheduling class it belongs to (CFS for normal processes, FIFO or round-robin for real-time), how much CPU time it has consumed, when it last ran, and which CPU it ran on.</p>
+<p>CFS (Completely Fair Scheduler) on Linux uses a virtual runtime to track how much CPU time a process has received relative to others, and it always picks the process with the lowest virtual runtime to run next. The nice value adjusts the weight: a lower nice value means more weight, which means the virtual runtime advances more slowly, which means more CPU time.</p>
+<h2 id="namespaces-and-cgroups">namespaces and cgroups</h2>
+<p>In containerized environments, processes also own namespace memberships and cgroup associations. Namespaces give a process an isolated view of system resources: PID namespace makes it think its PID is 1, network namespace gives it a separate network stack, mount namespace gives it a different filesystem view.</p>
+<p>Cgroups limit how much resource a process (or group of processes) can use: CPU quota, memory limit, I/O bandwidth, and number of PIDs. These are the building blocks of containers.</p>
+<h2 id="the-task-struct">the task_struct</h2>
+<p>Internally, the kernel represents all of this in a single structure called <code>task_struct</code>, which on Linux is a large struct (several kilobytes) containing or pointing to everything described above: the memory descriptor for address space, the files struct for file descriptors, the signal handler table, credentials, scheduling state, namespace pointers, cgroup references, and many other fields.</p>
+<p>Every running thread has a <code>task_struct</code>. A single-threaded process has one. A multi-threaded process has one per thread, and they share the memory descriptor, file table, and signal handlers through pointers to the same structures.</p>
+<h2 id="notes">notes</h2>
+<ul>
+<li><code>/proc/&lt;pid&gt;/status</code> gives a summary of most of these: UIDs, GIDs, threads, memory usage, signal masks, context switch counts</li>
+<li><code>/proc/&lt;pid&gt;/maps</code> for address space layout</li>
+<li><code>/proc/&lt;pid&gt;/fd/</code> for open file descriptors</li>
+<li><code>/proc/&lt;pid&gt;/cgroup</code> for cgroup membership</li>
+<li><code>ls -la /proc/&lt;pid&gt;/ns/</code> shows namespace memberships</li>
+<li><code>strace -p &lt;pid&gt;</code> lets you watch syscalls in real time</li>
+<li>A zombie process has exited but its parent hasn't called <code>wait()</code>, so the task_struct stays around holding the exit status</li>
+</ul>
+  
+</article>
+</main>
+    <hr class="site-sep bottom-sep" />
+    <footer class="s">
+        
+    </footer>
+    
+
+    <script>
+        document.querySelectorAll("article img[srcset]").forEach((i) => {
+            if (i.closest("a")) return;
+            i.style.cursor = "pointer";
+            i.onclick = () => {
+                let d = document.createElement("div"),
+                    s = i.srcset.split(",").pop().trim().split(" ")[0];
+                d.className = "lb";
+                d.innerHTML = '<img src="' + s + '">';
+                document.body.style.overflow = "hidden";
+                d.onclick = () => {
+                    d.remove();
+                    document.body.style.overflow = "";
+                };
+                document.body.appendChild(d);
+            };
+        });
+    </script>
+    
+<button id="scroll-to-top" aria-label="Scroll to top" title="Scroll to top">↑</button>
+<script>
+    (function() {
+        var btn = document.getElementById("scroll-to-top");
+        if (btn) {
+            window.addEventListener("scroll", function() {
+                if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                    btn.classList.add("show");
+                } else {
+                    btn.classList.remove("show");
+                }
+            });
+            btn.addEventListener("click", function() {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        }
+    })();
+</script>
+</body>
+
+</html>

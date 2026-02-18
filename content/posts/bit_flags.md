@@ -8,15 +8,15 @@ tags = ["C", "Bit Manipulation", "Systems Programming"]
 
 ---
 
-Sometimes you need to track multiple related conditions. A struct of booleans works, but it gets clunky once you start checking combinations or passing state around.
+Sometimes you need to track multiple related conditions and a struct of booleans works, but it gets clunky once you start checking combinations or passing state around.
 
-Bit flags offer a simpler pattern: pack everything into a single integer. The real win isn't memory usage, it's composability. You get a single value representing your entire state that you can pass, store, and compare in one go.
+Bit flags offer a simpler pattern: pack everything into a single integer. The real win isn't memory usage, it's composability because you get a single value representing your entire state that you can pass, store, and compare in one go.
 
 ---
 
 ## the pattern
 
-Each bit represents one condition. Powers of 2 so they don't overlap:
+Each bit represents one condition, and you use powers of 2 so they don't overlap:
 
 ```c
 typedef enum {
@@ -115,7 +115,7 @@ void handle_monitor_changes(void) {
 }
 ```
 
-With a single integer, I can track and respond to any combination of events.
+With a single integer I can track and respond to any combination of events.
 
 ## Another example: Red-Black Tree
 
@@ -166,7 +166,7 @@ if (v == RB_VALID) {
 }
 ```
 
-One return value, multiple possible problems. Cleaner than an array of error codes or a struct with boolean fields.
+One return value, multiple possible problems, which is cleaner than an array of error codes or a struct with boolean fields.
 
 ---
 
@@ -185,15 +185,15 @@ The comparison happens at `int` width before truncation. This is easy to write a
 
 Shifts have their own footguns too: the shift happens after integer promotions, and shifting by >= the width of the promoted type is undefined behavior (e.g., `1U << 32` on a system where `unsigned int` is 32-bit).
 
-If you really want `uint8_t`, you can store it as `uint8_t` and be explicit about casts in your bit-twiddling. But in most code, `uint32_t` is the boring option: it fits in a register, avoids promotion surprises, and gives you room for 32 flags.
+If you really want `uint8_t` you can store it as `uint8_t` and be explicit about casts in your bit-twiddling, but in most code `uint32_t` is the boring option: it fits in a register, avoids promotion surprises, and gives you room for 32 flags.
 
 ---
 
 ## why not just use bools
 
-A `bool` in C is typically 1 byte, not 1 bit. Arrays and structs of bools don't pack bits either (each element takes a full byte). Memory savings only matter when you have many flags (5+).
+A `bool` in C is typically 1 byte, not 1 bit, and arrays and structs of bools don't pack bits either since each element takes a full byte. Memory savings only matter when you have many flags (5+).
 
-But memory isn't the point. The point is that bit flags compose. A single integer can represent "connected AND layout changed" or "disconnected OR error"—and you can pass that combined state to a function, store it, or compare it in one operation.
+But memory isn't the point, the point is that bit flags compose. A single integer can represent "connected AND layout changed" or "disconnected OR error" and you can pass that combined state to a function, store it, or compare it in one operation.
 
 ---
 
@@ -208,11 +208,3 @@ Bit flags aren't always better:
 - **Overkill for few flags.** If you have 2-3 independent conditions and never combine them, a struct of bools is simpler.
 
 The pattern shines when state composition matters (events, options, validation results, capability bits). It's worse when conditions are truly independent and never need to travel together.
-
----
-
-## where I use this
-
-Bit flags are about composability, not memory. One integer can represent any combination of states. You can pass it, store it, compare it, mask it.
-
-Use bit flags when state comes from multiple sources and combinations matter. Use bools when conditions are simple and independent. The real choice is how state moves through your code, not how many bytes it takes.

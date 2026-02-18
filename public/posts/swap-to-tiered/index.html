@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Comparing traditional swap with modern tiered memory systems" />
+<meta
+    name="keywords"
+    content="yazeed, blog, alharthi, yaz, yazeed1s"
+/>
+<link rel="canonical" href="https://yazeed1s.github.io/posts/swap-to-tiered/" />
+
+<title>From Swap to Tiered Memory: Same Idea, Different Scale | Yazeed&#x27;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
+<meta property="og:title" content="From Swap to Tiered Memory: Same Idea, Different Scale | Yazeed&#x27;s Blog" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://yazeed1s.github.io/posts/swap-to-tiered/" />
+<meta property="og:description" content="Comparing traditional swap with modern tiered memory systems" />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="From Swap to Tiered Memory: Same Idea, Different Scale" />
+<meta name="twitter:description" content="Comparing traditional swap with modern tiered memory systems" />
+
+    <link rel="icon" href="&#x2F;favicon.ico" />
+    
+    <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
+    <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+
+           
+    
+    
+    
+
+          
+    
+    
+    
+    <style>
+        :root {
+            --nav-basis: 25%;
+            --light-bg: #eae6deff;
+            --light-text: #1a1410;
+            --light-text-muted: #1a1410;
+            --light-accent: #9E4440;
+            --light-accent-hover: #7A3533;
+            --light-code-bg: #e1ded6ff;
+            --light-border: #abaaaaff;
+            --light-bold: #1a1410;
+            --light-italic: #1a1410;
+            --light-headers: #1a1410;
+            --dark-bg: #303132;
+            --dark-text: #bebbb9ff;
+            --dark-text-muted: #d5d2cf;
+            --dark-accent: #e57665;
+            --dark-accent-hover: #888885;
+            --dark-code-bg: #282829;
+            --dark-border: #524f4c;
+            --dark-bold: #d5d2cf;
+            --dark-italic: #d5d2cf;
+            --dark-headers: #d5d2cf;
+        }
+    </style>
+    <meta name="theme-color" id="tc" />
+    <script>
+        (function () {
+            var m = matchMedia("(prefers-color-scheme:dark)"),
+                t = localStorage.theme || (m.matches ? "dark" : "light"),
+                h = document.documentElement,
+                c = document.getElementById("tc");
+            h.className = t;
+            function u() {
+                c.content = getComputedStyle(h).getPropertyValue("--tc");
+            }
+            u();
+            window.T = function () {
+                t = t === "dark" ? "light" : "dark";
+                localStorage.theme = t;
+                h.className = t;
+                u();
+            };
+        })();
+    </script>
+    
+</head>
+
+<body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><symbol id="light" viewBox="0 0 32 32"><rect x="15" y="2" width="2" height="5"/><rect x="21.6675" y="6.8536" width="4.958" height="1.9998" transform="translate(1.5191 19.3744) rotate(-45)"/><rect x="25" y="15" width="5" height="2"/><rect x="23.1466" y="21.6675" width="1.9998" height="4.958" transform="translate(-10.0018 24.1465) rotate(-45)"/><rect x="15" y="25" width="2" height="5"/><rect x="5.3745" y="23.1466" width="4.958" height="1.9998" transform="translate(-14.7739 12.6256) rotate(-45)"/><rect x="2" y="15" width="5" height="2"/><rect x="6.8536" y="5.3745" width="1.9998" height="4.958" transform="translate(-3.253 7.8535) rotate(-45)"/><path d="M16,12a4,4,0,1,1-4,4,4.0045,4.0045,0,0,1,4-4m0-2a6,6,0,1,0,6,6,6,6,0,0,0-6-6Z"/></symbol>
+<symbol id="asleep" viewBox="0 0 32 32"><path d="M13.5025,5.4136A15.0755,15.0755,0,0,0,25.096,23.6082a11.1134,11.1134,0,0,1-7.9749,3.3893c-.1385,0-.2782.0051-.4178,0A11.0944,11.0944,0,0,1,13.5025,5.4136M14.98,3a1.0024,1.0024,0,0,0-.1746.0156A13.0959,13.0959,0,0,0,16.63,28.9973c.1641.006.3282,0,.4909,0a13.0724,13.0724,0,0,0,10.702-5.5556,1.0094,1.0094,0,0,0-.7833-1.5644A13.08,13.08,0,0,1,15.8892,4.38,1.0149,1.0149,0,0,0,14.98,3Z"/></symbol>
+<symbol id="rss" viewBox="0 0 32 32"><path d="M8,18c-3.3,0-6,2.7-6,6s2.7,6,6,6s6-2.7,6-6C14,20.7,11.3,18,8,18z M8,28c-2.2,0-4-1.8-4-4s1.8-4,4-4s4,1.8,4,4C12,26.2,10.2,28,8,28z"/><path d="M30,24h-2C28,13,19,4,8,4V2C20.1,2,30,11.9,30,24z"/><path d="M22,24h-2c0-6.6-5.4-12-12-12v-2C15.7,10,22,16.3,22,24z"/></symbol>
+</svg>
+
+    <header id="site-header">
+        <div>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <nav>
+                <a href="https://yazeed1s.github.io/" >Home</a>
+                <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
+                <a href="https://yazeed1s.github.io/projects/" >Projects</a>
+                <a href="https://yazeed1s.github.io/tags/" >Tags</a>
+                </nav>
+            <a href="#" onclick="
+                        T();
+                        return false;
+                    " class="theme" aria-label="Toggle theme" title="Toggle theme">
+<svg><use href="#light"/></svg>
+<svg><use href="#asleep"/></svg></a>
+        </div>
+    </header>
+    <hr class="site-sep" />
+    <main id="main">
+<article>
+    <header>
+        <h1>From Swap to Tiered Memory: Same Idea, Different Scale</h1>
+        <div class="post-meta">
+            <time datetime="2026-02-08">08 Feb 2026</time>
+            
+            <span>Comparing traditional swap with modern tiered memory systems</span>
+             
+            <span class="post-tags">
+                <span class="post-tags-label">Tags: </span>
+                
+                <a href="https://yazeed1s.github.io/tags/memory">Memory</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/linux">Linux</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/performance">Performance</a>
+            </span>
+            
+        </div>
+    </header>
+     <p>Tiered memory is swap. Kind of.</p>
+<p>You have fast memory, slow memory, and the kernel moves pages between them. That's what swap does too. But once you look closer, the differences become important.</p>
+<h2 id="what-swap-actually-does">what swap actually does</h2>
+<p>In classic Linux memory management you have RAM (fast) and disk (very slow). When RAM is full, the kernel selects some pages and writes them to disk. That's swapping.</p>
+<blockquote>
+<p>Swap doesn't only kick in when RAM is completely full. How aggressively the kernel swaps depends on the <code>vm.swappiness</code> setting. At higher values, the kernel starts reclaiming anonymous pages earlier. At <code>swappiness=0</code>, it avoids swapping almost entirely until there's real memory pressure.</p>
+</blockquote>
+<p>Later, if a swapped-out page is accessed again, you get a major page fault. The kernel reads the page back from disk into RAM.</p>
+<p>So swap is already a two-tier system. Fast tier is DRAM, slow tier is disk. The unit of movement is still a 4KB page.</p>
+<p>The kernel decides which pages stay in RAM and which go to disk. And that already sounds like tiered memory.</p>
+<h2 id="the-big-difference-latency-scale">the big difference: latency scale</h2>
+<p>The difference is scale. Rough numbers:</p>
+<ul>
+<li>DRAM: ~100ns</li>
+<li>CXL-attached memory: maybe ~200–300ns</li>
+<li>SSD: tens of microseconds</li>
+<li>HDD: a lifetime</li>
+</ul>
+<p>Swap moves pages between nanoseconds and microseconds/milliseconds. Tiered memory moves pages between nanoseconds and slightly larger nanoseconds.</p>
+<p>If a page sits on disk and you touch it, the program stalls hard. If a page sits in a slow memory tier, the program slows down but it might not be obvious.</p>
+<h2 id="swap-decisions-can-be-coarse">swap decisions can be coarse</h2>
+<p>Because disk is so slow, swap decisions can be rough. If a page is cold for some time, push it out. If it's accessed again, bring it back. The cost difference is so large that even simple heuristics work reasonably well.</p>
+<p>Tiered memory doesn't have that luxury. The latency gap is smaller, so a bad migration decision won't crash performance, but small inefficiencies accumulate. Migration overhead itself becomes noticeable relative to the gap.</p>
+<h2 id="hot-vs-cold-is-not-binary-anymore">hot vs cold is not binary anymore</h2>
+<p>In swap, pages are either in RAM or on disk, so cold pages go out while hot pages stay in.</p>
+<p>In tiered memory it's more continuous. A page in the slow tier isn't dead. It's just slower.</p>
+<p>So the question becomes: how much slower is acceptable? If a page is accessed rarely, keeping it in slow memory is fine. If it's accessed frequently but overlaps with other misses, maybe it's still fine. If it's on the critical path, it probably needs to be in fast memory.</p>
+<p>Classification becomes more nuanced than hot vs cold. Some recent work argues that raw access count isn't enough. What matters is how much a page contributes to stall time. That depends on memory-level parallelism and overlap of misses.</p>
+<h2 id="migration-overhead-matters-more">migration overhead matters more</h2>
+<p>Swapping a page to disk is expensive, but it happens relatively rarely and it's usually triggered by memory pressure.</p>
+<p>In tiered memory, migrations can happen frequently and proactively. To migrate a page between tiers, the kernel has to allocate a new page in the target tier, copy 4KB, update page tables, possibly trigger TLB shootdowns, and synchronize across CPUs.</p>
+<p>If migrations are too aggressive, the system spends significant time just moving pages around. Swap is reactive. Tiered memory often tries to be proactive. That increases complexity.</p>
+<h2 id="granularity-problems-become-visible">granularity problems become visible</h2>
+<p>Pages are 4KB. Cache lines are 64B. With swap this mismatch didn't really matter, disk is so slow that any frequently-accessed page obviously belongs in RAM.</p>
+<p>But tiered memory lives in a tighter performance window. A 4KB page might contain a few hot cache lines and many cold ones. Migrating the whole thing to fast memory for a small hot region wastes capacity. With huge pages (2MB) this gets worse.</p>
+<h2 id="swap-is-mostly-about-capacity">swap is mostly about capacity</h2>
+<p>Swap is fundamentally about capacity. You don't have enough RAM, so you spill to disk. If swap is heavily active, something is usually wrong.</p>
+<p>Tiered memory is often about cost efficiency and scaling. Keep a small expensive fast tier, add a larger cheaper slow tier, try to approximate the performance of all-fast memory.</p>
+<p>So tiered memory is more about optimization than survival. If swap is heavily active, something is usually wrong. If tiered memory is active, that's the intended design.</p>
+<h2 id="similarity-same-abstraction-different-consequences">similarity: same abstraction, different consequences</h2>
+<p>At the abstraction level, both swap and tiered memory move 4KB pages, update page tables, rely on page faults, and depend on kernel policies. From the kernel's perspective they're not that different.</p>
+<p>But the consequences are. Swap mistakes cause dramatic stalls. Tiered memory mistakes cause gradual slowdowns. And gradual slowdowns are harder to detect and reason about.</p>
+<h2 id="thinking-forward">thinking forward</h2>
+<p>One thing I keep thinking about: swap worked well enough with simple heuristics because the gap was huge. Tiered memory may require more precise reasoning because the gap is smaller.</p>
+<p>Now you care about access frequency, stall contribution, memory-level parallelism, sub-page access skew, migration stability. All of this happening at page granularity, inside a system that was designed assuming uniform memory.</p>
+<p>In a way, tiered memory isn't a brand new idea. It's swap, compressed into the nanosecond domain. But once you compress the scale, all the small details start to matter.</p>
+<h2 id="notes-random-thoughts">notes / random thoughts</h2>
+<ul>
+<li>Swap is emergency capacity management. Tiered memory is performance optimization.</li>
+<li>Page abstraction survived disks. It might struggle more with heterogeneous DRAM.</li>
+<li>Maybe future kernels will combine tiering and scheduling more tightly.</li>
+<li>It's interesting that we're still moving 4KB chunks around in 2026.</li>
+<li>I sometimes wonder if sub-page migration will eventually become practical.</li>
+</ul>
+  
+</article>
+</main>
+    <hr class="site-sep bottom-sep" />
+    <footer class="s">
+        
+    </footer>
+    
+
+    <script>
+        document.querySelectorAll("article img[srcset]").forEach((i) => {
+            if (i.closest("a")) return;
+            i.style.cursor = "pointer";
+            i.onclick = () => {
+                let d = document.createElement("div"),
+                    s = i.srcset.split(",").pop().trim().split(" ")[0];
+                d.className = "lb";
+                d.innerHTML = '<img src="' + s + '">';
+                document.body.style.overflow = "hidden";
+                d.onclick = () => {
+                    d.remove();
+                    document.body.style.overflow = "";
+                };
+                document.body.appendChild(d);
+            };
+        });
+    </script>
+    
+<button id="scroll-to-top" aria-label="Scroll to top" title="Scroll to top">↑</button>
+<script>
+    (function() {
+        var btn = document.getElementById("scroll-to-top");
+        if (btn) {
+            window.addEventListener("scroll", function() {
+                if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                    btn.classList.add("show");
+                } else {
+                    btn.classList.remove("show");
+                }
+            });
+            btn.addEventListener("click", function() {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        }
+    })();
+</script>
+</body>
+
+</html>

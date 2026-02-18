@@ -6,13 +6,11 @@ description = "The two specs that define how X11 window managers communicate wit
 tags = ["Linux", "x11", "Window Manager"]
 +++
 
-EWMH and ICCCM are specs that define how window managers and clients communicate. Properties on windows, atoms, message formats. Without them, every app would need to know specifically how to talk to your WM. With them, apps can assume standard behavior.
-
-Every WM implements some subset. Here's what actually matters.
+EWMH and ICCCM are the two specs that define how window managers and clients talk to each other through properties on windows, atoms, and message formats. Without them every app would need to know specifically how to talk to your particular WM, and with them apps can just assume standard behavior. Every WM implements some subset of these, and here's what actually matters.
 
 ## ICCCM: the old one
 
-ICCCM is the Inter-Client Communication Conventions Manual. It's from 1988. Defines the basics:
+ICCCM is the Inter-Client Communication Conventions Manual from 1988 and it defines the basics:
 
 - `WM_NAME` — window title
 - `WM_CLASS` — instance name and class name (used for matching windows to rules)
@@ -21,7 +19,7 @@ ICCCM is the Inter-Client Communication Conventions Manual. It's from 1988. Defi
 - `WM_PROTOCOLS` — which protocols the client supports (like `WM_DELETE_WINDOW`)
 - `WM_STATE` — current state (normal, iconic, withdrawn)
 
-The important ones for a basic WM:
+The ones that actually matter for a basic WM:
 
 **WM_DELETE_WINDOW** — if the client lists this in `WM_PROTOCOLS`, send a ClientMessage instead of killing the window. This lets the app save unsaved work before closing.
 
@@ -33,15 +31,15 @@ The important ones for a basic WM:
 
 **WM_CLASS** — critical for window rules. The class name tells you what app this is. You want this to auto-float dialogs, send certain apps to specific desktops, etc.
 
-ICCCM is showing its age. It doesn't know about multiple desktops, fullscreen, maximized state, struts (docking bars), or window types. That's what EWMH adds.
+ICCCM is showing its age tho, it doesn't know about multiple desktops, fullscreen, maximized state, struts (docking bars), or window types, and that's what EWMH adds.
 
 ## EWMH: the modern one
 
-EWMH is the Extended Window Manager Hints. It's what most modern apps and WMs actually use.
+EWMH is the Extended Window Manager Hints and it's what most modern apps and WMs actually use.
 
 ### root window properties
 
-These go on the root window and describe the WM and desktop state:
+These go on the root window and describe the overall WM and desktop state:
 
 **`_NET_SUPPORTED`** — list of EWMH atoms you support. Apps check this to know what features work.
 
@@ -74,7 +72,7 @@ Apps set these on their windows:
 - `_NET_WM_WINDOW_TYPE_UTILITY` — toolbars, palettes
 - `_NET_WM_WINDOW_TYPE_NOTIFICATION` — notification popups
 
-This is how you know to auto-float dialogs or keep docks above other windows.
+This is how you know to auto-float dialogs or keep docks above other windows, and getting this right makes a huge difference in how the WM feels.
 
 **`_NET_WM_STATE`** — current window state flags:
 
@@ -93,7 +91,7 @@ This is how you know to auto-float dialogs or keep docks above other windows.
 
 ### client messages
 
-Apps send these to the WM to request things:
+Apps send these to the WM to request things, and the WM decides whether to honor them:
 
 **`_NET_ACTIVE_WINDOW`** — request focus for a window. Pagers use this.
 
@@ -107,7 +105,7 @@ Apps send these to the WM to request things:
 
 ## what I actually implemented
 
-For a tiling WM, here's the bare minimum that makes things work:
+For a tiling WM the spec is big but you don't need all of it, here's the bare minimum that makes things work:
 
 **Must have:**
 
@@ -135,7 +133,7 @@ For a tiling WM, here's the bare minimum that makes things work:
 
 ## handling state changes
 
-When an app sends `_NET_WM_STATE` client message, it looks like:
+When an app sends a `_NET_WM_STATE` client message the format is:
 
 - `data.l[0]` = action (0=remove, 1=add, 2=toggle)
 - `data.l[1]` = first state atom
@@ -153,17 +151,17 @@ if (action == _NET_WM_STATE_TOGGLE) {
 }
 ```
 
-You also need to update the property on the window so other apps can see the current state.
+You also need to update the property on the window afterwards so other apps (like pagers and taskbars) can see the current state.
 
 ## the annoying parts
 
-**Order matters.** Some apps expect you to set properties in specific order during initial manage. Java is notorious for this.
+**Order matters.** Some apps expect you to set properties in a specific order during initial manage, and Java is notorious for this.
 
-**UTF-8 everywhere.** `_NET_WM_NAME` is UTF-8. `WM_NAME` might be latin1 or something else. You need to handle both.
+**UTF-8 everywhere.** `_NET_WM_NAME` is UTF-8 but `WM_NAME` might be latin1 or something else entirely, so you need to handle both.
 
 **Struts are per-monitor.** `_NET_WM_STRUT_PARTIAL` has 12 values: left, right, top, bottom, and start/end for each. A bar on the left side of monitor 2 has a specific left strut with start_y/end_y bounding its position.
 
-**Desktop indices.** Apps expect 0-indexed desktops. `_NET_CURRENT_DESKTOP = 0` is the first desktop. Some early EWMH implementations got this wrong.
+**Desktop indices.** Apps expect 0-indexed desktops where `_NET_CURRENT_DESKTOP = 0` is the first desktop, and some early EWMH implementations got this wrong.
 
 ## notes
 

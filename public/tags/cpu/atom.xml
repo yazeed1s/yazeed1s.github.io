@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <title>Yazeed&#x27;s Blog - CPU</title>
+    <subtitle>Notes on systems and low-level software.</subtitle>
+    <link rel="self" type="application/atom+xml" href="https://yazeed1s.github.io/tags/cpu/atom.xml"/>
+    <link rel="alternate" type="text/html" href="https://yazeed1s.github.io"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2025-02-18T00:00:00+00:00</updated>
+    <id>https://yazeed1s.github.io/tags/cpu/atom.xml</id>
+    <entry xml:lang="en">
+        <title>Interrupts, Traps, and the Kernel Boundary</title>
+        <published>2025-02-18T00:00:00+00:00</published>
+        <updated>2025-02-18T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/interrupts-traps/"/>
+        <id>https://yazeed1s.github.io/posts/interrupts-traps/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/interrupts-traps/">&lt;p&gt;Your app might call a syscall, a packet might arrive on the network card, or the timer might fire; all of these interrupt normal execution, but they&#x27;re not the same thing. The terminology gets confusing because people use interrupt, trap, and exception loosely.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;user-space-vs-kernel-space&quot;&gt;user space vs kernel space&lt;&#x2F;h2&gt;
+&lt;p&gt;First the basics: modern CPUs have privilege levels called rings on x86, where ring 0 is the most privileged (kernel) and ring 3 is least privileged (user applications).&lt;&#x2F;p&gt;
+&lt;p&gt;Your application runs in ring 3 and can execute normal instructions, access its own memory, and do math, but it cannot access hardware directly, read&#x2F;write arbitrary memory addresses, or execute privileged instructions (like changing page tables or disabling interrupts). The kernel runs in ring 0 and can do all of those things.&lt;&#x2F;p&gt;
+&lt;p&gt;When you call &lt;code&gt;read()&lt;&#x2F;code&gt; to read from a file, your code can&#x27;t just talk to the disk controller, it has to ask the kernel. The CPU has to switch from ring 3 to ring 0, do the privileged work, then switch back.&lt;&#x2F;p&gt;
+&lt;p&gt;This switch is the kernel boundary, and crossing it costs you: register save&#x2F;restore, privilege change, and sometimes cache disruption. That&#x27;s why syscalls aren&#x27;t free.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;interrupts&quot;&gt;interrupts&lt;&#x2F;h2&gt;
+&lt;p&gt;An interrupt is a signal from hardware that says &quot;stop what you&#x27;re doing, I need attention.&quot; Examples are a keyboard telling you a key was pressed, a network card saying a packet arrived, a timer saying your time slice is up, or a disk controller saying that read you asked for is done.&lt;&#x2F;p&gt;
+&lt;p&gt;Interrupts are asynchronous, they happen whenever the hardware needs attention regardless of what the CPU is currently doing. You could be in the middle of a for loop and suddenly an interrupt fires.&lt;&#x2F;p&gt;
+&lt;p&gt;When an interrupt happens, the CPU stops executing the current instruction stream, saves the current state (registers, instruction pointer, flags), looks up the interrupt handler in the Interrupt Descriptor Table (IDT), jumps to that handler (now in ring 0), the handler does its work, and then the handler returns and the CPU restores state and continues where it left off. The key thing is that the currently running process doesn&#x27;t trigger this, it just happens to it.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;traps&quot;&gt;traps&lt;&#x2F;h2&gt;
+&lt;p&gt;A trap is a synchronous exception triggered by the currently running code, and it&#x27;s intentional. The main example is syscalls: when you call &lt;code&gt;read()&lt;&#x2F;code&gt;, the C library eventually executes a special instruction (&lt;code&gt;syscall&lt;&#x2F;code&gt; on x86-64, &lt;code&gt;int 0x80&lt;&#x2F;code&gt; on older x86) that deliberately triggers a trap.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;User code calls read()&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;  -&amp;gt; libc wrapper&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    -&amp;gt; syscall instruction (trap into kernel)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;      -&amp;gt; kernel syscall handler&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;        -&amp;gt; returns to user space&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;The difference from interrupts is that you asked for this, the code executing triggered it, and it happens at a specific point in your instruction stream, not randomly.&lt;&#x2F;p&gt;
+&lt;p&gt;Other traps and exceptions include page faults (you accessed memory that isn&#x27;t mapped, which could be a bug or could be demand paging doing its job), division by zero (arithmetic error), invalid opcode (tried to execute garbage), and breakpoint traps (int 3 for debuggers). Some of these are errors that kill your process (division by zero), and some are handled so execution continues (page fault loads the page and then your load instruction retries).&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-naming-confusion&quot;&gt;the naming confusion&lt;&#x2F;h2&gt;
+&lt;p&gt;Different sources use these terms differently. Here&#x27;s how I think about it: &lt;strong&gt;interrupt&lt;&#x2F;strong&gt; means external, async, from hardware. &lt;strong&gt;Trap&lt;&#x2F;strong&gt; means internal, sync, intentional (syscalls). &lt;strong&gt;Exception&lt;&#x2F;strong&gt; means internal, sync, usually an error (page fault, div by zero). &lt;strong&gt;Fault&lt;&#x2F;strong&gt; is an exception that can be corrected (page fault) where the instruction retries. &lt;strong&gt;Abort&lt;&#x2F;strong&gt; is an unrecoverable error.&lt;&#x2F;p&gt;
+&lt;p&gt;Some people use &quot;exception&quot; as the umbrella term for everything, some use &quot;interrupt&quot; for everything, and the Intel manual has its own definitions. It&#x27;s messy. What matters is understanding whether the trigger is external (hardware) or internal (executing code), and whether it&#x27;s expected (syscall) or unexpected (error).&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-interrupt-descriptor-table&quot;&gt;the interrupt descriptor table&lt;&#x2F;h2&gt;
+&lt;p&gt;The CPU needs to know where to jump for each interrupt or exception, and this is stored in the IDT, a table in memory that the kernel sets up at boot. Each entry has a handler address, what privilege level can trigger it, and a gate type (interrupt gate, trap gate).&lt;&#x2F;p&gt;
+&lt;p&gt;For hardware interrupts, the entries point to kernel interrupt handlers, and for the syscall trap, it points to the syscall entry point. When an interrupt fires, the CPU uses the interrupt number as an index into the IDT, checks privilege, switches to ring 0 if needed, and jumps to the handler address.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;hardware-interrupts-in-more-detail&quot;&gt;hardware interrupts in more detail&lt;&#x2F;h2&gt;
+&lt;p&gt;When a device needs attention, it signals an interrupt request (IRQ), and on modern systems this goes through an interrupt controller (APIC). The kernel has to acknowledge the interrupt, figure out which device caused it, call the right driver&#x27;s handler, and tell the interrupt controller we&#x27;re done. Handling needs to be fast because interrupts are disabled (or that IRQ is masked) while you&#x27;re in the handler, and if you take too long you miss other interrupts.&lt;&#x2F;p&gt;
+&lt;p&gt;Linux splits this into top half and bottom half: the &lt;strong&gt;top half&lt;&#x2F;strong&gt; runs in interrupt context, does the minimum work, and schedules the bottom half. The &lt;strong&gt;bottom half&lt;&#x2F;strong&gt; runs later with interrupts enabled and does the real work (softirqs, tasklets, workqueues). For example, a network card interrupt&#x27;s top half grabs the packet from hardware, queues it, and schedules the bottom half, which then processes the packet up the network stack.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;syscall-cost&quot;&gt;syscall cost&lt;&#x2F;h2&gt;
+&lt;p&gt;Crossing the kernel boundary isn&#x27;t free. You pay for saving and restoring registers, switching stacks (user stack to kernel stack), TLB and cache effects, and Spectre mitigations on modern kernels (KPTI, retpolines).&lt;&#x2F;p&gt;
+&lt;p&gt;On a modern system, a syscall might take a few hundred nanoseconds, which doesn&#x27;t sound like much, but if you&#x27;re doing thousands per second it adds up. That cost is why people use batching (fewer syscalls, more work per call), io_uring (submit many I&#x2F;O requests with one syscall), and mmap (access files without read() syscalls).&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;On x86-64, &lt;code&gt;syscall&lt;&#x2F;code&gt;&#x2F;&lt;code&gt;sysret&lt;&#x2F;code&gt; are faster than the old &lt;code&gt;int 0x80&lt;&#x2F;code&gt; method&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;&#x2F;proc&#x2F;interrupts&lt;&#x2F;code&gt; shows interrupt counts per CPU&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;perf stat&lt;&#x2F;code&gt; can count context switches and syscalls&lt;&#x2F;li&gt;
+&lt;li&gt;NMI (Non-Maskable Interrupt) can&#x27;t be disabled, used for profiling and panic&lt;&#x2F;li&gt;
+&lt;li&gt;The timer interrupt is what makes preemptive multitasking work&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>Context Switches: What Actually Happens</title>
+        <published>2024-11-18T00:00:00+00:00</published>
+        <updated>2024-11-18T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/context-switches/"/>
+        <id>https://yazeed1s.github.io/posts/context-switches/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/context-switches/">&lt;p&gt;A context switch is what happens when the OS takes one process off the CPU and puts another one on. It happens constantly, thousands of times per second, and your programs never notice because the whole point is that it looks seamless.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;why-context-switches-exist&quot;&gt;why context switches exist&lt;&#x2F;h2&gt;
+&lt;p&gt;CPUs don&#x27;t multitask on their own, they execute one instruction stream at a time (per core). The OS creates the illusion of parallelism by rapidly switching between processes, giving each one a time slice of maybe 1-10 milliseconds, executing its instructions, then saving its state and loading the next process&#x27;s state. Do this fast enough and it looks like everything runs at the same time.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-gets-saved&quot;&gt;what gets saved&lt;&#x2F;h2&gt;
+&lt;p&gt;A process&#x27;s execution state lives in CPU registers, and when the OS switches away from a process it needs to save all of them: general purpose registers (rax, rbx, rcx on x86-64), the instruction pointer (rip, which says where execution was), the stack pointer (rsp), flags register, floating point and SIMD registers (SSE, AVX), and the memory mappings reference (CR3 on x86, which points to the page tables).&lt;&#x2F;p&gt;
+&lt;p&gt;All of this gets saved to the process&#x27;s kernel data structure (the task_struct on Linux), and the incoming process&#x27;s saved state gets loaded into the CPU registers. The CPU then continues executing from wherever the new process left off.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-actually-happens-step-by-step&quot;&gt;what actually happens step by step&lt;&#x2F;h2&gt;
+&lt;p&gt;The timer interrupt fires (or the process yields, or it blocks on I&#x2F;O), the CPU traps to the kernel, the scheduler picks the next process, the kernel saves current registers to the outgoing task_struct, loads registers from the incoming task_struct, switches the page tables by writing CR3 (which changes the entire virtual memory mapping), flushes TLB entries that are no longer valid, and returns to user space where the new process resumes as if nothing happened.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Process A running&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;  -&amp;gt; timer interrupt fires&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;  -&amp;gt; save A&amp;#39;s registers to A&amp;#39;s task_struct&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;  -&amp;gt; scheduler picks Process B&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;  -&amp;gt; load B&amp;#39;s registers from B&amp;#39;s task_struct&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;  -&amp;gt; switch page tables (CR3)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;  -&amp;gt; flush TLB&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;  -&amp;gt; Process B is now running&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;The key thing is that the process doesn&#x27;t know. It saved no state, it called no function. The kernel did everything while the process wasn&#x27;t looking.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-cost&quot;&gt;the cost&lt;&#x2F;h2&gt;
+&lt;p&gt;Context switches aren&#x27;t free. The direct cost is saving and restoring register state, which is maybe a few hundred nanoseconds. But the indirect cost is worse: the TLB gets flushed (partially or fully) because the new process has different page tables, so the first memory accesses after the switch take page table walks instead of TLB hits. The CPU caches (L1, L2) are now full of the old process&#x27;s data, and the new process suffers cache misses until it warms them up. Branch predictors trained on the old process&#x27;s code are useless for the new process.&lt;&#x2F;p&gt;
+&lt;p&gt;These indirect costs can add up to several microseconds of effective penalty, and on workloads with many short-lived operations it can matter a lot.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;thread-switches-vs-process-switches&quot;&gt;thread switches vs process switches&lt;&#x2F;h2&gt;
+&lt;p&gt;Threads within the same process share address space, so switching between them doesn&#x27;t require changing CR3 or flushing the TLB. That makes thread switches cheaper: you still save&#x2F;restore registers, but you skip the expensive page table swap and TLB invalidation.&lt;&#x2F;p&gt;
+&lt;p&gt;This is one reason why multi-threaded servers outperform multi-process ones for high-concurrency workloads, fewer and cheaper context switches.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;voluntary-vs-involuntary&quot;&gt;voluntary vs involuntary&lt;&#x2F;h2&gt;
+&lt;p&gt;A &lt;strong&gt;voluntary&lt;&#x2F;strong&gt; context switch happens when a process can&#x27;t continue: it calls &lt;code&gt;read()&lt;&#x2F;code&gt; and waits for disk, calls &lt;code&gt;sleep()&lt;&#x2F;code&gt;, waits on a mutex, or does any blocking operation. The process essentially says &quot;I have nothing to do, give the CPU to someone else.&quot;&lt;&#x2F;p&gt;
+&lt;p&gt;An &lt;strong&gt;involuntary&lt;&#x2F;strong&gt; context switch happens when the scheduler preempts the process because its time slice expired (the timer interrupt fires and the scheduler decides it&#x27;s someone else&#x27;s turn), a higher-priority process becomes runnable, or load balancing moves the process to another core. You can see both types in &lt;code&gt;&#x2F;proc&#x2F;&amp;lt;pid&amp;gt;&#x2F;status&lt;&#x2F;code&gt; under &lt;code&gt;voluntary_ctxt_switches&lt;&#x2F;code&gt; and &lt;code&gt;nonvoluntary_ctxt_switches&lt;&#x2F;code&gt;.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-triggers-a-switch&quot;&gt;what triggers a switch&lt;&#x2F;h2&gt;
+&lt;p&gt;Most context switches come from I&#x2F;O waits (process blocks, voluntary), timer expiry (time slice used up, involuntary), synchronization (mutex, semaphore, condition variable), and inter-process communication (pipe, signal). A busy process that never blocks still gets switched out involuntarily when its time slice expires.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;perf stat&lt;&#x2F;code&gt; shows context switch counts for a command&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;&#x2F;proc&#x2F;&amp;lt;pid&amp;gt;&#x2F;status&lt;&#x2F;code&gt; shows voluntary and involuntary counts per process&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;vmstat&lt;&#x2F;code&gt; shows system-wide context switches per second (cs column)&lt;&#x2F;li&gt;
+&lt;li&gt;On a typical desktop system you might see 10,000-50,000 context switches per second&lt;&#x2F;li&gt;
+&lt;li&gt;PCID (Process Context ID) on modern x86 lets the TLB keep entries from multiple processes, reducing the flush cost&lt;&#x2F;li&gt;
+&lt;li&gt;Kernel preemption means the kernel itself can be context-switched mid-operation (when configured with &lt;code&gt;PREEMPT&lt;&#x2F;code&gt;)&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+</feed>

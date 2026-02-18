@@ -6,13 +6,11 @@ description = "XCB event masks, SubstructureRedirect, and how a WM becomes the W
 tags = ["Linux", "x11", "Window Manager"]
 +++
 
-When I started writing ZWM I didn't understand how a window manager intercepts window creation. Applications create windows by talking to the X server. How does the WM get in the middle?
-
-The WM is just another X client. But it asks the server to redirect certain events to it instead of handling them normally.
+When I started writing ZWM I didn't understand how a window manager intercepts window creation, because applications create windows by talking to the X server directly so how does the WM get in the middle? turns out the WM is just another X client, but it asks the server to redirect certain events to it instead of handling them normally.
 
 ## everything is events
 
-X11 is event-driven. When something happens (key press, window created, window resized), the server generates an event. Clients tell the server which events they want to receive by setting event masks on windows.
+X11 is event-driven: when something happens (key press, window created, window resized) the server generates an event, and clients tell the server which events they want to receive by setting event masks on windows.
 
 In XCB, event masks are just bit flags you OR together:
 
@@ -32,11 +30,9 @@ You combine whatever you need for a specific window.
 
 ## the root window
 
-There's one special window: the root window. It covers the entire screen. All other windows are children of it.
+There's one special window called the root window that covers the entire screen, and all other windows are children of it.
 
-The root window is how the WM gets control. By setting certain masks on it, the WM intercepts events that would normally be handled by the server.
-
-In ZWM I define what the root window listens for:
+The root window is how the WM gets control, because by setting certain masks on it the WM intercepts events that would normally be handled by the server. In ZWM I define what the root window listens for:
 
 ```c
 #define ROOT_EVENT_MASK \
@@ -54,11 +50,11 @@ What gets redirected:
 - `XCB_CONFIGURE_REQUEST` — client wants to move/resize
 - `XCB_CIRCULATE_REQUEST` — client wants to change stacking order
 
-Without this mask, when an app wants to map a window, the server just shows it. With the mask, you get a `MapRequest` event and decide what to do. This is how tiling WMs work. App says "make me 800x600." WM intercepts, ignores the size, tiles it wherever.
+Without this mask, when an app wants to map a window the server just shows it wherever the app asked. With the mask you get a `MapRequest` event and decide what to do, which is how tiling WMs work: the app says "make me 800x600" and the WM intercepts it, ignores the size, and tiles it wherever it should go.
 
 ## only one WM
 
-Only one client can hold `SubstructureRedirectMask` on root. If another client already has it, you get `BadAccess`. This is how you detect if another WM is running.
+Only one client can hold `SubstructureRedirectMask` on root at a time, so if another client already has it you get `BadAccess`, which is how you detect if another WM is already running.
 
 ## what clients listen for
 
@@ -75,7 +71,7 @@ Client windows need different masks than root. In ZWM:
 
 ## the event loop
 
-XCB uses `xcb_wait_for_event()` which blocks until there's an event. In ZWM:
+XCB uses `xcb_wait_for_event()` which blocks until there's an event, and my event loop in ZWM looks like this:
 
 ```c
 static void
@@ -101,7 +97,7 @@ The `& ~0x80` strips the "sent by SendEvent" flag. You dispatch on the event typ
 
 ## dispatching events
 
-I use a table-driven approach. Each event type maps to a handler function:
+I use a table-driven approach where each event type maps to a handler function:
 
 ```c
 static const event_handler_entry_t _handlers_[] = {
@@ -139,9 +135,9 @@ for (size_t i = 0; i < n; i++) {
 
 ## the important events
 
-**MapRequest** — a window wants to appear. You decide if you manage it, where it goes, what size.
+**MapRequest** — a window wants to appear, so you decide if you manage it, where it goes, and what size it gets.
 
-**ConfigureRequest** — client wants to move or resize. For tiling WM, you mostly ignore the requested geometry. For floating windows, you might honor it.
+**ConfigureRequest** — client wants to move or resize. For a tiling WM you mostly ignore the requested geometry, but for floating windows you might honor it.
 
 **ClientMessage** — EWMH protocol. Other apps send these to request things like:
 - `_NET_WM_STATE` — toggle fullscreen, above, below
@@ -155,7 +151,7 @@ for (size_t i = 0; i < n; i++) {
 
 ## reparenting vs non-reparenting
 
-When a WM "manages" a window, there are two approaches.
+When a WM "manages" a window there are two approaches:
 
 **Reparenting WMs** create a frame window for each client. The client window becomes a child of the frame:
 
@@ -178,13 +174,13 @@ After managing (non-reparenting):
 
 No frame. If you want borders, you manipulate the client window's X11 border directly (`xcb_configure_window` with `XCB_CONFIG_WINDOW_BORDER_WIDTH`). dwm does this. ZWM does this too.
 
-The tradeoff: reparenting gives you more flexibility for decorations but adds complexity. You have to handle ReparentNotify events, manage the frame lifecycle, deal with apps that don't like being reparented. Non-reparenting is simpler but you're limited to what X11 window borders can do (basically solid color rectangles).
+The tradeoff is that reparenting gives you more flexibility for decorations but adds complexity: you have to handle ReparentNotify events, manage the frame lifecycle, and deal with apps that don't like being reparented. Non-reparenting is simpler but you're limited to what X11 window borders can do (basically solid color rectangles).
 
 Some apps behave differently under reparenting WMs. Java apps ARE THE WORST, they historically had issues with reparenting and they still do and expect things to work a certain way and a certain order. Chrome/Electron apps sometimes need hints. Most modern apps handle it fine though.
 
 ## what I learned
 
-The WM isn't special. It's just a client that grabbed redirect on root first. The X server doesn't know what a "window manager" is. It just follows the rules about who gets which events.
+The WM isn't special at all, it's just a client that grabbed redirect on root first. The X server doesn't even know what a "window manager" is, it just follows the rules about who gets which events.
 
 ## notes
 

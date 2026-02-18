@@ -1,0 +1,327 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <title>Yazeed&#x27;s Blog - Performance</title>
+    <subtitle>Notes on systems and low-level software.</subtitle>
+    <link rel="self" type="application/atom+xml" href="https://yazeed1s.github.io/tags/performance/atom.xml"/>
+    <link rel="alternate" type="text/html" href="https://yazeed1s.github.io"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2026-02-12T00:00:00+00:00</updated>
+    <id>https://yazeed1s.github.io/tags/performance/atom.xml</id>
+    <entry xml:lang="en">
+        <title>Tiered Memory</title>
+        <published>2026-02-12T00:00:00+00:00</published>
+        <updated>2026-02-12T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/memory-teiring/"/>
+        <id>https://yazeed1s.github.io/posts/memory-teiring/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/memory-teiring/">&lt;p&gt;The OS always assumed memory is uniform. Every page frame is the same speed, same cost, same latency. With CXL and tiered memory that assumption breaks. You now have fast DRAM and slower memory in the same machine.&lt;&#x2F;p&gt;
+&lt;p&gt;At first it sounded simple to me. Hot pages go in fast memory, cold pages in slow memory. But from an OS perspective it gets complicated fast.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;first-what-are-memory-pages&quot;&gt;first, what are memory pages&lt;&#x2F;h2&gt;
+&lt;p&gt;Before talking about tiers, pages.&lt;&#x2F;p&gt;
+&lt;p&gt;Operating systems manage memory in fixed-size chunks called &lt;strong&gt;pages&lt;&#x2F;strong&gt;. On x86 that&#x27;s 4KB. Sometimes you use huge pages (2MB or 1GB), but 4KB is the default.&lt;&#x2F;p&gt;
+&lt;p&gt;Basically, the OS doesn&#x27;t think in bytes, it thinks in pages.&lt;&#x2F;p&gt;
+&lt;p&gt;When a process allocates memory, the OS maps virtual pages to physical page frames. The page table stores this mapping. CPU sees a virtual address, walks the page tables, translates it to a physical frame.&lt;&#x2F;p&gt;
+&lt;p&gt;If a page is not present? Page fault. Memory full? The OS evicts pages.&lt;&#x2F;p&gt;
+&lt;p&gt;So when you talk about tiered memory, what you&#x27;re really asking is: which physical page frames should live in which kind of memory? That&#x27;s the core question.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;why-do-we-even-need-tiered-memory&quot;&gt;why do we even need tiered memory&lt;&#x2F;h2&gt;
+&lt;p&gt;A server has DRAM directly attached to the CPU through memory channels. Fast, low latency, but expensive.&lt;&#x2F;p&gt;
+&lt;p&gt;In large systems memory becomes a serious cost factor. In some cloud setups it&#x27;s a big portion of total server cost. And many applications allocate large heaps but only actively touch part of them.&lt;&#x2F;p&gt;
+&lt;p&gt;Scaling DRAM isn&#x27;t trivial either. You&#x27;re limited by channels, DIMM slots, signal integrity.&lt;&#x2F;p&gt;
+&lt;p&gt;So the idea behind tiered memory is simple: instead of making all memory equally fast and equally expensive, have a small fast tier and a larger slower tier. Put frequently used pages in fast memory. Put less active pages in slower memory.&lt;&#x2F;p&gt;
+&lt;p&gt;Conceptually simple. Implementation is not.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;cxl-and-heterogeneous-memory&quot;&gt;CXL and heterogeneous memory&lt;&#x2F;h2&gt;
+&lt;p&gt;With newer interconnects you can attach extra memory that&#x27;s cache-coherent but slower than local DRAM. From the OS perspective it looks like another NUMA node.&lt;&#x2F;p&gt;
+&lt;p&gt;But latency is higher. Roughly:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Local DRAM: maybe around 100ns&lt;&#x2F;li&gt;
+&lt;li&gt;Attached memory over fabric: maybe 2x or 3x that&lt;&#x2F;li&gt;
+&lt;li&gt;Still much faster than SSD or disk&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;So now you have heterogeneous memory inside the same system. Fast tier is local DRAM. Slow tier is attached or remote memory. Same abstraction (page), different performance.&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;The &quot;2x or 3x&quot; latency for CXL-attached memory is a rough estimate based on early CXL 1.1&#x2F;2.0 hardware. Actual latency depends on the CXL device type (Type 1, 2, or 3), the number of CXL hops, the controller implementation, and whether the access hits the device&#x27;s internal cache. Some CXL memory expanders report closer to 1.5x for cached accesses. These numbers will keep changing as the hardware matures.&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;p&gt;This breaks the old assumption that memory is uniform.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-core-problem-which-pages-go-where&quot;&gt;the core problem: which pages go where&lt;&#x2F;h2&gt;
+&lt;p&gt;If hot pages sit in the fast tier, everything is fine. If hot pages end up in the slow tier, performance drops.&lt;&#x2F;p&gt;
+&lt;p&gt;So you need to detect which pages are hot and move them.&lt;&#x2F;p&gt;
+&lt;p&gt;The naive idea: count how many times each page is accessed. Most accessed pages are hot.&lt;&#x2F;p&gt;
+&lt;p&gt;But it turns out that&#x27;s not enough.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;hotness-is-not-that-simple&quot;&gt;hotness is not that simple&lt;&#x2F;h2&gt;
+&lt;p&gt;Frequency alone doesn&#x27;t always tell the full story.&lt;&#x2F;p&gt;
+&lt;p&gt;Modern CPUs overlap memory accesses. If several cache misses happen at the same time, the effective stall per access can be smaller. Some accesses hurt more than others, depending on timing and overlap.&lt;&#x2F;p&gt;
+&lt;p&gt;So a page can be frequently accessed but not necessarily performance-critical. Another page might be accessed less often but sit directly on the critical path.&lt;&#x2F;p&gt;
+&lt;p&gt;Instead of just asking &quot;how many times was this page accessed?&quot;, you probably need to ask &quot;how much does this page slow down the program if it&#x27;s in slow memory?&quot;&lt;&#x2F;p&gt;
+&lt;p&gt;That&#x27;s a harder question. I&#x27;m not sure how well current systems actually answer it. It connects OS policy with microarchitecture behavior, and I don&#x27;t think the abstractions we have right now are set up for that.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;page-granularity-mismatch&quot;&gt;page granularity mismatch&lt;&#x2F;h2&gt;
+&lt;p&gt;The OS moves memory in 4KB pages. The hardware accesses memory in 64-byte cache lines.&lt;&#x2F;p&gt;
+&lt;p&gt;Sometimes only a few cache lines inside a 4KB page are really hot. The rest is barely touched. If you migrate the entire page to the fast tier because a small region inside it is hot, you&#x27;re wasting precious fast memory.&lt;&#x2F;p&gt;
+&lt;p&gt;Huge pages make this worse. A 2MB page may contain a small hot region and a lot of cold data. Promoting the whole thing seems expensive.&lt;&#x2F;p&gt;
+&lt;p&gt;There&#x27;s a mismatch between OS abstraction (page-based) and real access behavior (cache-line based). Tiered memory just makes the mismatch more visible.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;migration-is-not-free&quot;&gt;migration is not free&lt;&#x2F;h2&gt;
+&lt;p&gt;Moving a page between tiers isn&#x27;t just a pointer update. You need to allocate space in the target tier, copy 4KB of data, update page tables, possibly flush TLB entries, and coordinate across cores.&lt;&#x2F;p&gt;
+&lt;p&gt;If you migrate too often, or migrate the wrong pages, you can hurt performance instead of improving it. I&#x27;ve seen papers where the migration overhead alone ate most of the benefit.&lt;&#x2F;p&gt;
+&lt;p&gt;So it becomes a control problem. You need accurate detection, low tracking overhead, stable decisions, limited oscillation. It starts to feel like scheduling honestly. Continuously adapting to workload behavior, except the feedback signals are noisier.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;where-disaggregation-fits&quot;&gt;where disaggregation fits&lt;&#x2F;h2&gt;
+&lt;p&gt;Tiered memory is closely related to disaggregated memory.&lt;&#x2F;p&gt;
+&lt;p&gt;Disaggregation means memory can be separated from compute and accessed over a fabric. That memory naturally has higher latency than local DRAM, so it often becomes the slow tier.&lt;&#x2F;p&gt;
+&lt;p&gt;At that point memory management isn&#x27;t just a local kernel concern. It interacts with cluster design, resource allocation, and even scheduling across machines. The boundary between OS and infrastructure gets thinner.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes-random-thoughts&quot;&gt;notes &#x2F; random thoughts&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Page abstraction worked well when memory was uniform. Now it feels slightly strained.&lt;&#x2F;li&gt;
+&lt;li&gt;Counting accesses is easy. Understanding performance impact is harder. I&#x27;m not convinced anyone has a great solution for this yet.&lt;&#x2F;li&gt;
+&lt;li&gt;Huge pages help TLB reach but can complicate tiering decisions.&lt;&#x2F;li&gt;
+&lt;li&gt;Migration policy starts to look like a feedback controller.&lt;&#x2F;li&gt;
+&lt;li&gt;There&#x27;s always tension between transparency and giving applications more control.&lt;&#x2F;li&gt;
+&lt;li&gt;In some sense tiered memory is like swap inside RAM, but at nanosecond scale.&lt;&#x2F;li&gt;
+&lt;li&gt;It looks like a small hardware change but from the OS side it touches a lot of assumptions.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>From Swap to Tiered Memory: Same Idea, Different Scale</title>
+        <published>2026-02-08T00:00:00+00:00</published>
+        <updated>2026-02-08T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/swap-to-tiered/"/>
+        <id>https://yazeed1s.github.io/posts/swap-to-tiered/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/swap-to-tiered/">&lt;p&gt;Tiered memory is swap. Kind of.&lt;&#x2F;p&gt;
+&lt;p&gt;You have fast memory, slow memory, and the kernel moves pages between them. That&#x27;s what swap does too. But once you look closer, the differences become important.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-swap-actually-does&quot;&gt;what swap actually does&lt;&#x2F;h2&gt;
+&lt;p&gt;In classic Linux memory management you have RAM (fast) and disk (very slow). When RAM is full, the kernel selects some pages and writes them to disk. That&#x27;s swapping.&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Swap doesn&#x27;t only kick in when RAM is completely full. How aggressively the kernel swaps depends on the &lt;code&gt;vm.swappiness&lt;&#x2F;code&gt; setting. At higher values, the kernel starts reclaiming anonymous pages earlier. At &lt;code&gt;swappiness=0&lt;&#x2F;code&gt;, it avoids swapping almost entirely until there&#x27;s real memory pressure.&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;p&gt;Later, if a swapped-out page is accessed again, you get a major page fault. The kernel reads the page back from disk into RAM.&lt;&#x2F;p&gt;
+&lt;p&gt;So swap is already a two-tier system. Fast tier is DRAM, slow tier is disk. The unit of movement is still a 4KB page.&lt;&#x2F;p&gt;
+&lt;p&gt;The kernel decides which pages stay in RAM and which go to disk. And that already sounds like tiered memory.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-big-difference-latency-scale&quot;&gt;the big difference: latency scale&lt;&#x2F;h2&gt;
+&lt;p&gt;The difference is scale. Rough numbers:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;DRAM: ~100ns&lt;&#x2F;li&gt;
+&lt;li&gt;CXL-attached memory: maybe ~200–300ns&lt;&#x2F;li&gt;
+&lt;li&gt;SSD: tens of microseconds&lt;&#x2F;li&gt;
+&lt;li&gt;HDD: a lifetime&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;Swap moves pages between nanoseconds and microseconds&#x2F;milliseconds. Tiered memory moves pages between nanoseconds and slightly larger nanoseconds.&lt;&#x2F;p&gt;
+&lt;p&gt;If a page sits on disk and you touch it, the program stalls hard. If a page sits in a slow memory tier, the program slows down but it might not be obvious.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;swap-decisions-can-be-coarse&quot;&gt;swap decisions can be coarse&lt;&#x2F;h2&gt;
+&lt;p&gt;Because disk is so slow, swap decisions can be rough. If a page is cold for some time, push it out. If it&#x27;s accessed again, bring it back. The cost difference is so large that even simple heuristics work reasonably well.&lt;&#x2F;p&gt;
+&lt;p&gt;Tiered memory doesn&#x27;t have that luxury. The latency gap is smaller, so a bad migration decision won&#x27;t crash performance, but small inefficiencies accumulate. Migration overhead itself becomes noticeable relative to the gap.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;hot-vs-cold-is-not-binary-anymore&quot;&gt;hot vs cold is not binary anymore&lt;&#x2F;h2&gt;
+&lt;p&gt;In swap, pages are either in RAM or on disk, so cold pages go out while hot pages stay in.&lt;&#x2F;p&gt;
+&lt;p&gt;In tiered memory it&#x27;s more continuous. A page in the slow tier isn&#x27;t dead. It&#x27;s just slower.&lt;&#x2F;p&gt;
+&lt;p&gt;So the question becomes: how much slower is acceptable? If a page is accessed rarely, keeping it in slow memory is fine. If it&#x27;s accessed frequently but overlaps with other misses, maybe it&#x27;s still fine. If it&#x27;s on the critical path, it probably needs to be in fast memory.&lt;&#x2F;p&gt;
+&lt;p&gt;Classification becomes more nuanced than hot vs cold. Some recent work argues that raw access count isn&#x27;t enough. What matters is how much a page contributes to stall time. That depends on memory-level parallelism and overlap of misses.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;migration-overhead-matters-more&quot;&gt;migration overhead matters more&lt;&#x2F;h2&gt;
+&lt;p&gt;Swapping a page to disk is expensive, but it happens relatively rarely and it&#x27;s usually triggered by memory pressure.&lt;&#x2F;p&gt;
+&lt;p&gt;In tiered memory, migrations can happen frequently and proactively. To migrate a page between tiers, the kernel has to allocate a new page in the target tier, copy 4KB, update page tables, possibly trigger TLB shootdowns, and synchronize across CPUs.&lt;&#x2F;p&gt;
+&lt;p&gt;If migrations are too aggressive, the system spends significant time just moving pages around. Swap is reactive. Tiered memory often tries to be proactive. That increases complexity.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;granularity-problems-become-visible&quot;&gt;granularity problems become visible&lt;&#x2F;h2&gt;
+&lt;p&gt;Pages are 4KB. Cache lines are 64B. With swap this mismatch didn&#x27;t really matter, disk is so slow that any frequently-accessed page obviously belongs in RAM.&lt;&#x2F;p&gt;
+&lt;p&gt;But tiered memory lives in a tighter performance window. A 4KB page might contain a few hot cache lines and many cold ones. Migrating the whole thing to fast memory for a small hot region wastes capacity. With huge pages (2MB) this gets worse.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;swap-is-mostly-about-capacity&quot;&gt;swap is mostly about capacity&lt;&#x2F;h2&gt;
+&lt;p&gt;Swap is fundamentally about capacity. You don&#x27;t have enough RAM, so you spill to disk. If swap is heavily active, something is usually wrong.&lt;&#x2F;p&gt;
+&lt;p&gt;Tiered memory is often about cost efficiency and scaling. Keep a small expensive fast tier, add a larger cheaper slow tier, try to approximate the performance of all-fast memory.&lt;&#x2F;p&gt;
+&lt;p&gt;So tiered memory is more about optimization than survival. If swap is heavily active, something is usually wrong. If tiered memory is active, that&#x27;s the intended design.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;similarity-same-abstraction-different-consequences&quot;&gt;similarity: same abstraction, different consequences&lt;&#x2F;h2&gt;
+&lt;p&gt;At the abstraction level, both swap and tiered memory move 4KB pages, update page tables, rely on page faults, and depend on kernel policies. From the kernel&#x27;s perspective they&#x27;re not that different.&lt;&#x2F;p&gt;
+&lt;p&gt;But the consequences are. Swap mistakes cause dramatic stalls. Tiered memory mistakes cause gradual slowdowns. And gradual slowdowns are harder to detect and reason about.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;thinking-forward&quot;&gt;thinking forward&lt;&#x2F;h2&gt;
+&lt;p&gt;One thing I keep thinking about: swap worked well enough with simple heuristics because the gap was huge. Tiered memory may require more precise reasoning because the gap is smaller.&lt;&#x2F;p&gt;
+&lt;p&gt;Now you care about access frequency, stall contribution, memory-level parallelism, sub-page access skew, migration stability. All of this happening at page granularity, inside a system that was designed assuming uniform memory.&lt;&#x2F;p&gt;
+&lt;p&gt;In a way, tiered memory isn&#x27;t a brand new idea. It&#x27;s swap, compressed into the nanosecond domain. But once you compress the scale, all the small details start to matter.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes-random-thoughts&quot;&gt;notes &#x2F; random thoughts&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Swap is emergency capacity management. Tiered memory is performance optimization.&lt;&#x2F;li&gt;
+&lt;li&gt;Page abstraction survived disks. It might struggle more with heterogeneous DRAM.&lt;&#x2F;li&gt;
+&lt;li&gt;Maybe future kernels will combine tiering and scheduling more tightly.&lt;&#x2F;li&gt;
+&lt;li&gt;It&#x27;s interesting that we&#x27;re still moving 4KB chunks around in 2026.&lt;&#x2F;li&gt;
+&lt;li&gt;I sometimes wonder if sub-page migration will eventually become practical.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>Why Databases Stopped Using mmap</title>
+        <published>2025-12-18T00:00:00+00:00</published>
+        <updated>2025-12-18T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/mmap-databases/"/>
+        <id>https://yazeed1s.github.io/posts/mmap-databases/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/mmap-databases/">&lt;p&gt;mmap lets you map a file into your address space and access it like memory through pointer dereferences instead of &lt;code&gt;read()&lt;&#x2F;code&gt; calls and user-space buffers. The OS handles paging transparently.&lt;&#x2F;p&gt;
+&lt;p&gt;For a database, this looks perfect at first: map data files, access pages through pointers, let the kernel decide what stays in memory, and skip writing a buffer pool. Several databases tried it, and most backed away from it.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;why-it-s-tempting&quot;&gt;why it&#x27;s tempting&lt;&#x2F;h2&gt;
+&lt;p&gt;A traditional DBMS maintains its own buffer pool where it tracks which pages are in memory, decides what to evict, and handles I&#x2F;O explicitly, which is a lot of code (thousands of lines just to manage what&#x27;s cached).&lt;&#x2F;p&gt;
+&lt;p&gt;With mmap you skip all that because the kernel already has a page cache, already tracks access patterns, and already evicts pages under memory pressure, so the question becomes: why duplicate it?&lt;&#x2F;p&gt;
+&lt;p&gt;LMDB does it, MongoDB used to do it, LevelDB did it, MonetDB did it, and SQLite has an mmap mode, so the idea is clearly attractive.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-transactional-safety-problem&quot;&gt;the transactional safety problem&lt;&#x2F;h2&gt;
+&lt;p&gt;The OS can flush dirty pages to disk whenever it wants. You don&#x27;t control when.&lt;&#x2F;p&gt;
+&lt;p&gt;If your DBMS modifies a page through the mmap&#x27;d region, that change can hit disk before the transaction commits. Crash at the wrong time and your database is inconsistent. You&#x27;ve violated durability, or atomicity, or both.&lt;&#x2F;p&gt;
+&lt;p&gt;A buffer pool doesn&#x27;t have this problem because pages live in user-space memory and the DBMS decides when to write them to disk, always writing the WAL first then the data pages, so control flow is explicit.&lt;&#x2F;p&gt;
+&lt;p&gt;With mmap, you need workarounds. MongoDB&#x27;s MMAPv1 engine used &lt;code&gt;MAP_PRIVATE&lt;&#x2F;code&gt; to create a copy-on-write workspace. Two copies of the database in memory. SQLite copies pages to user-space buffers before modifying them, which defeats the purpose of mmap. LMDB uses shadow paging, which forces single-writer concurrency.&lt;&#x2F;p&gt;
+&lt;p&gt;All of these are complex. And all of them give back the simplicity that mmap was supposed to provide.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;i-o-stalls-you-can-t-control&quot;&gt;I&#x2F;O stalls you can&#x27;t control&lt;&#x2F;h2&gt;
+&lt;p&gt;When you access an mmap&#x27;d page that&#x27;s been evicted you get a page fault and the thread blocks until the OS reads the page from disk.&lt;&#x2F;p&gt;
+&lt;p&gt;You can&#x27;t do anything about this since there isn&#x27;t an async page-fault interface to say &quot;I&#x27;m going to need this page soon, start loading it,&quot; the thread just stops.&lt;&#x2F;p&gt;
+&lt;p&gt;With a buffer pool, you control I&#x2F;O explicitly. You can use &lt;code&gt;io_uring&lt;&#x2F;code&gt; or &lt;code&gt;libaio&lt;&#x2F;code&gt; for async reads. You can prefetch pages you know you&#x27;ll need. A B+tree range scan can issue reads for the next few leaf pages ahead of time.&lt;&#x2F;p&gt;
+&lt;p&gt;With mmap, a range scan hits a page fault on every cold page. Sequentially. Each one blocks. You can try &lt;code&gt;madvise(MADV_SEQUENTIAL)&lt;&#x2F;code&gt; but it&#x27;s a hint, not a guarantee, and it doesn&#x27;t help for non-sequential access patterns.&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;code&gt;madvise&lt;&#x2F;code&gt; behavior varies between kernel versions and is not standardized across operating systems. On Linux, &lt;code&gt;MADV_SEQUENTIAL&lt;&#x2F;code&gt; triggers aggressive readahead and drops pages behind, but the readahead window size and eviction behavior are kernel implementation details that can change. Don&#x27;t rely on specific behavior across versions.&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;h2 id=&quot;error-handling-gets-weird&quot;&gt;error handling gets weird&lt;&#x2F;h2&gt;
+&lt;p&gt;With a buffer pool error handling is centralized: you read a page, check the checksum, handle I&#x2F;O errors, all in one place.&lt;&#x2F;p&gt;
+&lt;p&gt;With mmap pages can be evicted and reloaded transparently, so you&#x27;d need to verify checksums on every access not just the first read. An I&#x2F;O error during transparent page-in doesn&#x27;t return an error code either, it raises SIGBUS, which means your error handling is now a signal handler scattered across the codebase.&lt;&#x2F;p&gt;
+&lt;p&gt;If a page in your buffer gets corrupted you catch it before writing to disk, but with mmap the OS can flush a corrupted page without asking, which is silent data corruption.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-performance-collapse&quot;&gt;the performance collapse&lt;&#x2F;h2&gt;
+&lt;p&gt;This is the part that surprised me. A CIDR 2022 paper by Crotty, Leis, and Pavlo benchmarked mmap against traditional I&#x2F;O and the results are bad.&lt;&#x2F;p&gt;
+&lt;p&gt;Random reads on a 2TB dataset with 100GB of page cache (so ~95% of accesses are page faults):&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Traditional I&#x2F;O with &lt;code&gt;O_DIRECT&lt;&#x2F;code&gt;: stable ~900K reads&#x2F;sec&lt;&#x2F;li&gt;
+&lt;li&gt;mmap: starts fine, then collapses to near-zero when the page cache fills and eviction kicks in. Recovers to about half the throughput of traditional I&#x2F;O&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;The collapse happens because of TLB shootdowns. When the kernel evicts a page, it has to invalidate the TLB entry on every CPU core that might have it cached. CPUs don&#x27;t keep TLB entries coherent automatically. The kernel sends inter-processor interrupts—thousands of cycles each. Under heavy eviction, TLB shootdowns hit 2 million per second.&lt;&#x2F;p&gt;
+&lt;p&gt;Sequential scans on 10 NVMe SSDs in RAID 0: mmap gets ~3 GB&#x2F;s. Traditional I&#x2F;O gets ~60 GB&#x2F;s. That&#x27;s 20x worse. And mmap showed basically no improvement going from 1 SSD to 10. It can&#x27;t scale with modern storage bandwidth because the bottleneck is in the kernel&#x27;s page eviction path, not the drives.&lt;&#x2F;p&gt;
+&lt;p&gt;The page eviction itself is another problem. Linux uses a single kswapd thread per NUMA node. Under high I&#x2F;O pressure it becomes the bottleneck. And the page table is a shared data structure that all threads hit during faults, creating contention.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-graveyard&quot;&gt;the graveyard&lt;&#x2F;h2&gt;
+&lt;p&gt;The paper tracks which databases tried mmap and what happened:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;MongoDB&lt;&#x2F;strong&gt; deprecated MMAPv1 in 2015, removed it in 2019. Couldn&#x27;t compress data, too complex to maintain.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;InfluxDB&lt;&#x2F;strong&gt; replaced mmap after severe I&#x2F;O spikes when databases exceeded a few GB.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;SingleStore&lt;&#x2F;strong&gt; found mmap calls took 10-20ms per query from write lock contention.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;RocksDB&lt;&#x2F;strong&gt; exists partly because LevelDB&#x27;s mmap usage had performance bottlenecks.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;TileDB, Scylla, VictoriaMetrics&lt;&#x2F;strong&gt; all evaluated mmap during development and rejected it.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;h2 id=&quot;when-mmap-is-fine&quot;&gt;when mmap is fine&lt;&#x2F;h2&gt;
+&lt;p&gt;If your entire dataset fits in memory and you&#x27;re read-only, mmap works: eviction never kicks in, so you avoid TLB shootdowns, and transactional write hazards don&#x27;t apply. LMDB operates in this sweet spot for some workloads.&lt;&#x2F;p&gt;
+&lt;p&gt;But if your data exceeds memory, or you need writes with ACID guarantees, or you want to use fast storage at full bandwidth, mmap is the wrong tool.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-this-really-comes-down-to&quot;&gt;what this really comes down to&lt;&#x2F;h2&gt;
+&lt;p&gt;For me this comes down to one thing: the OS page cache is general-purpose while databases need very specific control. General-purpose is fine for generic workloads, but databases have specific access patterns, durability rules, and error-handling paths that the OS cannot infer.&lt;&#x2F;p&gt;
+&lt;p&gt;It&#x27;s similar to the tiered memory problem where the OS tries to manage page placement transparently, but transparency breaks down when the application knows something the kernel doesn&#x27;t. Buffer pool vs mmap is the same tension: do you trust the OS abstraction, or do you manage things yourself because you know your workload better?&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Paper: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;db.cs.cmu.edu&#x2F;papers&#x2F;2022&#x2F;cidr2022-p13-crotty.pdf&quot;&gt;Crotty, Leis, Pavlo — &quot;Are You Sure You Want to Use MMAP in Your Database Management System?&quot;, CIDR 2022&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
+&lt;li&gt;Andy Pavlo has a lecture on this topic too. Worth watching if you want the full rant.&lt;&#x2F;li&gt;
+&lt;li&gt;TLB shootdowns are also a cost in page migration for tiered memory. Same mechanism, different context.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;O_DIRECT&lt;&#x2F;code&gt; bypasses the page cache entirely, which is why buffer pool implementations prefer it. The DBMS manages its own cache.&lt;&#x2F;li&gt;
+&lt;li&gt;PostgreSQL has never used mmap for data access. It has its own buffer pool (shared_buffers). This was the right call.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>A Buffer Pool Is Just Paging in User Space</title>
+        <published>2025-12-02T00:00:00+00:00</published>
+        <updated>2025-12-02T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/buffer-pools/"/>
+        <id>https://yazeed1s.github.io/posts/buffer-pools/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/buffer-pools/">&lt;p&gt;A database buffer pool manages fixed-size pages in memory, decides which ones to keep and which to evict, tracks dirty pages, and writes them back to disk on its own schedule.&lt;&#x2F;p&gt;
+&lt;p&gt;That&#x27;s what the OS virtual memory system does. Page frames, page tables, eviction policies, dirty bit tracking, write-back. The database reimplements all of it. In user space.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-os-already-does-this&quot;&gt;the OS already does this&lt;&#x2F;h2&gt;
+&lt;p&gt;The kernel manages physical memory in page frames (4KB). It maps virtual pages to physical frames through page tables. When memory is full, it evicts cold pages to disk. When a process touches an evicted page, it faults and the kernel loads it back. It tracks which pages are dirty and writes them back when it needs to.&lt;&#x2F;p&gt;
+&lt;p&gt;This is the exact same problem a database has. The database has pages on disk. Some of them need to be in memory. Not all of them fit. The database needs to decide which pages to keep, which to evict, and when to write dirty ones back.&lt;&#x2F;p&gt;
+&lt;p&gt;So why not just let the OS handle it? Map the database file with mmap and let the kernel manage everything. Some databases tried this. &lt;a href=&quot;https:&#x2F;&#x2F;yazeed1s.github.io&#x2F;posts&#x2F;mmap-databases&#x2F;&quot;&gt;It didn&#x27;t go well&lt;&#x2F;a&gt;.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;why-databases-reimplement-it&quot;&gt;why databases reimplement it&lt;&#x2F;h2&gt;
+&lt;p&gt;The OS page cache is general purpose. It has no concept of index pages vs temporary sort pages, no awareness that a range scan is about to need the next 50 pages, and no understanding that a dirty page has to hit the WAL before it hits the data file.&lt;&#x2F;p&gt;
+&lt;p&gt;A buffer pool knows all of that.&lt;&#x2F;p&gt;
+&lt;p&gt;The database builds its own page table: a hash map from &lt;code&gt;(file_id, page_number)&lt;&#x2F;code&gt; to a frame in the buffer pool. When a query needs a page, it looks up the hash map. If the page is there, it returns the pointer. If not, it picks a frame to evict, reads the page from disk into that frame, and updates the map.&lt;&#x2F;p&gt;
+&lt;p&gt;Page fault, but in user space. Controlled entirely by the database.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-anatomy-of-a-buffer-pool&quot;&gt;the anatomy of a buffer pool&lt;&#x2F;h2&gt;
+&lt;p&gt;The structure is simple:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Frame array&lt;&#x2F;strong&gt;: a fixed-size array of page-sized slots in memory (the &quot;RAM&quot; of the buffer pool).&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Page table&lt;&#x2F;strong&gt;: a hash map from page ID to frame index (how the database translates a logical page reference into a memory location).&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Eviction policy&lt;&#x2F;strong&gt;: decides which frame to reclaim when the pool is full (LRU, clock, LRU-K).&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Dirty flag&lt;&#x2F;strong&gt;: each frame tracks whether its contents have been modified since it was read from disk.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Pin count&lt;&#x2F;strong&gt;: tracks how many operations are currently using a frame. A pinned page can&#x27;t be evicted (same idea as the kernel&#x27;s page reference count).&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;When a page is requested:&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;Check the page table. If the page is already in a frame, pin it and return the pointer.&lt;&#x2F;li&gt;
+&lt;li&gt;If not, find a victim frame (eviction policy). If the victim is dirty, write it to disk first.&lt;&#x2F;li&gt;
+&lt;li&gt;Read the requested page from disk into the victim frame.&lt;&#x2F;li&gt;
+&lt;li&gt;Update the page table. Return the pointer.&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;p&gt;That&#x27;s page fault, find victim, write back if dirty, read page, update mapping. Same flow as an OS page fault handler, different layer.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;eviction-the-database-knows-more&quot;&gt;eviction: the database knows more&lt;&#x2F;h2&gt;
+&lt;p&gt;The OS uses something like clock or a modified LRU. It works across all processes, all files, all pages. It has no application-level knowledge.&lt;&#x2F;p&gt;
+&lt;p&gt;A database can do better because it knows the access patterns.&lt;&#x2F;p&gt;
+&lt;p&gt;A sequential scan will touch every page once. An LRU policy would fill the cache with scan pages and evict hot index pages. PostgreSQL handles this by using a small ring buffer for sequential scans, so scan pages cycle through a handful of frames instead of polluting the whole pool.&lt;&#x2F;p&gt;
+&lt;p&gt;A B+tree lookup traverses root, internal, then leaf. The root page is accessed on every lookup. It should basically never be evicted. LRU handles this naturally, but a database can also pin critical pages explicitly.&lt;&#x2F;p&gt;
+&lt;p&gt;Prefetching works better too. The database knows it&#x27;s doing a range scan on a B+tree. It can issue async reads for the next few leaf pages before it needs them. The OS page cache can&#x27;t do this because it only sees physical file offsets, not logical access patterns.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;dirty-pages-and-write-back&quot;&gt;dirty pages and write-back&lt;&#x2F;h2&gt;
+&lt;p&gt;This is where the difference matters most.&lt;&#x2F;p&gt;
+&lt;p&gt;The OS can flush a dirty page to disk whenever it wants. That&#x27;s fine for normal files. For a database, it&#x27;s dangerous. If a modified data page hits disk before the corresponding WAL record, crash recovery breaks. This is the write-ahead logging rule: log first, data page second.&lt;&#x2F;p&gt;
+&lt;p&gt;A buffer pool enforces this. Before writing a dirty page back to disk, it checks that the WAL has been flushed up to the page&#x27;s last modification LSN (Log Sequence Number). The page doesn&#x27;t go to disk until its log records are safe.&lt;&#x2F;p&gt;
+&lt;p&gt;This is impossible with mmap. The kernel has no concept of WAL ordering or LSNs. It flushes when it feels like it.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;o-direct-bypassing-the-os-page-cache&quot;&gt;O_DIRECT: bypassing the OS page cache&lt;&#x2F;h2&gt;
+&lt;p&gt;Most serious databases open their files with &lt;code&gt;O_DIRECT&lt;&#x2F;code&gt;. This tells the kernel to skip its own page cache entirely. Reads and writes go straight between the database&#x27;s buffer pool and the disk.&lt;&#x2F;p&gt;
+&lt;p&gt;Without &lt;code&gt;O_DIRECT&lt;&#x2F;code&gt;, you&#x27;d have the data in two places: once in the database&#x27;s buffer pool and once in the OS page cache. Double the memory usage for no benefit. The database already manages caching. The OS cache is redundant.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;code&gt;O_DIRECT&lt;&#x2F;code&gt; also gives the database precise control over I&#x2F;O timing, no surprises from kernel write-back threads or memory pressure from the kernel evicting buffer pool pages.&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;code&gt;O_DIRECT&lt;&#x2F;code&gt; isn&#x27;t free to use. It requires buffers to be aligned to the filesystem block size (usually 512 bytes or 4KB), and I&#x2F;O sizes must also be aligned. If you get the alignment wrong, the syscall fails with EINVAL. This is why most databases that use &lt;code&gt;O_DIRECT&lt;&#x2F;code&gt; implement their own aligned allocation routines.&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;p&gt;PostgreSQL is an exception. It uses the OS page cache (buffered I&#x2F;O) rather than &lt;code&gt;O_DIRECT&lt;&#x2F;code&gt;, and relies on &lt;code&gt;fsync&lt;&#x2F;code&gt; to force data to disk. It simplifies some things but means PostgreSQL competes with the OS for memory management control.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;it-s-the-same-problem-at-a-different-layer&quot;&gt;it&#x27;s the same problem at a different layer&lt;&#x2F;h2&gt;
+&lt;p&gt;The parallel is almost exact:&lt;&#x2F;p&gt;
+&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;OS Virtual Memory&lt;&#x2F;th&gt;&lt;th&gt;Database Buffer Pool&lt;&#x2F;th&gt;&lt;&#x2F;tr&gt;&lt;&#x2F;thead&gt;&lt;tbody&gt;
+&lt;tr&gt;&lt;td&gt;Physical page frame&lt;&#x2F;td&gt;&lt;td&gt;Buffer pool frame&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;Page table (virtual to physical)&lt;&#x2F;td&gt;&lt;td&gt;Page table (page ID to frame)&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;Page fault handler&lt;&#x2F;td&gt;&lt;td&gt;Buffer pool miss handler&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;Dirty bit in PTE&lt;&#x2F;td&gt;&lt;td&gt;Dirty flag per frame&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;Reference count&lt;&#x2F;td&gt;&lt;td&gt;Pin count&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;kswapd (page reclaim)&lt;&#x2F;td&gt;&lt;td&gt;Eviction policy (LRU, clock)&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;Swap file&lt;&#x2F;td&gt;&lt;td&gt;Data file on disk&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;&lt;code&gt;write-back&lt;&#x2F;code&gt; flush&lt;&#x2F;td&gt;&lt;td&gt;WAL-ordered write-back&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;&#x2F;tbody&gt;&lt;&#x2F;table&gt;
+&lt;p&gt;The database takes this responsibility away from the OS because general-purpose policies don&#x27;t work for database workloads. Eviction needs access-pattern awareness. Write-back needs WAL ordering. Prefetching needs query-plan knowledge. The OS has none of this context.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;InnoDB (MySQL) uses a buffer pool with an LRU that splits into &quot;young&quot; and &quot;old&quot; sublists. New pages enter the old sublist, and only move to the young sublist if accessed again. This handles the scan-pollution problem.&lt;&#x2F;li&gt;
+&lt;li&gt;PostgreSQL&#x27;s shared_buffers is its buffer pool. It uses a clock-sweep eviction policy.&lt;&#x2F;li&gt;
+&lt;li&gt;SQLite in WAL mode maintains its own page cache but sits on top of the OS page cache (no O_DIRECT). It works because SQLite targets small-to-medium databases where double-caching isn&#x27;t expensive.&lt;&#x2F;li&gt;
+&lt;li&gt;The buffer pool is one of the first things a database student builds. It&#x27;s simple in concept and brutal in the details (concurrency, latch ordering, I&#x2F;O scheduling).&lt;&#x2F;li&gt;
+&lt;li&gt;Some databases are experimenting with letting the buffer pool manage allocation at finer granularity than pages. But pages have stuck around because they align with disk I&#x2F;O boundaries.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+</feed>

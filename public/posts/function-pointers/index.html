@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="How C uses structs of function pointers to get dispatch without inheritance." />
+<meta
+    name="keywords"
+    content="yazeed, blog, alharthi, yaz, yazeed1s"
+/>
+<link rel="canonical" href="https://yazeed1s.github.io/posts/function-pointers/" />
+
+<title>Function Pointers as Poor Man&#x27;s Polymorphism | Yazeed&#x27;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
+<meta property="og:title" content="Function Pointers as Poor Man&#x27;s Polymorphism | Yazeed&#x27;s Blog" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://yazeed1s.github.io/posts/function-pointers/" />
+<meta property="og:description" content="How C uses structs of function pointers to get dispatch without inheritance." />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Function Pointers as Poor Man&#x27;s Polymorphism" />
+<meta name="twitter:description" content="How C uses structs of function pointers to get dispatch without inheritance." />
+
+    <link rel="icon" href="&#x2F;favicon.ico" />
+    
+    <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
+    <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+
+           
+    
+    
+    
+
+          
+    
+    
+    
+    <style>
+        :root {
+            --nav-basis: 25%;
+            --light-bg: #eae6deff;
+            --light-text: #1a1410;
+            --light-text-muted: #1a1410;
+            --light-accent: #9E4440;
+            --light-accent-hover: #7A3533;
+            --light-code-bg: #e1ded6ff;
+            --light-border: #abaaaaff;
+            --light-bold: #1a1410;
+            --light-italic: #1a1410;
+            --light-headers: #1a1410;
+            --dark-bg: #303132;
+            --dark-text: #bebbb9ff;
+            --dark-text-muted: #d5d2cf;
+            --dark-accent: #e57665;
+            --dark-accent-hover: #888885;
+            --dark-code-bg: #282829;
+            --dark-border: #524f4c;
+            --dark-bold: #d5d2cf;
+            --dark-italic: #d5d2cf;
+            --dark-headers: #d5d2cf;
+        }
+    </style>
+    <meta name="theme-color" id="tc" />
+    <script>
+        (function () {
+            var m = matchMedia("(prefers-color-scheme:dark)"),
+                t = localStorage.theme || (m.matches ? "dark" : "light"),
+                h = document.documentElement,
+                c = document.getElementById("tc");
+            h.className = t;
+            function u() {
+                c.content = getComputedStyle(h).getPropertyValue("--tc");
+            }
+            u();
+            window.T = function () {
+                t = t === "dark" ? "light" : "dark";
+                localStorage.theme = t;
+                h.className = t;
+                u();
+            };
+        })();
+    </script>
+    
+</head>
+
+<body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><symbol id="light" viewBox="0 0 32 32"><rect x="15" y="2" width="2" height="5"/><rect x="21.6675" y="6.8536" width="4.958" height="1.9998" transform="translate(1.5191 19.3744) rotate(-45)"/><rect x="25" y="15" width="5" height="2"/><rect x="23.1466" y="21.6675" width="1.9998" height="4.958" transform="translate(-10.0018 24.1465) rotate(-45)"/><rect x="15" y="25" width="2" height="5"/><rect x="5.3745" y="23.1466" width="4.958" height="1.9998" transform="translate(-14.7739 12.6256) rotate(-45)"/><rect x="2" y="15" width="5" height="2"/><rect x="6.8536" y="5.3745" width="1.9998" height="4.958" transform="translate(-3.253 7.8535) rotate(-45)"/><path d="M16,12a4,4,0,1,1-4,4,4.0045,4.0045,0,0,1,4-4m0-2a6,6,0,1,0,6,6,6,6,0,0,0-6-6Z"/></symbol>
+<symbol id="asleep" viewBox="0 0 32 32"><path d="M13.5025,5.4136A15.0755,15.0755,0,0,0,25.096,23.6082a11.1134,11.1134,0,0,1-7.9749,3.3893c-.1385,0-.2782.0051-.4178,0A11.0944,11.0944,0,0,1,13.5025,5.4136M14.98,3a1.0024,1.0024,0,0,0-.1746.0156A13.0959,13.0959,0,0,0,16.63,28.9973c.1641.006.3282,0,.4909,0a13.0724,13.0724,0,0,0,10.702-5.5556,1.0094,1.0094,0,0,0-.7833-1.5644A13.08,13.08,0,0,1,15.8892,4.38,1.0149,1.0149,0,0,0,14.98,3Z"/></symbol>
+<symbol id="rss" viewBox="0 0 32 32"><path d="M8,18c-3.3,0-6,2.7-6,6s2.7,6,6,6s6-2.7,6-6C14,20.7,11.3,18,8,18z M8,28c-2.2,0-4-1.8-4-4s1.8-4,4-4s4,1.8,4,4C12,26.2,10.2,28,8,28z"/><path d="M30,24h-2C28,13,19,4,8,4V2C20.1,2,30,11.9,30,24z"/><path d="M22,24h-2c0-6.6-5.4-12-12-12v-2C15.7,10,22,16.3,22,24z"/></symbol>
+</svg>
+
+    <header id="site-header">
+        <div>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <nav>
+                <a href="https://yazeed1s.github.io/" >Home</a>
+                <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
+                <a href="https://yazeed1s.github.io/projects/" >Projects</a>
+                <a href="https://yazeed1s.github.io/tags/" >Tags</a>
+                </nav>
+            <a href="#" onclick="
+                        T();
+                        return false;
+                    " class="theme" aria-label="Toggle theme" title="Toggle theme">
+<svg><use href="#light"/></svg>
+<svg><use href="#asleep"/></svg></a>
+        </div>
+    </header>
+    <hr class="site-sep" />
+    <main id="main">
+<article>
+    <header>
+        <h1>Function Pointers as Poor Man&#x27;s Polymorphism</h1>
+        <div class="post-meta">
+            <time datetime="2026-01-12">12 Jan 2026</time>
+            
+            <span>How C uses structs of function pointers to get dispatch without inheritance.</span>
+             
+            <span class="post-tags">
+                <span class="post-tags-label">Tags: </span>
+                
+                <a href="https://yazeed1s.github.io/tags/c">C</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/systems-programming">Systems Programming</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/patterns">Patterns</a>
+            </span>
+            
+        </div>
+    </header>
+     <p>C doesn't have interfaces, virtual methods, or inheritance. But it has function pointers. And a struct of function pointers is basically an interface.</p>
+<p>This pattern is everywhere. The Linux kernel uses it for everything. I used it in ZWM without thinking about it as polymorphism until later.</p>
+<h2 id="the-basic-pattern">the basic pattern</h2>
+<p>Say you have different types that need to support the same operations. In C++ you'd make a base class with virtual methods. In C you make a struct of function pointers.</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">typedef</span><span style="color: light-dark(#784367, #D4B399);"> struct</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    int</span><span style="color: light-dark(#4B4B48, #7F7C77);">  (</span><span style="color: light-dark(#4B4B48, #CB8B8B);">*</span><span>open</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">const</span><span style="color: light-dark(#784367, #D4B399);"> char</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>path</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    int</span><span style="color: light-dark(#4B4B48, #7F7C77);">  (</span><span style="color: light-dark(#4B4B48, #CB8B8B);">*</span><span>read</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>buf</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> size_t</span><span> n</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    int</span><span style="color: light-dark(#4B4B48, #7F7C77);">  (</span><span style="color: light-dark(#4B4B48, #CB8B8B);">*</span><span>write</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">const</span><span style="color: light-dark(#784367, #D4B399);"> void</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>buf</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> size_t</span><span> n</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    void</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#4B4B48, #CB8B8B);">*</span><span>close</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span><span style="color: light-dark(#855959, #A6BCAD);"> io_ops_t</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span></code></pre>
+<p>Then different implementations fill in different functions:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">static</span><span style="color: light-dark(#784367, #D4B399);"> int</span><span style="color: light-dark(#3C6362, #A2BD90);"> file_open</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">const</span><span style="color: light-dark(#784367, #D4B399);"> char</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#7D4242, #D4D4C0);">path</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">  {</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> /*</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> open a file </span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">*/</span><span style="color: light-dark(#4B4B48, #7F7C77);"> }</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">static</span><span style="color: light-dark(#784367, #D4B399);"> int</span><span style="color: light-dark(#3C6362, #A2BD90);"> file_read</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#7D4242, #D4D4C0);">buf</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> size_t</span><span style="color: light-dark(#7D4242, #D4D4C0);"> n</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">  {</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> /*</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> read from file </span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">*/</span><span style="color: light-dark(#4B4B48, #7F7C77);"> }</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">//</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> ...</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">static</span><span style="color: light-dark(#784367, #D4B399);"> int</span><span style="color: light-dark(#3C6362, #A2BD90);"> sock_open</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">const</span><span style="color: light-dark(#784367, #D4B399);"> char</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#7D4242, #D4D4C0);">path</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">  {</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> /*</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> connect to address </span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">*/</span><span style="color: light-dark(#4B4B48, #7F7C77);"> }</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">static</span><span style="color: light-dark(#784367, #D4B399);"> int</span><span style="color: light-dark(#3C6362, #A2BD90);"> sock_read</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#7D4242, #D4D4C0);">buf</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> size_t</span><span style="color: light-dark(#7D4242, #D4D4C0);"> n</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">  {</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> /*</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> recv from socket </span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">*/</span><span style="color: light-dark(#4B4B48, #7F7C77);"> }</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">//</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> ...</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#855959, #A6BCAD);">io_ops_t</span><span> file_ops </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span><span> file_open</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> file_read</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> file_write</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> file_close </span><span style="color: light-dark(#4B4B48, #7F7C77);">}</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#855959, #A6BCAD);">io_ops_t</span><span> sock_ops </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span><span> sock_open</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> sock_read</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> sock_write</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> sock_close </span><span style="color: light-dark(#4B4B48, #7F7C77);">}</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span></code></pre>
+<p>Code that uses <code>io_ops_t</code> doesn't know if it's talking to a file or a socket. It just calls <code>ops-&gt;read(buf, n)</code>. That's polymorphism. No vtable keyword, no <code>virtual</code>, just a struct and some function pointers.</p>
+<h2 id="the-kernel-does-this-constantly">the kernel does this constantly</h2>
+<p>The Linux kernel's VFS layer is built on this. Every filesystem implements a <code>struct file_operations</code>:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">struct</span><span> file_operations </span><span style="color: light-dark(#4B4B48, #7F7C77);">{</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    ssize_t</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#4B4B48, #CB8B8B);">*</span><span>read</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">struct</span><span> file </span><span style="color: light-dark(#4B4B48, #CB8B8B);">*</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> char</span><span> __user </span><span style="color: light-dark(#4B4B48, #CB8B8B);">*</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> size_t</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#855959, #A6BCAD);"> loff_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    ssize_t</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#4B4B48, #CB8B8B);">*</span><span>write</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">struct</span><span> file </span><span style="color: light-dark(#4B4B48, #CB8B8B);">*</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> const</span><span style="color: light-dark(#784367, #D4B399);"> char</span><span> __user </span><span style="color: light-dark(#4B4B48, #CB8B8B);">*</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> size_t</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#855959, #A6BCAD);"> loff_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    int</span><span style="color: light-dark(#4B4B48, #7F7C77);">     (</span><span style="color: light-dark(#4B4B48, #CB8B8B);">*</span><span>open</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">struct</span><span> inode </span><span style="color: light-dark(#4B4B48, #CB8B8B);">*</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> struct</span><span> file </span><span style="color: light-dark(#4B4B48, #CB8B8B);">*</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    int</span><span style="color: light-dark(#4B4B48, #7F7C77);">     (</span><span style="color: light-dark(#4B4B48, #CB8B8B);">*</span><span>release</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">struct</span><span> inode </span><span style="color: light-dark(#4B4B48, #CB8B8B);">*</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> struct</span><span> file </span><span style="color: light-dark(#4B4B48, #CB8B8B);">*</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    int</span><span style="color: light-dark(#4B4B48, #7F7C77);">     (</span><span style="color: light-dark(#4B4B48, #CB8B8B);">*</span><span>mmap</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">struct</span><span> file </span><span style="color: light-dark(#4B4B48, #CB8B8B);">*</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> struct</span><span> vm_area_struct </span><span style="color: light-dark(#4B4B48, #CB8B8B);">*</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    long</span><span style="color: light-dark(#4B4B48, #7F7C77);">    (</span><span style="color: light-dark(#4B4B48, #CB8B8B);">*</span><span>ioctl</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">struct</span><span> file </span><span style="color: light-dark(#4B4B48, #CB8B8B);">*</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> unsigned</span><span style="color: light-dark(#784367, #D4B399);"> int</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> unsigned</span><span style="color: light-dark(#784367, #D4B399);"> long</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> ... many more</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span></code></pre>
+<p>You can find the full definition in <code>linux/fs.h</code>.</p>
+<p>ext4 fills in ext4 functions. tmpfs fills in tmpfs functions. procfs fills in procfs functions. When you call <code>read()</code> from user space, the syscall handler looks up which <code>file_operations</code> struct is attached to your fd and calls the right <code>.read</code>. The VFS doesn't care what filesystem is underneath.</p>
+<p>Same idea with <code>struct inode_operations</code>, <code>struct address_space_operations</code>, <code>struct net_device_ops</code>. The kernel is basically a giant collection of these interface structs.</p>
+<h2 id="a-simpler-example-event-dispatch">a simpler example: event dispatch</h2>
+<p>In ZWM I needed to dispatch X11 events to handler functions. Each event type maps to a function. The table-driven approach:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">typedef</span><span style="color: light-dark(#784367, #D4B399);"> int</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#4B4B48, #CB8B8B);">*</span><span style="color: light-dark(#855959, #A6BCAD);">event_handler_t</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#855959, #A6BCAD);">xcb_generic_event_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>event</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">typedef</span><span style="color: light-dark(#784367, #D4B399);"> struct</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    uint8_t</span><span>         type</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#855959, #A6BCAD);">    event_handler_t</span><span> handle</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span><span style="color: light-dark(#855959, #A6BCAD);"> event_handler_entry_t</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">static</span><span style="color: light-dark(#784367, #D4B399);"> const</span><span style="color: light-dark(#855959, #A6BCAD);"> event_handler_entry_t</span><span> _handlers_</span><span style="color: light-dark(#784367, #D4B399);">[]</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> =</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    {</span><span> XCB_MAP_REQUEST</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span>       handle_map_request </span><span style="color: light-dark(#4B4B48, #7F7C77);">}</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    {</span><span> XCB_UNMAP_NOTIFY</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span>      handle_unmap_notify </span><span style="color: light-dark(#4B4B48, #7F7C77);">}</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    {</span><span> XCB_DESTROY_NOTIFY</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span>    handle_destroy_notify </span><span style="color: light-dark(#4B4B48, #7F7C77);">}</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    {</span><span> XCB_CLIENT_MESSAGE</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span>    handle_client_message </span><span style="color: light-dark(#4B4B48, #7F7C77);">}</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    {</span><span> XCB_CONFIGURE_REQUEST</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> handle_configure_request </span><span style="color: light-dark(#4B4B48, #7F7C77);">}</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    {</span><span> XCB_ENTER_NOTIFY</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span>      handle_enter_notify </span><span style="color: light-dark(#4B4B48, #7F7C77);">}</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    {</span><span> XCB_KEY_PRESS</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span>         handle_key_press </span><span style="color: light-dark(#4B4B48, #7F7C77);">}</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span></code></pre>
+<p>Dispatch is a simple loop:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">for</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#784367, #D4B399);">size_t</span><span> i </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span> i </span><span style="color: light-dark(#4B4B48, #CB8B8B);">&lt;</span><span> n</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span> i</span><span style="color: light-dark(#4B4B48, #CB8B8B);">++</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#7D4242, #D4D4C0);">_handlers_</span><span style="color: light-dark(#4B4B48, #7F7C77);">[</span><span>i</span><span style="color: light-dark(#4B4B48, #7F7C77);">]</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">type</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> ==</span><span> event_type</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">        return</span><span style="color: light-dark(#7D4242, #D4D4C0);"> _handlers_</span><span style="color: light-dark(#4B4B48, #7F7C77);">[</span><span>i</span><span style="color: light-dark(#4B4B48, #7F7C77);">]</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#3C6362, #A2BD90);">handle</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>event</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    }</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre>
+<p>This isn't a struct-of-function-pointers in the interface sense, but it's the same idea. Data drives the dispatch instead of a switch statement. Adding a new event handler means adding a row, not modifying control flow.</p>
+<p>A switch statement would work fine here. But the table is easier to read when you have many entries, and you can build it at runtime if you need to.</p>
+<h2 id="the-vtable-pattern">the vtable pattern</h2>
+<p>Sometimes you want the function pointers attached to each instance, not shared globally. C++ does this automatically with virtual methods. In C you do it manually:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">typedef</span><span style="color: light-dark(#784367, #D4B399);"> struct</span><span style="color: light-dark(#855959, #A6BCAD);"> shape_t</span><span style="color: light-dark(#855959, #A6BCAD);"> shape_t</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">typedef</span><span style="color: light-dark(#784367, #D4B399);"> struct</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    float</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#4B4B48, #CB8B8B);">*</span><span>area</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">const</span><span style="color: light-dark(#855959, #A6BCAD);"> shape_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>self</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    void</span><span style="color: light-dark(#4B4B48, #7F7C77);">  (</span><span style="color: light-dark(#4B4B48, #CB8B8B);">*</span><span>draw</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">const</span><span style="color: light-dark(#855959, #A6BCAD);"> shape_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>self</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span><span style="color: light-dark(#855959, #A6BCAD);"> shape_ops_t</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">struct</span><span style="color: light-dark(#855959, #A6BCAD);"> shape_t</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    const</span><span style="color: light-dark(#855959, #A6BCAD);"> shape_ops_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>ops</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> shape data follows</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span></code></pre>
+<p>Each shape type defines its own ops:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">typedef</span><span style="color: light-dark(#784367, #D4B399);"> struct</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#855959, #A6BCAD);">    shape_t</span><span> base</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    float</span><span>   radius</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span><span style="color: light-dark(#855959, #A6BCAD);"> circle_t</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">static</span><span style="color: light-dark(#784367, #D4B399);"> float</span><span style="color: light-dark(#3C6362, #A2BD90);"> circle_area</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">const</span><span style="color: light-dark(#855959, #A6BCAD);"> shape_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#7D4242, #D4D4C0);">self</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#855959, #A6BCAD);">    circle_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>c </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#855959, #A6BCAD);">circle_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span>self</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    return</span><span style="color: light-dark(#784367, #CA9D7D);"> 3</span><span style="color: light-dark(#784367, #CA9D7D);">.</span><span style="color: light-dark(#784367, #CA9D7D);">14159</span><span style="color: light-dark(#784367, #D4B399);">f</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#7D4242, #D4D4C0);"> c</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">radius</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#7D4242, #D4D4C0);"> c</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">radius</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">static</span><span style="color: light-dark(#784367, #D4B399);"> const</span><span style="color: light-dark(#855959, #A6BCAD);"> shape_ops_t</span><span> circle_ops </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span><span> circle_area</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> circle_draw </span><span style="color: light-dark(#4B4B48, #7F7C77);">}</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span></code></pre>
+<p>Now any code that has a <code>shape_t *</code> can call <code>shape-&gt;ops-&gt;area(shape)</code> and it works for circles, rectangles, whatever. The cast from <code>shape_t *</code> to <code>circle_t *</code> works because <code>base</code> is the first member.</p>
+<p>This is exactly what a C++ vtable is. The compiler generates the struct of function pointers and the dispatch. In C you write it yourself.</p>
+<h2 id="where-this-falls-apart">where this falls apart</h2>
+<p>No type safety on the casts. You cast <code>shape_t *</code> to <code>circle_t *</code> and the compiler trusts you. Pass the wrong type and you get garbage, not a compile error.</p>
+<p>No compiler enforcement that you filled in all the function pointers. Leave one NULL and you segfault at runtime. C++ gives you pure virtual and abstract classes. C gives you nothing. You can add runtime checks (<code>assert(ops-&gt;read != NULL)</code>) but it's manual.</p>
+<p>Function signature mismatches are silent if you're not careful. If <code>ops-&gt;read</code> expects three arguments and you assign a function that takes two, some compilers will warn, some won't. Depends on how you typedef things.</p>
+<p>And the <code>self</code> pointer pattern is verbose. Every method takes a <code>self</code> parameter. Every call passes it. C++ hides this with <code>this</code>. C makes you type it every time.</p>
+<h2 id="it-s-still-worth-it">it's still worth it</h2>
+<p>Despite the rough edges, the pattern is useful. It gives you the main thing polymorphism provides: code that operates on behavior rather than concrete types. The VFS layer works because it dispatches through function pointers. Device drivers work the same way. My event loop works the same way.</p>
+<p>You don't get compile-time safety. But you get a clean separation between interface and implementation in a language that has no keyword for either.</p>
+<h2 id="notes">notes</h2>
+<ul>
+<li>GLib (GTK's base library) builds an entire object system on this. GObject has inheritance, interfaces, properties, signals. All in C. It's heavyweight but it works.</li>
+<li>The Linux kernel's <code>container_of</code> macro is how you go from the embedded base struct back to the containing struct. It's pointer arithmetic on struct offsets.</li>
+<li>SQLite uses this pattern for its VFS layer too. You can plug in custom file systems by providing a struct of function pointers.</li>
+<li>If you only need dispatch and not per-instance state, a simple function pointer array indexed by type is simpler than the vtable pattern.</li>
+</ul>
+  
+</article>
+</main>
+    <hr class="site-sep bottom-sep" />
+    <footer class="s">
+        
+    </footer>
+    
+
+    <script>
+        document.querySelectorAll("article img[srcset]").forEach((i) => {
+            if (i.closest("a")) return;
+            i.style.cursor = "pointer";
+            i.onclick = () => {
+                let d = document.createElement("div"),
+                    s = i.srcset.split(",").pop().trim().split(" ")[0];
+                d.className = "lb";
+                d.innerHTML = '<img src="' + s + '">';
+                document.body.style.overflow = "hidden";
+                d.onclick = () => {
+                    d.remove();
+                    document.body.style.overflow = "";
+                };
+                document.body.appendChild(d);
+            };
+        });
+    </script>
+    
+<button id="scroll-to-top" aria-label="Scroll to top" title="Scroll to top">↑</button>
+<script>
+    (function() {
+        var btn = document.getElementById("scroll-to-top");
+        if (btn) {
+            window.addEventListener("scroll", function() {
+                if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                    btn.classList.add("show");
+                } else {
+                    btn.classList.remove("show");
+                }
+            });
+            btn.addEventListener("click", function() {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        }
+    })();
+</script>
+</body>
+
+</html>

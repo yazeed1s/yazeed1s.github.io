@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="How Infiniswap uses RDMA to swap pages to remote memory instead of disk." />
+<meta
+    name="keywords"
+    content="yazeed, blog, alharthi, yaz, yazeed1s"
+/>
+<link rel="canonical" href="https://yazeed1s.github.io/posts/infiniswap/" />
+
+<title>Infiniswap | Yazeed&#x27;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
+<meta property="og:title" content="Infiniswap | Yazeed&#x27;s Blog" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://yazeed1s.github.io/posts/infiniswap/" />
+<meta property="og:description" content="How Infiniswap uses RDMA to swap pages to remote memory instead of disk." />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Infiniswap" />
+<meta name="twitter:description" content="How Infiniswap uses RDMA to swap pages to remote memory instead of disk." />
+
+    <link rel="icon" href="&#x2F;favicon.ico" />
+    
+    <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
+    <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+
+           
+    
+    
+    
+
+          
+    
+    
+    
+    <style>
+        :root {
+            --nav-basis: 25%;
+            --light-bg: #eae6deff;
+            --light-text: #1a1410;
+            --light-text-muted: #1a1410;
+            --light-accent: #9E4440;
+            --light-accent-hover: #7A3533;
+            --light-code-bg: #e1ded6ff;
+            --light-border: #abaaaaff;
+            --light-bold: #1a1410;
+            --light-italic: #1a1410;
+            --light-headers: #1a1410;
+            --dark-bg: #303132;
+            --dark-text: #bebbb9ff;
+            --dark-text-muted: #d5d2cf;
+            --dark-accent: #e57665;
+            --dark-accent-hover: #888885;
+            --dark-code-bg: #282829;
+            --dark-border: #524f4c;
+            --dark-bold: #d5d2cf;
+            --dark-italic: #d5d2cf;
+            --dark-headers: #d5d2cf;
+        }
+    </style>
+    <meta name="theme-color" id="tc" />
+    <script>
+        (function () {
+            var m = matchMedia("(prefers-color-scheme:dark)"),
+                t = localStorage.theme || (m.matches ? "dark" : "light"),
+                h = document.documentElement,
+                c = document.getElementById("tc");
+            h.className = t;
+            function u() {
+                c.content = getComputedStyle(h).getPropertyValue("--tc");
+            }
+            u();
+            window.T = function () {
+                t = t === "dark" ? "light" : "dark";
+                localStorage.theme = t;
+                h.className = t;
+                u();
+            };
+        })();
+    </script>
+    
+</head>
+
+<body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><symbol id="light" viewBox="0 0 32 32"><rect x="15" y="2" width="2" height="5"/><rect x="21.6675" y="6.8536" width="4.958" height="1.9998" transform="translate(1.5191 19.3744) rotate(-45)"/><rect x="25" y="15" width="5" height="2"/><rect x="23.1466" y="21.6675" width="1.9998" height="4.958" transform="translate(-10.0018 24.1465) rotate(-45)"/><rect x="15" y="25" width="2" height="5"/><rect x="5.3745" y="23.1466" width="4.958" height="1.9998" transform="translate(-14.7739 12.6256) rotate(-45)"/><rect x="2" y="15" width="5" height="2"/><rect x="6.8536" y="5.3745" width="1.9998" height="4.958" transform="translate(-3.253 7.8535) rotate(-45)"/><path d="M16,12a4,4,0,1,1-4,4,4.0045,4.0045,0,0,1,4-4m0-2a6,6,0,1,0,6,6,6,6,0,0,0-6-6Z"/></symbol>
+<symbol id="asleep" viewBox="0 0 32 32"><path d="M13.5025,5.4136A15.0755,15.0755,0,0,0,25.096,23.6082a11.1134,11.1134,0,0,1-7.9749,3.3893c-.1385,0-.2782.0051-.4178,0A11.0944,11.0944,0,0,1,13.5025,5.4136M14.98,3a1.0024,1.0024,0,0,0-.1746.0156A13.0959,13.0959,0,0,0,16.63,28.9973c.1641.006.3282,0,.4909,0a13.0724,13.0724,0,0,0,10.702-5.5556,1.0094,1.0094,0,0,0-.7833-1.5644A13.08,13.08,0,0,1,15.8892,4.38,1.0149,1.0149,0,0,0,14.98,3Z"/></symbol>
+<symbol id="rss" viewBox="0 0 32 32"><path d="M8,18c-3.3,0-6,2.7-6,6s2.7,6,6,6s6-2.7,6-6C14,20.7,11.3,18,8,18z M8,28c-2.2,0-4-1.8-4-4s1.8-4,4-4s4,1.8,4,4C12,26.2,10.2,28,8,28z"/><path d="M30,24h-2C28,13,19,4,8,4V2C20.1,2,30,11.9,30,24z"/><path d="M22,24h-2c0-6.6-5.4-12-12-12v-2C15.7,10,22,16.3,22,24z"/></symbol>
+</svg>
+
+    <header id="site-header">
+        <div>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <nav>
+                <a href="https://yazeed1s.github.io/" >Home</a>
+                <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
+                <a href="https://yazeed1s.github.io/projects/" >Projects</a>
+                <a href="https://yazeed1s.github.io/tags/" >Tags</a>
+                </nav>
+            <a href="#" onclick="
+                        T();
+                        return false;
+                    " class="theme" aria-label="Toggle theme" title="Toggle theme">
+<svg><use href="#light"/></svg>
+<svg><use href="#asleep"/></svg></a>
+        </div>
+    </header>
+    <hr class="site-sep" />
+    <main id="main">
+<article>
+    <header>
+        <h1>Infiniswap</h1>
+        <div class="post-meta">
+            <time datetime="2026-01-18">18 Jan 2026</time>
+            
+            <span>How Infiniswap uses RDMA to swap pages to remote memory instead of disk.</span>
+             
+            <span class="post-tags">
+                <span class="post-tags-label">Tags: </span>
+                
+                <a href="https://yazeed1s.github.io/tags/memory">Memory</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/rdma">RDMA</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/paging">Paging</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/linux">Linux</a>
+            </span>
+            
+        </div>
+    </header>
+     <p>I found this paper while reading about memory disaggregation. The idea is simple: when a machine runs out of RAM, page to another machine's unused memory instead of disk.</p>
+<p>What caught my attention is how they did it: it works without application changes or core kernel patches through a kernel module that hooks into Linux's swap path, where remote RAM becomes the fast tier and disk is just the fallback.</p>
+<h2 id="the-problem-they-re-solving">the problem they're solving</h2>
+<p>Production clusters waste a lot of memory. Some machines are memory-starved while others sit idle. The 99th percentile machine uses 2-3× more memory than the median. Over half the cluster's aggregate memory goes unused.</p>
+<p>When apps can't fit their working set in RAM, performance falls off a cliff. VoltDB drops from 95K TPS to 4K TPS. Memcached's tail latency shoots up 21×. Disk is just too slow (like 1000× slower than memory).</p>
+<p>So they thought: RDMA gives single-digit microsecond latencies. That's fast enough to make remote memory a viable swap target. Pages go to remote RAM over RDMA instead of disk. The remote CPU stays out of the data movement entirely since the RNIC does the DMA.</p>
+<p>Result: swap that looks normal to Linux but is backed by slabs of remote memory scattered across the cluster.</p>
+<h2 id="what-i-thought-was-clever">what I thought was clever</h2>
+<p><strong>Using swap as the integration point.</strong> Instead of modifying the page fault handler or remapping virtual memory, they plug into Linux's swap subsystem. The kernel already knows how to page out and page in. Infiniswap just changes where those pages live. The trade-off is you still go through the swap path (page faults, context switches). But you get deployment simplicity because everything else just works.</p>
+<p><strong>One-sided RDMA.</strong> Traditional network block devices like Mellanox's nbdX use send/recv. Remote CPU wakes up, copies data, responds. Infiniswap uses RDMA_READ and RDMA_WRITE. The RNIC accesses remote memory directly without running any code on the remote side. nbdX burns multiple vCPUs on the remote machine. Infiniswap doesn't touch the remote CPU at all.</p>
+<p><strong>Slab-based design.</strong> Pages are grouped into 1GB slabs. Each slab maps to one remote machine. This keeps metadata manageable. Tracking millions of 4KB pages across the cluster would be expensive. Hot slabs (more than 20 page I/O ops/sec) get mapped to remote memory. Cold slabs stay on disk.</p>
+<h2 id="where-it-works-well">where it works well</h2>
+<p>Memory-bound workloads see big wins. Memcached stays nearly flat even when only 50% of the working set fits in memory. PowerGraph runs 6.5× faster. VoltDB sees 15× throughput improvement over disk.</p>
+<p>Cluster memory utilization: goes from 40% to 60%. That's 47% more effective use of RAM. Network overhead is less than 1% of capacity.</p>
+<h2 id="where-it-doesn-t-work">where it doesn't work</h2>
+<p>CPU-bound workloads don't benefit much. VoltDB and Spark already run at high CPU utilization. Adding paging overhead (context switches, TLB flushes, page table walks) eats into that. Spark at 50% memory thrashes so badly it doesn't complete.</p>
+<p>There's a fundamental limit here: this isn't local memory. Page faults still happen. You're masking latency, not eliminating it. For workloads where microseconds matter deterministically, that's still a problem.</p>
+<h2 id="notes">notes</h2>
+<ul>
+<li>Paper: <a rel="external" href="https://www.usenix.org/system/files/conference/nsdi17/nsdi17-gu.pdf">Gu et al., "Efficient Memory Disaggregation with Infiniswap", NSDI 2017</a></li>
+<li>Tested on 32 machines, 56 Gbps Infiniband, 64GB RAM each</li>
+<li>Slab placement uses "power of two choices" (pick two random machines, query free memory, use the one with more headroom)</li>
+<li>Slab eviction queries E+5 machines, evicts coldest (~363μs median)</li>
+<li>Page-out: synchronous RDMA_WRITE + async disk write (disk is fallback if remote crashes)</li>
+<li>Page-in: check bitmap → RDMA_READ if remote, else disk</li>
+<li>Slab remapping after failure takes ~54ms (Infiniband memory registration)</li>
+<li>Default headroom threshold: 8GB per machine</li>
+<li>Hot slab threshold: 20 page I/O ops/sec (EWMA, α=0.2)</li>
+<li>Compared against nbdX (Mellanox), Fastswap, LegoOS</li>
+<li>Code: <a rel="external" href="https://github.com/SymbioticLab/Infiniswap">SymbioticLab/infiniswap</a></li>
+</ul>
+  
+</article>
+</main>
+    <hr class="site-sep bottom-sep" />
+    <footer class="s">
+        
+    </footer>
+    
+
+    <script>
+        document.querySelectorAll("article img[srcset]").forEach((i) => {
+            if (i.closest("a")) return;
+            i.style.cursor = "pointer";
+            i.onclick = () => {
+                let d = document.createElement("div"),
+                    s = i.srcset.split(",").pop().trim().split(" ")[0];
+                d.className = "lb";
+                d.innerHTML = '<img src="' + s + '">';
+                document.body.style.overflow = "hidden";
+                d.onclick = () => {
+                    d.remove();
+                    document.body.style.overflow = "";
+                };
+                document.body.appendChild(d);
+            };
+        });
+    </script>
+    
+<button id="scroll-to-top" aria-label="Scroll to top" title="Scroll to top">↑</button>
+<script>
+    (function() {
+        var btn = document.getElementById("scroll-to-top");
+        if (btn) {
+            window.addEventListener("scroll", function() {
+                if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                    btn.classList.add("show");
+                } else {
+                    btn.classList.remove("show");
+                }
+            });
+            btn.addEventListener("click", function() {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        }
+    })();
+</script>
+</body>
+
+</html>

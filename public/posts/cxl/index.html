@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="CXL creates a memory tier between local DRAM and everything else." />
+<meta
+    name="keywords"
+    content="yazeed, blog, alharthi, yaz, yazeed1s"
+/>
+<link rel="canonical" href="https://yazeed1s.github.io/posts/cxl/" />
+
+<title>CXL: Why Datacenter Memory is Getting a New Tier | Yazeed&#x27;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
+<meta property="og:title" content="CXL: Why Datacenter Memory is Getting a New Tier | Yazeed&#x27;s Blog" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://yazeed1s.github.io/posts/cxl/" />
+<meta property="og:description" content="CXL creates a memory tier between local DRAM and everything else." />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="CXL: Why Datacenter Memory is Getting a New Tier" />
+<meta name="twitter:description" content="CXL creates a memory tier between local DRAM and everything else." />
+
+    <link rel="icon" href="&#x2F;favicon.ico" />
+    
+    <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
+    <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+
+           
+    
+    
+    
+
+          
+    
+    
+    
+    <style>
+        :root {
+            --nav-basis: 25%;
+            --light-bg: #eae6deff;
+            --light-text: #1a1410;
+            --light-text-muted: #1a1410;
+            --light-accent: #9E4440;
+            --light-accent-hover: #7A3533;
+            --light-code-bg: #e1ded6ff;
+            --light-border: #abaaaaff;
+            --light-bold: #1a1410;
+            --light-italic: #1a1410;
+            --light-headers: #1a1410;
+            --dark-bg: #303132;
+            --dark-text: #bebbb9ff;
+            --dark-text-muted: #d5d2cf;
+            --dark-accent: #e57665;
+            --dark-accent-hover: #888885;
+            --dark-code-bg: #282829;
+            --dark-border: #524f4c;
+            --dark-bold: #d5d2cf;
+            --dark-italic: #d5d2cf;
+            --dark-headers: #d5d2cf;
+        }
+    </style>
+    <meta name="theme-color" id="tc" />
+    <script>
+        (function () {
+            var m = matchMedia("(prefers-color-scheme:dark)"),
+                t = localStorage.theme || (m.matches ? "dark" : "light"),
+                h = document.documentElement,
+                c = document.getElementById("tc");
+            h.className = t;
+            function u() {
+                c.content = getComputedStyle(h).getPropertyValue("--tc");
+            }
+            u();
+            window.T = function () {
+                t = t === "dark" ? "light" : "dark";
+                localStorage.theme = t;
+                h.className = t;
+                u();
+            };
+        })();
+    </script>
+    
+</head>
+
+<body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><symbol id="light" viewBox="0 0 32 32"><rect x="15" y="2" width="2" height="5"/><rect x="21.6675" y="6.8536" width="4.958" height="1.9998" transform="translate(1.5191 19.3744) rotate(-45)"/><rect x="25" y="15" width="5" height="2"/><rect x="23.1466" y="21.6675" width="1.9998" height="4.958" transform="translate(-10.0018 24.1465) rotate(-45)"/><rect x="15" y="25" width="2" height="5"/><rect x="5.3745" y="23.1466" width="4.958" height="1.9998" transform="translate(-14.7739 12.6256) rotate(-45)"/><rect x="2" y="15" width="5" height="2"/><rect x="6.8536" y="5.3745" width="1.9998" height="4.958" transform="translate(-3.253 7.8535) rotate(-45)"/><path d="M16,12a4,4,0,1,1-4,4,4.0045,4.0045,0,0,1,4-4m0-2a6,6,0,1,0,6,6,6,6,0,0,0-6-6Z"/></symbol>
+<symbol id="asleep" viewBox="0 0 32 32"><path d="M13.5025,5.4136A15.0755,15.0755,0,0,0,25.096,23.6082a11.1134,11.1134,0,0,1-7.9749,3.3893c-.1385,0-.2782.0051-.4178,0A11.0944,11.0944,0,0,1,13.5025,5.4136M14.98,3a1.0024,1.0024,0,0,0-.1746.0156A13.0959,13.0959,0,0,0,16.63,28.9973c.1641.006.3282,0,.4909,0a13.0724,13.0724,0,0,0,10.702-5.5556,1.0094,1.0094,0,0,0-.7833-1.5644A13.08,13.08,0,0,1,15.8892,4.38,1.0149,1.0149,0,0,0,14.98,3Z"/></symbol>
+<symbol id="rss" viewBox="0 0 32 32"><path d="M8,18c-3.3,0-6,2.7-6,6s2.7,6,6,6s6-2.7,6-6C14,20.7,11.3,18,8,18z M8,28c-2.2,0-4-1.8-4-4s1.8-4,4-4s4,1.8,4,4C12,26.2,10.2,28,8,28z"/><path d="M30,24h-2C28,13,19,4,8,4V2C20.1,2,30,11.9,30,24z"/><path d="M22,24h-2c0-6.6-5.4-12-12-12v-2C15.7,10,22,16.3,22,24z"/></symbol>
+</svg>
+
+    <header id="site-header">
+        <div>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <nav>
+                <a href="https://yazeed1s.github.io/" >Home</a>
+                <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
+                <a href="https://yazeed1s.github.io/projects/" >Projects</a>
+                <a href="https://yazeed1s.github.io/tags/" >Tags</a>
+                </nav>
+            <a href="#" onclick="
+                        T();
+                        return false;
+                    " class="theme" aria-label="Toggle theme" title="Toggle theme">
+<svg><use href="#light"/></svg>
+<svg><use href="#asleep"/></svg></a>
+        </div>
+    </header>
+    <hr class="site-sep" />
+    <main id="main">
+<article>
+    <header>
+        <h1>CXL: Why Datacenter Memory is Getting a New Tier</h1>
+        <div class="post-meta">
+            <time datetime="2026-01-27">27 Jan 2026</time>
+            
+            <span>CXL creates a memory tier between local DRAM and everything else.</span>
+             
+            <span class="post-tags">
+                <span class="post-tags-label">Tags: </span>
+                
+                <a href="https://yazeed1s.github.io/tags/memory">Memory</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/cxl">CXL</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/hardware">Hardware</a>
+            </span>
+            
+        </div>
+    </header>
+     <p>DRAM can be half of server cost, and a lot of it still sits idle. One machine thrashes while the one next to it uses 30% of its memory. CXL is trying to fix that mismatch.</p>
+<h2 id="the-problem">the problem</h2>
+<p>Memory in datacenters is expensive and wasted at the same time. DRAM can be 50% of server cost, and research keeps showing that utilization is terrible. One machine is thrashing because it ran out of memory while another machine next to it is sitting at 30% usage. Some papers claim 70% of aggregate memory is underutilized across a cluster.</p>
+<p>The obvious thought: why not share memory across machines, like we do with storage. Pool it. If one server has idle memory another server could use it.</p>
+<p>But the issue is that storage can tolerate milliseconds of latency. Memory can't. A cache miss to local DRAM is around 100ns. Go over the network with RDMA and you're at 1-5 microseconds. That's 10-50x slower. For memory access patterns that's a lot.</p>
+<p>CXL is supposed to bridge this gap.</p>
+<h2 id="what-it-actually-is">what it actually is</h2>
+<p>CXL stands for Compute Express Link. It runs on the PCIe physical layer, same cables and slots, but with a different protocol on top.</p>
+<p>What matters is that it's cache-coherent. The CPU can do normal load/store to CXL-attached memory through the same memory path, without special APIs, RDMA-style verbs, or memory registration. The memory controller treats it like another memory region, basically another NUMA node.</p>
+<p>There are three protocols in the spec. CXL.io is basically just PCIe, for device discovery and config, boring stuff. CXL.cache lets devices cache host memory, useful for accelerators. CXL.mem is the interesting one, it lets the host access device-attached memory with load/store.</p>
+<p>CXL 1.0 and 1.1 are mostly local expansion. You plug a CXL card with DRAM into a PCIe slot and your system sees more memory. Latency is higher than native DIMMs, maybe 200-300ns instead of 100ns, but it's still memory, not storage. CXL 2.0 adds switching so multiple hosts can share a memory pool. CXL 3.0 goes further with fabric and shared memory semantics.</p>
+<h2 id="mixing-memory-types">mixing memory types</h2>
+<p>Normally your CPU's memory controller dictates what DRAM you can use. If it's a DDR5 system, all your DIMMs have to be DDR5. Same speed, same density rules, same timing specs. You can't just plug DDR4 into a DDR5 slot.</p>
+<p>CXL breaks this because the CXL device has its own memory controller. It can use whatever DRAM it wants. DDR4, DDR5, older cheaper stuff, slower but denser modules. The CPU doesn't care. It just sees CXL memory at some address range.</p>
+<p>So you could keep local DDR5 for hot data and use a CXL card with cheaper DDR4 as a slower tier, or use high-capacity modules that wouldn't fit your motherboard timing rules. Cost-wise this is nice because you're not locked to whatever generation the motherboard supports.</p>
+<p>The tradeoff is latency. CXL adds overhead. But if you're using it for capacity expansion rather than latency-critical paths, maybe that's acceptable.</p>
+<h2 id="why-not-just-use-rdma">why not just use RDMA</h2>
+<p>RDMA is a different model. You need explicit verbs, post work requests, poll completions. It's not transparent load/store. You have to register memory, pin pages, exchange keys. One-sided operations are async so you don't know when remote writes land unless you add signaling. And latency is around 1-5μs which is fast for networking but slow for memory access patterns.</p>
+<p>CXL at 200-500ns for pooled memory is closer to local DRAM territory. And it's transparent to software. Your malloc can return CXL memory and the application doesn't know the difference.</p>
+<p>That's the promise anyway. The hardware shipping today is mostly local expansion cards, not pooled memory. The pooling stuff is still coming hopefully.</p>
+<h2 id="the-latency-thing">the latency thing</h2>
+<p>Local DRAM is ~100ns. CXL local expansion is ~200-300ns. CXL through a switch to a shared pool is ~500-1000ns.</p>
+<p>So pooled CXL is 5-10x slower than local. That's not nothing. For tight loops constantly hitting memory, that seems expensive. The pitch is that it's still way better than swapping to SSD (100μs) and you get more capacity. Which is true.</p>
+<p>The mental model is tiering: hot data in local DRAM, warm data in the CXL pool, cold data on SSD, and the kernel (or runtime) migrating pages based on access patterns.</p>
+<p>Linux already has machinery for this. NUMA balancing, DAMON for access pattern detection, tiered memory support that got merged recently. Whether this works well in practice with real workloads, I don't know yet. The theory sounds reasonable but there will be edge cases.</p>
+<h2 id="shared-memory-across-hosts">shared memory across hosts</h2>
+<p>CXL 3.0 talks about multiple hosts accessing the same memory with hardware-maintained cache coherence.</p>
+<p>This sounds amazing and also scary at the same time.</p>
+<p>Cache coherence doesn't scale. The distributed shared memory people learned this in the 90s. Beyond a few nodes the coherence traffic overwhelms everything.</p>
+<p>The CXL spec people know this. The scope is limited, maybe a rack, maybe a pod, maybe less. The vision isn't coherent memory across the whole datacenter. It's more like, within a small group of machines you can have shared memory semantics. Beyond that you're back to message passing or RDMA.</p>
+<p>Even rack-scale shared memory is interesting though. Databases that want to share buffer caches across replicas. ML training jobs that share model weights. There are use cases.</p>
+<h2 id="what-s-actually-shipping">what's actually shipping</h2>
+<p>CXL 1.1 memory expanders exist today from Samsung, SK Hynix and others. Intel Sapphire Rapids supports CXL. These are mostly used to add capacity to memory-hungry workloads.</p>
+<p>CXL switches are not really production-ready yet. Some prototypes. I'd guess pooled CXL deployments are 2-3 years out.</p>
+<p>So when papers say "CXL will enable this," they're often talking about future hardware. The concepts are solid but the ecosystem is young. Worth understanding now because it's coming, but don't expect to deploy pooled CXL next month.</p>
+<h2 id="what-i-m-still-uncertain-about">what I'm still uncertain about</h2>
+<p><strong>Latency tradeoffs.</strong> 5-10x slower than local is real overhead. Better than SSD, yes. But memory-intensive applications might just thrash the CXL tier and make things worse. Tiering policies need to actually work.</p>
+<p><strong>Ecosystem maturity.</strong> RDMA took years to get right. CXL is newer. Drivers, kernel support, allocation policies, debugging tools, all of this needs to catch up.</p>
+<p><strong>Who benefits.</strong> Big cloud providers with massive memory imbalance probably see value. Smaller deployments might not see ROI at current hardware costs.</p>
+<h2 id="notes">notes</h2>
+<ul>
+<li>CXL consortium includes Intel, AMD, ARM, NVIDIA, Samsung and others</li>
+<li>Built on PCIe 5.0/6.0 physical layer, same slots and cables</li>
+<li>Latency numbers vary by source and topology</li>
+<li>Linux kernel has CXL support in drivers/cxl/, device enumeration works, memory tiering is evolving</li>
+<li>Related specs: Gen-Z (seems dead), CCIX (absorbed into CXL)</li>
+<li>Good starting point: <a rel="external" href="https://www.computeexpresslink.org/">CXL Consortium</a></li>
+<li>For context on memory disaggregation: Aguilera et al., "Memory disaggregation: why now and what are the challenges"</li>
+</ul>
+  
+</article>
+</main>
+    <hr class="site-sep bottom-sep" />
+    <footer class="s">
+        
+    </footer>
+    
+
+    <script>
+        document.querySelectorAll("article img[srcset]").forEach((i) => {
+            if (i.closest("a")) return;
+            i.style.cursor = "pointer";
+            i.onclick = () => {
+                let d = document.createElement("div"),
+                    s = i.srcset.split(",").pop().trim().split(" ")[0];
+                d.className = "lb";
+                d.innerHTML = '<img src="' + s + '">';
+                document.body.style.overflow = "hidden";
+                d.onclick = () => {
+                    d.remove();
+                    document.body.style.overflow = "";
+                };
+                document.body.appendChild(d);
+            };
+        });
+    </script>
+    
+<button id="scroll-to-top" aria-label="Scroll to top" title="Scroll to top">↑</button>
+<script>
+    (function() {
+        var btn = document.getElementById("scroll-to-top");
+        if (btn) {
+            window.addEventListener("scroll", function() {
+                if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                    btn.classList.add("show");
+                } else {
+                    btn.classList.remove("show");
+                }
+            });
+            btn.addEventListener("click", function() {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        }
+    })();
+</script>
+</body>
+
+</html>

@@ -1,0 +1,723 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <title>Yazeed&#x27;s Blog - Memory</title>
+    <subtitle>Notes on systems and low-level software.</subtitle>
+    <link rel="self" type="application/atom+xml" href="https://yazeed1s.github.io/tags/memory/atom.xml"/>
+    <link rel="alternate" type="text/html" href="https://yazeed1s.github.io"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2026-02-16T00:00:00+00:00</updated>
+    <id>https://yazeed1s.github.io/tags/memory/atom.xml</id>
+    <entry xml:lang="en">
+        <title>Should malloc Know About Tiered Memory?</title>
+        <published>2026-02-16T00:00:00+00:00</published>
+        <updated>2026-02-16T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/malloc-to-teired/"/>
+        <id>https://yazeed1s.github.io/posts/malloc-to-teired/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/malloc-to-teired/">&lt;p&gt;When you call &lt;code&gt;malloc()&lt;&#x2F;code&gt;, the allocator gives you a pointer. It doesn&#x27;t know or care whether the physical page behind it sits in fast local DRAM or slower CXL-attached memory. From user space, memory still looks flat. But it isn&#x27;t anymore. Machines now have 2–3x latency differences between memory tiers, and the allocator is completely blind to that.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;how-glibc-malloc-sees-the-world&quot;&gt;how glibc malloc sees the world&lt;&#x2F;h2&gt;
+&lt;p&gt;glibc&#x27;s allocator (ptmalloc2) was designed in a mostly uniform DRAM world. It manages arenas, splits and coalesces chunks, decides when to use &lt;code&gt;brk&lt;&#x2F;code&gt; and when to use &lt;code&gt;mmap&lt;&#x2F;code&gt;, and tries to reduce lock contention between threads. But it doesn&#x27;t care about which NUMA node backs an allocation unless the application explicitly asks for it. In the common case, it just requests virtual memory and leaves physical placement to the kernel.&lt;&#x2F;p&gt;
+&lt;p&gt;So from the allocator&#x27;s perspective, memory is virtual address space. It doesn&#x27;t know whether the physical pages will come from local DRAM, remote NUMA, CXL-attached memory, or something else. That blindness was perfectly reasonable when latency differences were small and mostly about bandwidth balancing. The allocator could afford to ignore placement because the hardware was close to uniform.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-tiered-memory-changes&quot;&gt;what tiered memory changes&lt;&#x2F;h2&gt;
+&lt;p&gt;In tiered memory systems, the kernel often treats slow memory as another NUMA node. It may demote cold pages to slow memory and promote hot pages back to fast DRAM. Research systems like TPP migrate pages based on observed access frequency, and Memtis tries to improve classification by looking at access distribution and even splitting huge pages when access inside them is skewed.&lt;&#x2F;p&gt;
+&lt;p&gt;But the pattern is always the same: allocate first, observe later, migrate if needed. The allocator places data somewhere, the kernel watches page faults or samples accesses, then corrects the placement. We&#x27;re always reacting.&lt;&#x2F;p&gt;
+&lt;p&gt;Migration isn&#x27;t free. It involves copying 4KB pages, updating page tables, invalidating TLB entries, and potentially disturbing caches. Work like M5 shows that misclassification and migration overhead can actually hurt performance if not handled carefully. So you&#x27;re paying a correction cost because the initial allocation was blind. I keep wondering how much of this cost could be avoided if the allocator had any information at all about what&#x27;s hot.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-allocator-knows-nothing-about-temperature&quot;&gt;the allocator knows nothing about temperature&lt;&#x2F;h2&gt;
+&lt;p&gt;Consider a simple program:&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;c&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt; *&lt;&#x2F;span&gt;&lt;span&gt;hot_table &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt; malloc&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt; &amp;lt;&amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 20&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;   &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; frequently accessed&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt; *&lt;&#x2F;span&gt;&lt;span&gt;log_buffer &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt; malloc&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt; &amp;lt;&amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 20&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;  &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; rarely accessed&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt; *&lt;&#x2F;span&gt;&lt;span&gt;archive &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt; malloc&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;100&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt; &amp;lt;&amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 20&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;   &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; mostly cold&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;From glibc&#x27;s perspective, these are identical calls. Same API, same path. But their temperature is completely different. The allocator has no way to express or detect that difference.&lt;&#x2F;p&gt;
+&lt;p&gt;The application often already knows which data is critical. A database knows its buffer pool is hot. A web server knows which structures sit in the request path. A compiler knows which tables are heavily reused. Yet we force the kernel to guess using access bits and heuristics.&lt;&#x2F;p&gt;
+&lt;p&gt;That naturally leads to the question: are we solving the problem too late?&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;should-malloc-become-tier-aware&quot;&gt;should malloc become tier-aware?&lt;&#x2F;h2&gt;
+&lt;p&gt;One idea, not that exotic: let the allocator express intent.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;c&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt; *&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;malloc_hot&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;size_t&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7D4242, #D4D4C0);&quot;&gt; size&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt; *&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;malloc_cold&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;size_t&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7D4242, #D4D4C0);&quot;&gt; size&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Internally, &lt;code&gt;malloc_hot()&lt;&#x2F;code&gt; could bind memory to the fast NUMA node using mechanisms that already exist, like &lt;code&gt;mbind()&lt;&#x2F;code&gt; or &lt;code&gt;set_mempolicy()&lt;&#x2F;code&gt;. &lt;code&gt;malloc_cold()&lt;&#x2F;code&gt; could allocate directly on the slow tier. Instead of allocate -&amp;gt; detect -&amp;gt; migrate, you&#x27;d allocate correctly from the start.&lt;&#x2F;p&gt;
+&lt;p&gt;This avoids some migration entirely. Fewer TLB shootdowns, less page copying. Placement becomes a proactive decision rather than a reactive correction.&lt;&#x2F;p&gt;
+&lt;p&gt;But now the deeper question comes up.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;is-os-transparency-still-sacred&quot;&gt;is OS transparency still sacred?&lt;&#x2F;h2&gt;
+&lt;p&gt;Virtual memory was designed to hide physical placement. That abstraction is powerful because developers don&#x27;t need to care where bytes live. They just allocate and use.&lt;&#x2F;p&gt;
+&lt;p&gt;Tiered memory challenges that. When latency differences become large enough, placement starts to matter again.&lt;&#x2F;p&gt;
+&lt;p&gt;You can keep full transparency. The kernel observes access patterns and tries to infer temperature. Developers stay insulated. The system grows more complex internally, with more sampling and migration.&lt;&#x2F;p&gt;
+&lt;p&gt;Or you can leak some abstraction. Let developers label allocations as hot or cold. Trust applications to express intent, and let the allocator participate in placement.&lt;&#x2F;p&gt;
+&lt;p&gt;I honestly don&#x27;t know which is better. The second approach sounds cleaner until you think about what happens when developers misclassify. What if everything gets labeled &quot;fast&quot;? Do you override their hints? Ignore them? Once you expose placement, you also expose responsibility, and most application developers probably don&#x27;t want that.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;huge-pages-make-it-worse&quot;&gt;huge pages make it worse&lt;&#x2F;h2&gt;
+&lt;p&gt;Memtis shows that access inside a 2MB huge page can be highly skewed. Promoting an entire huge page to fast memory because a small region is hot wastes precious capacity. The allocator doesn&#x27;t know how its allocations align with huge pages. The kernel may split or merge them later.&lt;&#x2F;p&gt;
+&lt;p&gt;So page size, allocation strategy, and tier placement are all interacting and I&#x27;m not sure anyone has a clean model for how they should interact. The original layering between allocator and kernel assumed these things were independent. They&#x27;re not anymore.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;a-possible-middle-ground&quot;&gt;a possible middle ground&lt;&#x2F;h2&gt;
+&lt;p&gt;I don&#x27;t think we should abandon OS transparency completely. It&#x27;s still valuable, especially for most applications that don&#x27;t care about deep performance tuning. But maybe transparency should become adjustable.&lt;&#x2F;p&gt;
+&lt;p&gt;By default, memory stays abstract. The kernel handles tiering. But for performance-critical systems, the allocator could expose controlled hints, and the kernel could enforce limits so that misclassification doesn&#x27;t destabilize things.&lt;&#x2F;p&gt;
+&lt;p&gt;I don&#x27;t know if this would hold up in real systems. It depends on how well the kernel can override bad hints, and on whether developers will bother annotating allocations. My guess is most people ignore it and a small group gets real value out of it.&lt;&#x2F;p&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>Tiered Memory</title>
+        <published>2026-02-12T00:00:00+00:00</published>
+        <updated>2026-02-12T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/memory-teiring/"/>
+        <id>https://yazeed1s.github.io/posts/memory-teiring/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/memory-teiring/">&lt;p&gt;The OS always assumed memory is uniform. Every page frame is the same speed, same cost, same latency. With CXL and tiered memory that assumption breaks. You now have fast DRAM and slower memory in the same machine.&lt;&#x2F;p&gt;
+&lt;p&gt;At first it sounded simple to me. Hot pages go in fast memory, cold pages in slow memory. But from an OS perspective it gets complicated fast.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;first-what-are-memory-pages&quot;&gt;first, what are memory pages&lt;&#x2F;h2&gt;
+&lt;p&gt;Before talking about tiers, pages.&lt;&#x2F;p&gt;
+&lt;p&gt;Operating systems manage memory in fixed-size chunks called &lt;strong&gt;pages&lt;&#x2F;strong&gt;. On x86 that&#x27;s 4KB. Sometimes you use huge pages (2MB or 1GB), but 4KB is the default.&lt;&#x2F;p&gt;
+&lt;p&gt;Basically, the OS doesn&#x27;t think in bytes, it thinks in pages.&lt;&#x2F;p&gt;
+&lt;p&gt;When a process allocates memory, the OS maps virtual pages to physical page frames. The page table stores this mapping. CPU sees a virtual address, walks the page tables, translates it to a physical frame.&lt;&#x2F;p&gt;
+&lt;p&gt;If a page is not present? Page fault. Memory full? The OS evicts pages.&lt;&#x2F;p&gt;
+&lt;p&gt;So when you talk about tiered memory, what you&#x27;re really asking is: which physical page frames should live in which kind of memory? That&#x27;s the core question.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;why-do-we-even-need-tiered-memory&quot;&gt;why do we even need tiered memory&lt;&#x2F;h2&gt;
+&lt;p&gt;A server has DRAM directly attached to the CPU through memory channels. Fast, low latency, but expensive.&lt;&#x2F;p&gt;
+&lt;p&gt;In large systems memory becomes a serious cost factor. In some cloud setups it&#x27;s a big portion of total server cost. And many applications allocate large heaps but only actively touch part of them.&lt;&#x2F;p&gt;
+&lt;p&gt;Scaling DRAM isn&#x27;t trivial either. You&#x27;re limited by channels, DIMM slots, signal integrity.&lt;&#x2F;p&gt;
+&lt;p&gt;So the idea behind tiered memory is simple: instead of making all memory equally fast and equally expensive, have a small fast tier and a larger slower tier. Put frequently used pages in fast memory. Put less active pages in slower memory.&lt;&#x2F;p&gt;
+&lt;p&gt;Conceptually simple. Implementation is not.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;cxl-and-heterogeneous-memory&quot;&gt;CXL and heterogeneous memory&lt;&#x2F;h2&gt;
+&lt;p&gt;With newer interconnects you can attach extra memory that&#x27;s cache-coherent but slower than local DRAM. From the OS perspective it looks like another NUMA node.&lt;&#x2F;p&gt;
+&lt;p&gt;But latency is higher. Roughly:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Local DRAM: maybe around 100ns&lt;&#x2F;li&gt;
+&lt;li&gt;Attached memory over fabric: maybe 2x or 3x that&lt;&#x2F;li&gt;
+&lt;li&gt;Still much faster than SSD or disk&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;So now you have heterogeneous memory inside the same system. Fast tier is local DRAM. Slow tier is attached or remote memory. Same abstraction (page), different performance.&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;The &quot;2x or 3x&quot; latency for CXL-attached memory is a rough estimate based on early CXL 1.1&#x2F;2.0 hardware. Actual latency depends on the CXL device type (Type 1, 2, or 3), the number of CXL hops, the controller implementation, and whether the access hits the device&#x27;s internal cache. Some CXL memory expanders report closer to 1.5x for cached accesses. These numbers will keep changing as the hardware matures.&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;p&gt;This breaks the old assumption that memory is uniform.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-core-problem-which-pages-go-where&quot;&gt;the core problem: which pages go where&lt;&#x2F;h2&gt;
+&lt;p&gt;If hot pages sit in the fast tier, everything is fine. If hot pages end up in the slow tier, performance drops.&lt;&#x2F;p&gt;
+&lt;p&gt;So you need to detect which pages are hot and move them.&lt;&#x2F;p&gt;
+&lt;p&gt;The naive idea: count how many times each page is accessed. Most accessed pages are hot.&lt;&#x2F;p&gt;
+&lt;p&gt;But it turns out that&#x27;s not enough.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;hotness-is-not-that-simple&quot;&gt;hotness is not that simple&lt;&#x2F;h2&gt;
+&lt;p&gt;Frequency alone doesn&#x27;t always tell the full story.&lt;&#x2F;p&gt;
+&lt;p&gt;Modern CPUs overlap memory accesses. If several cache misses happen at the same time, the effective stall per access can be smaller. Some accesses hurt more than others, depending on timing and overlap.&lt;&#x2F;p&gt;
+&lt;p&gt;So a page can be frequently accessed but not necessarily performance-critical. Another page might be accessed less often but sit directly on the critical path.&lt;&#x2F;p&gt;
+&lt;p&gt;Instead of just asking &quot;how many times was this page accessed?&quot;, you probably need to ask &quot;how much does this page slow down the program if it&#x27;s in slow memory?&quot;&lt;&#x2F;p&gt;
+&lt;p&gt;That&#x27;s a harder question. I&#x27;m not sure how well current systems actually answer it. It connects OS policy with microarchitecture behavior, and I don&#x27;t think the abstractions we have right now are set up for that.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;page-granularity-mismatch&quot;&gt;page granularity mismatch&lt;&#x2F;h2&gt;
+&lt;p&gt;The OS moves memory in 4KB pages. The hardware accesses memory in 64-byte cache lines.&lt;&#x2F;p&gt;
+&lt;p&gt;Sometimes only a few cache lines inside a 4KB page are really hot. The rest is barely touched. If you migrate the entire page to the fast tier because a small region inside it is hot, you&#x27;re wasting precious fast memory.&lt;&#x2F;p&gt;
+&lt;p&gt;Huge pages make this worse. A 2MB page may contain a small hot region and a lot of cold data. Promoting the whole thing seems expensive.&lt;&#x2F;p&gt;
+&lt;p&gt;There&#x27;s a mismatch between OS abstraction (page-based) and real access behavior (cache-line based). Tiered memory just makes the mismatch more visible.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;migration-is-not-free&quot;&gt;migration is not free&lt;&#x2F;h2&gt;
+&lt;p&gt;Moving a page between tiers isn&#x27;t just a pointer update. You need to allocate space in the target tier, copy 4KB of data, update page tables, possibly flush TLB entries, and coordinate across cores.&lt;&#x2F;p&gt;
+&lt;p&gt;If you migrate too often, or migrate the wrong pages, you can hurt performance instead of improving it. I&#x27;ve seen papers where the migration overhead alone ate most of the benefit.&lt;&#x2F;p&gt;
+&lt;p&gt;So it becomes a control problem. You need accurate detection, low tracking overhead, stable decisions, limited oscillation. It starts to feel like scheduling honestly. Continuously adapting to workload behavior, except the feedback signals are noisier.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;where-disaggregation-fits&quot;&gt;where disaggregation fits&lt;&#x2F;h2&gt;
+&lt;p&gt;Tiered memory is closely related to disaggregated memory.&lt;&#x2F;p&gt;
+&lt;p&gt;Disaggregation means memory can be separated from compute and accessed over a fabric. That memory naturally has higher latency than local DRAM, so it often becomes the slow tier.&lt;&#x2F;p&gt;
+&lt;p&gt;At that point memory management isn&#x27;t just a local kernel concern. It interacts with cluster design, resource allocation, and even scheduling across machines. The boundary between OS and infrastructure gets thinner.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes-random-thoughts&quot;&gt;notes &#x2F; random thoughts&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Page abstraction worked well when memory was uniform. Now it feels slightly strained.&lt;&#x2F;li&gt;
+&lt;li&gt;Counting accesses is easy. Understanding performance impact is harder. I&#x27;m not convinced anyone has a great solution for this yet.&lt;&#x2F;li&gt;
+&lt;li&gt;Huge pages help TLB reach but can complicate tiering decisions.&lt;&#x2F;li&gt;
+&lt;li&gt;Migration policy starts to look like a feedback controller.&lt;&#x2F;li&gt;
+&lt;li&gt;There&#x27;s always tension between transparency and giving applications more control.&lt;&#x2F;li&gt;
+&lt;li&gt;In some sense tiered memory is like swap inside RAM, but at nanosecond scale.&lt;&#x2F;li&gt;
+&lt;li&gt;It looks like a small hardware change but from the OS side it touches a lot of assumptions.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>From Swap to Tiered Memory: Same Idea, Different Scale</title>
+        <published>2026-02-08T00:00:00+00:00</published>
+        <updated>2026-02-08T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/swap-to-tiered/"/>
+        <id>https://yazeed1s.github.io/posts/swap-to-tiered/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/swap-to-tiered/">&lt;p&gt;Tiered memory is swap. Kind of.&lt;&#x2F;p&gt;
+&lt;p&gt;You have fast memory, slow memory, and the kernel moves pages between them. That&#x27;s what swap does too. But once you look closer, the differences become important.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-swap-actually-does&quot;&gt;what swap actually does&lt;&#x2F;h2&gt;
+&lt;p&gt;In classic Linux memory management you have RAM (fast) and disk (very slow). When RAM is full, the kernel selects some pages and writes them to disk. That&#x27;s swapping.&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Swap doesn&#x27;t only kick in when RAM is completely full. How aggressively the kernel swaps depends on the &lt;code&gt;vm.swappiness&lt;&#x2F;code&gt; setting. At higher values, the kernel starts reclaiming anonymous pages earlier. At &lt;code&gt;swappiness=0&lt;&#x2F;code&gt;, it avoids swapping almost entirely until there&#x27;s real memory pressure.&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;p&gt;Later, if a swapped-out page is accessed again, you get a major page fault. The kernel reads the page back from disk into RAM.&lt;&#x2F;p&gt;
+&lt;p&gt;So swap is already a two-tier system. Fast tier is DRAM, slow tier is disk. The unit of movement is still a 4KB page.&lt;&#x2F;p&gt;
+&lt;p&gt;The kernel decides which pages stay in RAM and which go to disk. And that already sounds like tiered memory.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-big-difference-latency-scale&quot;&gt;the big difference: latency scale&lt;&#x2F;h2&gt;
+&lt;p&gt;The difference is scale. Rough numbers:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;DRAM: ~100ns&lt;&#x2F;li&gt;
+&lt;li&gt;CXL-attached memory: maybe ~200–300ns&lt;&#x2F;li&gt;
+&lt;li&gt;SSD: tens of microseconds&lt;&#x2F;li&gt;
+&lt;li&gt;HDD: a lifetime&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;Swap moves pages between nanoseconds and microseconds&#x2F;milliseconds. Tiered memory moves pages between nanoseconds and slightly larger nanoseconds.&lt;&#x2F;p&gt;
+&lt;p&gt;If a page sits on disk and you touch it, the program stalls hard. If a page sits in a slow memory tier, the program slows down but it might not be obvious.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;swap-decisions-can-be-coarse&quot;&gt;swap decisions can be coarse&lt;&#x2F;h2&gt;
+&lt;p&gt;Because disk is so slow, swap decisions can be rough. If a page is cold for some time, push it out. If it&#x27;s accessed again, bring it back. The cost difference is so large that even simple heuristics work reasonably well.&lt;&#x2F;p&gt;
+&lt;p&gt;Tiered memory doesn&#x27;t have that luxury. The latency gap is smaller, so a bad migration decision won&#x27;t crash performance, but small inefficiencies accumulate. Migration overhead itself becomes noticeable relative to the gap.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;hot-vs-cold-is-not-binary-anymore&quot;&gt;hot vs cold is not binary anymore&lt;&#x2F;h2&gt;
+&lt;p&gt;In swap, pages are either in RAM or on disk, so cold pages go out while hot pages stay in.&lt;&#x2F;p&gt;
+&lt;p&gt;In tiered memory it&#x27;s more continuous. A page in the slow tier isn&#x27;t dead. It&#x27;s just slower.&lt;&#x2F;p&gt;
+&lt;p&gt;So the question becomes: how much slower is acceptable? If a page is accessed rarely, keeping it in slow memory is fine. If it&#x27;s accessed frequently but overlaps with other misses, maybe it&#x27;s still fine. If it&#x27;s on the critical path, it probably needs to be in fast memory.&lt;&#x2F;p&gt;
+&lt;p&gt;Classification becomes more nuanced than hot vs cold. Some recent work argues that raw access count isn&#x27;t enough. What matters is how much a page contributes to stall time. That depends on memory-level parallelism and overlap of misses.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;migration-overhead-matters-more&quot;&gt;migration overhead matters more&lt;&#x2F;h2&gt;
+&lt;p&gt;Swapping a page to disk is expensive, but it happens relatively rarely and it&#x27;s usually triggered by memory pressure.&lt;&#x2F;p&gt;
+&lt;p&gt;In tiered memory, migrations can happen frequently and proactively. To migrate a page between tiers, the kernel has to allocate a new page in the target tier, copy 4KB, update page tables, possibly trigger TLB shootdowns, and synchronize across CPUs.&lt;&#x2F;p&gt;
+&lt;p&gt;If migrations are too aggressive, the system spends significant time just moving pages around. Swap is reactive. Tiered memory often tries to be proactive. That increases complexity.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;granularity-problems-become-visible&quot;&gt;granularity problems become visible&lt;&#x2F;h2&gt;
+&lt;p&gt;Pages are 4KB. Cache lines are 64B. With swap this mismatch didn&#x27;t really matter, disk is so slow that any frequently-accessed page obviously belongs in RAM.&lt;&#x2F;p&gt;
+&lt;p&gt;But tiered memory lives in a tighter performance window. A 4KB page might contain a few hot cache lines and many cold ones. Migrating the whole thing to fast memory for a small hot region wastes capacity. With huge pages (2MB) this gets worse.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;swap-is-mostly-about-capacity&quot;&gt;swap is mostly about capacity&lt;&#x2F;h2&gt;
+&lt;p&gt;Swap is fundamentally about capacity. You don&#x27;t have enough RAM, so you spill to disk. If swap is heavily active, something is usually wrong.&lt;&#x2F;p&gt;
+&lt;p&gt;Tiered memory is often about cost efficiency and scaling. Keep a small expensive fast tier, add a larger cheaper slow tier, try to approximate the performance of all-fast memory.&lt;&#x2F;p&gt;
+&lt;p&gt;So tiered memory is more about optimization than survival. If swap is heavily active, something is usually wrong. If tiered memory is active, that&#x27;s the intended design.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;similarity-same-abstraction-different-consequences&quot;&gt;similarity: same abstraction, different consequences&lt;&#x2F;h2&gt;
+&lt;p&gt;At the abstraction level, both swap and tiered memory move 4KB pages, update page tables, rely on page faults, and depend on kernel policies. From the kernel&#x27;s perspective they&#x27;re not that different.&lt;&#x2F;p&gt;
+&lt;p&gt;But the consequences are. Swap mistakes cause dramatic stalls. Tiered memory mistakes cause gradual slowdowns. And gradual slowdowns are harder to detect and reason about.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;thinking-forward&quot;&gt;thinking forward&lt;&#x2F;h2&gt;
+&lt;p&gt;One thing I keep thinking about: swap worked well enough with simple heuristics because the gap was huge. Tiered memory may require more precise reasoning because the gap is smaller.&lt;&#x2F;p&gt;
+&lt;p&gt;Now you care about access frequency, stall contribution, memory-level parallelism, sub-page access skew, migration stability. All of this happening at page granularity, inside a system that was designed assuming uniform memory.&lt;&#x2F;p&gt;
+&lt;p&gt;In a way, tiered memory isn&#x27;t a brand new idea. It&#x27;s swap, compressed into the nanosecond domain. But once you compress the scale, all the small details start to matter.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes-random-thoughts&quot;&gt;notes &#x2F; random thoughts&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Swap is emergency capacity management. Tiered memory is performance optimization.&lt;&#x2F;li&gt;
+&lt;li&gt;Page abstraction survived disks. It might struggle more with heterogeneous DRAM.&lt;&#x2F;li&gt;
+&lt;li&gt;Maybe future kernels will combine tiering and scheduling more tightly.&lt;&#x2F;li&gt;
+&lt;li&gt;It&#x27;s interesting that we&#x27;re still moving 4KB chunks around in 2026.&lt;&#x2F;li&gt;
+&lt;li&gt;I sometimes wonder if sub-page migration will eventually become practical.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>Memory Disaggregation</title>
+        <published>2026-02-02T00:00:00+00:00</published>
+        <updated>2026-02-02T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/memory-disaggregation/"/>
+        <id>https://yazeed1s.github.io/posts/memory-disaggregation/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/memory-disaggregation/">&lt;p&gt;Memory is expensive, and in some clusters it&#x27;s half the server cost while a lot of it sits idle. Over 70% of the time more than half of aggregate cluster memory is unused, yet some machines are paging to disk because they ran out.&lt;&#x2F;p&gt;
+&lt;p&gt;Memory disaggregation is the idea that you pull memory out of servers, pool it, and let machines use what they need. A VMware Research paper I read recently asks why this hasn&#x27;t happened already, and their answer is that the economics were bad but tolerable and the technology didn&#x27;t exist, but now both are changing.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-basic-idea&quot;&gt;the basic idea&lt;&#x2F;h2&gt;
+&lt;p&gt;Traditional servers bundle CPU, memory, and storage into one box. Need more RAM? Buy a bigger box or add DIMMs if you haven&#x27;t hit the motherboard limit. Don&#x27;t use all your RAM? It sits idle and you can&#x27;t share it.&lt;&#x2F;p&gt;
+&lt;p&gt;Memory disaggregation pulls memory out into separate pools that multiple servers can access, similar to how we went from local storage to SAN&#x2F;NAS but for memory instead.&lt;&#x2F;p&gt;
+&lt;p&gt;This gives you two things: capacity expansion where a server can use more memory than it physically contains by reaching into the pool (similar to what Infiniswap does but with hardware support instead of software paging tricks), and data sharing where pool memory can be mapped into multiple hosts at once so they can load&#x2F;store to the same bytes without serializing everything into messages. You still need software to handle ownership and synchronization and failures, but the access itself looks like memory, not network messages.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;why-is-this-coming-up-now&quot;&gt;why is this coming up now&lt;&#x2F;h2&gt;
+&lt;p&gt;The economics are getting painful because memory is like 50% of server cost and 37% of TCO, three companies control DRAM production, and demand is exploding from data centers and ML and in-memory databases. And here&#x27;s the frustrating part: clusters waste a lot of memory where over 70% of the time more than half of aggregate memory sits unused while some machines are paging to disk because they ran out.&lt;&#x2F;p&gt;
+&lt;p&gt;The technology also finally exists since RDMA gives single-digit microsecond latencies, but the bigger thing is CXL which gives you cache-coherent load&#x2F;store access over PCIe, plus there&#x27;s a roadmap toward switches and pooling and shared memory fabrics. The pool can even use cheaper denser slower DRAM since it&#x27;s already the &quot;slow tier&quot; compared to local DIMMs anyway.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-i-found-interesting&quot;&gt;what I found interesting&lt;&#x2F;h2&gt;
+&lt;p&gt;This isn&#x27;t only about capacity because most remote-memory systems like Infiniswap focus on paging to remote RAM, which helps but stays limited. CXL is aiming for memory that still behaves like memory with load&#x2F;store access to a larger pool, and with the right fabric features you can even map the same bytes into multiple hosts, which is very different from shipping pages around.&lt;&#x2F;p&gt;
+&lt;p&gt;The OS problems are hard though, and the paper mostly focuses on what&#x27;s still unsolved: memory allocation at scale, scheduling with memory locality, pointer sharing across servers, failure handling for &quot;optional&quot; memory, and security for hot-swappable pools, all of which need fundamental rethinking.&lt;&#x2F;p&gt;
+&lt;p&gt;The timeline matches what happened with storage disaggregation: start small with a few hosts per pool, add switches for rack-scale, then push the fabric boundary outward. Whether it ends up being &quot;CXL over something&quot; or something else is open, but the trajectory rhymes with how storage disaggregation went.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;where-it-fits-and-where-it-doesn-t&quot;&gt;where it fits and where it doesn&#x27;t&lt;&#x2F;h2&gt;
+&lt;p&gt;Good for data-intensive workloads like Spark or Ray or distributed DBs that spend cycles serializing and copying, working sets that barely fit in local memory, clusters with memory imbalance, and places where memory is already 50%+ of server cost.&lt;&#x2F;p&gt;
+&lt;p&gt;Bad for workloads that already fit in local memory (you&#x27;re just adding latency for no reason), latency-sensitive apps that can&#x27;t handle hundreds of extra nanoseconds, and traditional apps that don&#x27;t share data across processes anyway.&lt;&#x2F;p&gt;
+&lt;p&gt;Pool memory is slower than local (hundreds of ns vs ~100ns) but still way faster than SSD or disk. For workloads that currently page to disk this could be big, but for workloads that don&#x27;t page at all adding a slower tier might just make things worse.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Paper: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;dl.acm.org&#x2F;doi&#x2F;10.1145&#x2F;3606557.3606563&quot;&gt;Aguilera et al., &quot;Memory disaggregation: why now and what are the challenges&quot;, ACM SIGOPS, 2023&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
+&lt;li&gt;Position paper, no benchmarks, just analysis of the problem space&lt;&#x2F;li&gt;
+&lt;li&gt;CXL 1.0: local memory expansion cards (shipping now)&lt;&#x2F;li&gt;
+&lt;li&gt;CXL 2.0&#x2F;3.0: fabric switches for pool memory (maybe 3-5 years out)&lt;&#x2F;li&gt;
+&lt;li&gt;Latency estimates: local ~100ns, CXL local ~200-300ns, CXL pool ~500-1000ns, RDMA ~1-5μs, SSD ~100μs&lt;&#x2F;li&gt;
+&lt;li&gt;Memory population rules (balanced channels, identical DIMMs) make upgrades nearly impossible in practice&lt;&#x2F;li&gt;
+&lt;li&gt;Distributed shared memory from 90s taught us: cache coherence doesn&#x27;t scale beyond rack&lt;&#x2F;li&gt;
+&lt;li&gt;Security: DRAM retains data after power-down and pool memory is hot-swappable so encryption matters&lt;&#x2F;li&gt;
+&lt;li&gt;Related work: Infiniswap, LegoOS, The Machine (HPE, discontinued)&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>CXL: Why Datacenter Memory is Getting a New Tier</title>
+        <published>2026-01-27T00:00:00+00:00</published>
+        <updated>2026-01-27T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/cxl/"/>
+        <id>https://yazeed1s.github.io/posts/cxl/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/cxl/">&lt;p&gt;DRAM can be half of server cost, and a lot of it still sits idle. One machine thrashes while the one next to it uses 30% of its memory. CXL is trying to fix that mismatch.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-problem&quot;&gt;the problem&lt;&#x2F;h2&gt;
+&lt;p&gt;Memory in datacenters is expensive and wasted at the same time. DRAM can be 50% of server cost, and research keeps showing that utilization is terrible. One machine is thrashing because it ran out of memory while another machine next to it is sitting at 30% usage. Some papers claim 70% of aggregate memory is underutilized across a cluster.&lt;&#x2F;p&gt;
+&lt;p&gt;The obvious thought: why not share memory across machines, like we do with storage. Pool it. If one server has idle memory another server could use it.&lt;&#x2F;p&gt;
+&lt;p&gt;But the issue is that storage can tolerate milliseconds of latency. Memory can&#x27;t. A cache miss to local DRAM is around 100ns. Go over the network with RDMA and you&#x27;re at 1-5 microseconds. That&#x27;s 10-50x slower. For memory access patterns that&#x27;s a lot.&lt;&#x2F;p&gt;
+&lt;p&gt;CXL is supposed to bridge this gap.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-it-actually-is&quot;&gt;what it actually is&lt;&#x2F;h2&gt;
+&lt;p&gt;CXL stands for Compute Express Link. It runs on the PCIe physical layer, same cables and slots, but with a different protocol on top.&lt;&#x2F;p&gt;
+&lt;p&gt;What matters is that it&#x27;s cache-coherent. The CPU can do normal load&#x2F;store to CXL-attached memory through the same memory path, without special APIs, RDMA-style verbs, or memory registration. The memory controller treats it like another memory region, basically another NUMA node.&lt;&#x2F;p&gt;
+&lt;p&gt;There are three protocols in the spec. CXL.io is basically just PCIe, for device discovery and config, boring stuff. CXL.cache lets devices cache host memory, useful for accelerators. CXL.mem is the interesting one, it lets the host access device-attached memory with load&#x2F;store.&lt;&#x2F;p&gt;
+&lt;p&gt;CXL 1.0 and 1.1 are mostly local expansion. You plug a CXL card with DRAM into a PCIe slot and your system sees more memory. Latency is higher than native DIMMs, maybe 200-300ns instead of 100ns, but it&#x27;s still memory, not storage. CXL 2.0 adds switching so multiple hosts can share a memory pool. CXL 3.0 goes further with fabric and shared memory semantics.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;mixing-memory-types&quot;&gt;mixing memory types&lt;&#x2F;h2&gt;
+&lt;p&gt;Normally your CPU&#x27;s memory controller dictates what DRAM you can use. If it&#x27;s a DDR5 system, all your DIMMs have to be DDR5. Same speed, same density rules, same timing specs. You can&#x27;t just plug DDR4 into a DDR5 slot.&lt;&#x2F;p&gt;
+&lt;p&gt;CXL breaks this because the CXL device has its own memory controller. It can use whatever DRAM it wants. DDR4, DDR5, older cheaper stuff, slower but denser modules. The CPU doesn&#x27;t care. It just sees CXL memory at some address range.&lt;&#x2F;p&gt;
+&lt;p&gt;So you could keep local DDR5 for hot data and use a CXL card with cheaper DDR4 as a slower tier, or use high-capacity modules that wouldn&#x27;t fit your motherboard timing rules. Cost-wise this is nice because you&#x27;re not locked to whatever generation the motherboard supports.&lt;&#x2F;p&gt;
+&lt;p&gt;The tradeoff is latency. CXL adds overhead. But if you&#x27;re using it for capacity expansion rather than latency-critical paths, maybe that&#x27;s acceptable.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;why-not-just-use-rdma&quot;&gt;why not just use RDMA&lt;&#x2F;h2&gt;
+&lt;p&gt;RDMA is a different model. You need explicit verbs, post work requests, poll completions. It&#x27;s not transparent load&#x2F;store. You have to register memory, pin pages, exchange keys. One-sided operations are async so you don&#x27;t know when remote writes land unless you add signaling. And latency is around 1-5μs which is fast for networking but slow for memory access patterns.&lt;&#x2F;p&gt;
+&lt;p&gt;CXL at 200-500ns for pooled memory is closer to local DRAM territory. And it&#x27;s transparent to software. Your malloc can return CXL memory and the application doesn&#x27;t know the difference.&lt;&#x2F;p&gt;
+&lt;p&gt;That&#x27;s the promise anyway. The hardware shipping today is mostly local expansion cards, not pooled memory. The pooling stuff is still coming hopefully.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-latency-thing&quot;&gt;the latency thing&lt;&#x2F;h2&gt;
+&lt;p&gt;Local DRAM is ~100ns. CXL local expansion is ~200-300ns. CXL through a switch to a shared pool is ~500-1000ns.&lt;&#x2F;p&gt;
+&lt;p&gt;So pooled CXL is 5-10x slower than local. That&#x27;s not nothing. For tight loops constantly hitting memory, that seems expensive. The pitch is that it&#x27;s still way better than swapping to SSD (100μs) and you get more capacity. Which is true.&lt;&#x2F;p&gt;
+&lt;p&gt;The mental model is tiering: hot data in local DRAM, warm data in the CXL pool, cold data on SSD, and the kernel (or runtime) migrating pages based on access patterns.&lt;&#x2F;p&gt;
+&lt;p&gt;Linux already has machinery for this. NUMA balancing, DAMON for access pattern detection, tiered memory support that got merged recently. Whether this works well in practice with real workloads, I don&#x27;t know yet. The theory sounds reasonable but there will be edge cases.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;shared-memory-across-hosts&quot;&gt;shared memory across hosts&lt;&#x2F;h2&gt;
+&lt;p&gt;CXL 3.0 talks about multiple hosts accessing the same memory with hardware-maintained cache coherence.&lt;&#x2F;p&gt;
+&lt;p&gt;This sounds amazing and also scary at the same time.&lt;&#x2F;p&gt;
+&lt;p&gt;Cache coherence doesn&#x27;t scale. The distributed shared memory people learned this in the 90s. Beyond a few nodes the coherence traffic overwhelms everything.&lt;&#x2F;p&gt;
+&lt;p&gt;The CXL spec people know this. The scope is limited, maybe a rack, maybe a pod, maybe less. The vision isn&#x27;t coherent memory across the whole datacenter. It&#x27;s more like, within a small group of machines you can have shared memory semantics. Beyond that you&#x27;re back to message passing or RDMA.&lt;&#x2F;p&gt;
+&lt;p&gt;Even rack-scale shared memory is interesting though. Databases that want to share buffer caches across replicas. ML training jobs that share model weights. There are use cases.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-s-actually-shipping&quot;&gt;what&#x27;s actually shipping&lt;&#x2F;h2&gt;
+&lt;p&gt;CXL 1.1 memory expanders exist today from Samsung, SK Hynix and others. Intel Sapphire Rapids supports CXL. These are mostly used to add capacity to memory-hungry workloads.&lt;&#x2F;p&gt;
+&lt;p&gt;CXL switches are not really production-ready yet. Some prototypes. I&#x27;d guess pooled CXL deployments are 2-3 years out.&lt;&#x2F;p&gt;
+&lt;p&gt;So when papers say &quot;CXL will enable this,&quot; they&#x27;re often talking about future hardware. The concepts are solid but the ecosystem is young. Worth understanding now because it&#x27;s coming, but don&#x27;t expect to deploy pooled CXL next month.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-i-m-still-uncertain-about&quot;&gt;what I&#x27;m still uncertain about&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;strong&gt;Latency tradeoffs.&lt;&#x2F;strong&gt; 5-10x slower than local is real overhead. Better than SSD, yes. But memory-intensive applications might just thrash the CXL tier and make things worse. Tiering policies need to actually work.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Ecosystem maturity.&lt;&#x2F;strong&gt; RDMA took years to get right. CXL is newer. Drivers, kernel support, allocation policies, debugging tools, all of this needs to catch up.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Who benefits.&lt;&#x2F;strong&gt; Big cloud providers with massive memory imbalance probably see value. Smaller deployments might not see ROI at current hardware costs.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;CXL consortium includes Intel, AMD, ARM, NVIDIA, Samsung and others&lt;&#x2F;li&gt;
+&lt;li&gt;Built on PCIe 5.0&#x2F;6.0 physical layer, same slots and cables&lt;&#x2F;li&gt;
+&lt;li&gt;Latency numbers vary by source and topology&lt;&#x2F;li&gt;
+&lt;li&gt;Linux kernel has CXL support in drivers&#x2F;cxl&#x2F;, device enumeration works, memory tiering is evolving&lt;&#x2F;li&gt;
+&lt;li&gt;Related specs: Gen-Z (seems dead), CCIX (absorbed into CXL)&lt;&#x2F;li&gt;
+&lt;li&gt;Good starting point: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;www.computeexpresslink.org&#x2F;&quot;&gt;CXL Consortium&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
+&lt;li&gt;For context on memory disaggregation: Aguilera et al., &quot;Memory disaggregation: why now and what are the challenges&quot;&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>Infiniswap</title>
+        <published>2026-01-18T00:00:00+00:00</published>
+        <updated>2026-01-18T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/infiniswap/"/>
+        <id>https://yazeed1s.github.io/posts/infiniswap/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/infiniswap/">&lt;p&gt;I found this paper while reading about memory disaggregation. The idea is simple: when a machine runs out of RAM, page to another machine&#x27;s unused memory instead of disk.&lt;&#x2F;p&gt;
+&lt;p&gt;What caught my attention is how they did it: it works without application changes or core kernel patches through a kernel module that hooks into Linux&#x27;s swap path, where remote RAM becomes the fast tier and disk is just the fallback.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-problem-they-re-solving&quot;&gt;the problem they&#x27;re solving&lt;&#x2F;h2&gt;
+&lt;p&gt;Production clusters waste a lot of memory. Some machines are memory-starved while others sit idle. The 99th percentile machine uses 2-3× more memory than the median. Over half the cluster&#x27;s aggregate memory goes unused.&lt;&#x2F;p&gt;
+&lt;p&gt;When apps can&#x27;t fit their working set in RAM, performance falls off a cliff. VoltDB drops from 95K TPS to 4K TPS. Memcached&#x27;s tail latency shoots up 21×. Disk is just too slow (like 1000× slower than memory).&lt;&#x2F;p&gt;
+&lt;p&gt;So they thought: RDMA gives single-digit microsecond latencies. That&#x27;s fast enough to make remote memory a viable swap target. Pages go to remote RAM over RDMA instead of disk. The remote CPU stays out of the data movement entirely since the RNIC does the DMA.&lt;&#x2F;p&gt;
+&lt;p&gt;Result: swap that looks normal to Linux but is backed by slabs of remote memory scattered across the cluster.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-i-thought-was-clever&quot;&gt;what I thought was clever&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;strong&gt;Using swap as the integration point.&lt;&#x2F;strong&gt; Instead of modifying the page fault handler or remapping virtual memory, they plug into Linux&#x27;s swap subsystem. The kernel already knows how to page out and page in. Infiniswap just changes where those pages live. The trade-off is you still go through the swap path (page faults, context switches). But you get deployment simplicity because everything else just works.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;One-sided RDMA.&lt;&#x2F;strong&gt; Traditional network block devices like Mellanox&#x27;s nbdX use send&#x2F;recv. Remote CPU wakes up, copies data, responds. Infiniswap uses RDMA_READ and RDMA_WRITE. The RNIC accesses remote memory directly without running any code on the remote side. nbdX burns multiple vCPUs on the remote machine. Infiniswap doesn&#x27;t touch the remote CPU at all.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Slab-based design.&lt;&#x2F;strong&gt; Pages are grouped into 1GB slabs. Each slab maps to one remote machine. This keeps metadata manageable. Tracking millions of 4KB pages across the cluster would be expensive. Hot slabs (more than 20 page I&#x2F;O ops&#x2F;sec) get mapped to remote memory. Cold slabs stay on disk.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;where-it-works-well&quot;&gt;where it works well&lt;&#x2F;h2&gt;
+&lt;p&gt;Memory-bound workloads see big wins. Memcached stays nearly flat even when only 50% of the working set fits in memory. PowerGraph runs 6.5× faster. VoltDB sees 15× throughput improvement over disk.&lt;&#x2F;p&gt;
+&lt;p&gt;Cluster memory utilization: goes from 40% to 60%. That&#x27;s 47% more effective use of RAM. Network overhead is less than 1% of capacity.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;where-it-doesn-t-work&quot;&gt;where it doesn&#x27;t work&lt;&#x2F;h2&gt;
+&lt;p&gt;CPU-bound workloads don&#x27;t benefit much. VoltDB and Spark already run at high CPU utilization. Adding paging overhead (context switches, TLB flushes, page table walks) eats into that. Spark at 50% memory thrashes so badly it doesn&#x27;t complete.&lt;&#x2F;p&gt;
+&lt;p&gt;There&#x27;s a fundamental limit here: this isn&#x27;t local memory. Page faults still happen. You&#x27;re masking latency, not eliminating it. For workloads where microseconds matter deterministically, that&#x27;s still a problem.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Paper: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;www.usenix.org&#x2F;system&#x2F;files&#x2F;conference&#x2F;nsdi17&#x2F;nsdi17-gu.pdf&quot;&gt;Gu et al., &quot;Efficient Memory Disaggregation with Infiniswap&quot;, NSDI 2017&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
+&lt;li&gt;Tested on 32 machines, 56 Gbps Infiniband, 64GB RAM each&lt;&#x2F;li&gt;
+&lt;li&gt;Slab placement uses &quot;power of two choices&quot; (pick two random machines, query free memory, use the one with more headroom)&lt;&#x2F;li&gt;
+&lt;li&gt;Slab eviction queries E+5 machines, evicts coldest (~363μs median)&lt;&#x2F;li&gt;
+&lt;li&gt;Page-out: synchronous RDMA_WRITE + async disk write (disk is fallback if remote crashes)&lt;&#x2F;li&gt;
+&lt;li&gt;Page-in: check bitmap → RDMA_READ if remote, else disk&lt;&#x2F;li&gt;
+&lt;li&gt;Slab remapping after failure takes ~54ms (Infiniband memory registration)&lt;&#x2F;li&gt;
+&lt;li&gt;Default headroom threshold: 8GB per machine&lt;&#x2F;li&gt;
+&lt;li&gt;Hot slab threshold: 20 page I&#x2F;O ops&#x2F;sec (EWMA, α=0.2)&lt;&#x2F;li&gt;
+&lt;li&gt;Compared against nbdX (Mellanox), Fastswap, LegoOS&lt;&#x2F;li&gt;
+&lt;li&gt;Code: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;SymbioticLab&#x2F;Infiniswap&quot;&gt;SymbioticLab&#x2F;infiniswap&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>Why Databases Stopped Using mmap</title>
+        <published>2025-12-18T00:00:00+00:00</published>
+        <updated>2025-12-18T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/mmap-databases/"/>
+        <id>https://yazeed1s.github.io/posts/mmap-databases/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/mmap-databases/">&lt;p&gt;mmap lets you map a file into your address space and access it like memory through pointer dereferences instead of &lt;code&gt;read()&lt;&#x2F;code&gt; calls and user-space buffers. The OS handles paging transparently.&lt;&#x2F;p&gt;
+&lt;p&gt;For a database, this looks perfect at first: map data files, access pages through pointers, let the kernel decide what stays in memory, and skip writing a buffer pool. Several databases tried it, and most backed away from it.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;why-it-s-tempting&quot;&gt;why it&#x27;s tempting&lt;&#x2F;h2&gt;
+&lt;p&gt;A traditional DBMS maintains its own buffer pool where it tracks which pages are in memory, decides what to evict, and handles I&#x2F;O explicitly, which is a lot of code (thousands of lines just to manage what&#x27;s cached).&lt;&#x2F;p&gt;
+&lt;p&gt;With mmap you skip all that because the kernel already has a page cache, already tracks access patterns, and already evicts pages under memory pressure, so the question becomes: why duplicate it?&lt;&#x2F;p&gt;
+&lt;p&gt;LMDB does it, MongoDB used to do it, LevelDB did it, MonetDB did it, and SQLite has an mmap mode, so the idea is clearly attractive.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-transactional-safety-problem&quot;&gt;the transactional safety problem&lt;&#x2F;h2&gt;
+&lt;p&gt;The OS can flush dirty pages to disk whenever it wants. You don&#x27;t control when.&lt;&#x2F;p&gt;
+&lt;p&gt;If your DBMS modifies a page through the mmap&#x27;d region, that change can hit disk before the transaction commits. Crash at the wrong time and your database is inconsistent. You&#x27;ve violated durability, or atomicity, or both.&lt;&#x2F;p&gt;
+&lt;p&gt;A buffer pool doesn&#x27;t have this problem because pages live in user-space memory and the DBMS decides when to write them to disk, always writing the WAL first then the data pages, so control flow is explicit.&lt;&#x2F;p&gt;
+&lt;p&gt;With mmap, you need workarounds. MongoDB&#x27;s MMAPv1 engine used &lt;code&gt;MAP_PRIVATE&lt;&#x2F;code&gt; to create a copy-on-write workspace. Two copies of the database in memory. SQLite copies pages to user-space buffers before modifying them, which defeats the purpose of mmap. LMDB uses shadow paging, which forces single-writer concurrency.&lt;&#x2F;p&gt;
+&lt;p&gt;All of these are complex. And all of them give back the simplicity that mmap was supposed to provide.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;i-o-stalls-you-can-t-control&quot;&gt;I&#x2F;O stalls you can&#x27;t control&lt;&#x2F;h2&gt;
+&lt;p&gt;When you access an mmap&#x27;d page that&#x27;s been evicted you get a page fault and the thread blocks until the OS reads the page from disk.&lt;&#x2F;p&gt;
+&lt;p&gt;You can&#x27;t do anything about this since there isn&#x27;t an async page-fault interface to say &quot;I&#x27;m going to need this page soon, start loading it,&quot; the thread just stops.&lt;&#x2F;p&gt;
+&lt;p&gt;With a buffer pool, you control I&#x2F;O explicitly. You can use &lt;code&gt;io_uring&lt;&#x2F;code&gt; or &lt;code&gt;libaio&lt;&#x2F;code&gt; for async reads. You can prefetch pages you know you&#x27;ll need. A B+tree range scan can issue reads for the next few leaf pages ahead of time.&lt;&#x2F;p&gt;
+&lt;p&gt;With mmap, a range scan hits a page fault on every cold page. Sequentially. Each one blocks. You can try &lt;code&gt;madvise(MADV_SEQUENTIAL)&lt;&#x2F;code&gt; but it&#x27;s a hint, not a guarantee, and it doesn&#x27;t help for non-sequential access patterns.&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;code&gt;madvise&lt;&#x2F;code&gt; behavior varies between kernel versions and is not standardized across operating systems. On Linux, &lt;code&gt;MADV_SEQUENTIAL&lt;&#x2F;code&gt; triggers aggressive readahead and drops pages behind, but the readahead window size and eviction behavior are kernel implementation details that can change. Don&#x27;t rely on specific behavior across versions.&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;h2 id=&quot;error-handling-gets-weird&quot;&gt;error handling gets weird&lt;&#x2F;h2&gt;
+&lt;p&gt;With a buffer pool error handling is centralized: you read a page, check the checksum, handle I&#x2F;O errors, all in one place.&lt;&#x2F;p&gt;
+&lt;p&gt;With mmap pages can be evicted and reloaded transparently, so you&#x27;d need to verify checksums on every access not just the first read. An I&#x2F;O error during transparent page-in doesn&#x27;t return an error code either, it raises SIGBUS, which means your error handling is now a signal handler scattered across the codebase.&lt;&#x2F;p&gt;
+&lt;p&gt;If a page in your buffer gets corrupted you catch it before writing to disk, but with mmap the OS can flush a corrupted page without asking, which is silent data corruption.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-performance-collapse&quot;&gt;the performance collapse&lt;&#x2F;h2&gt;
+&lt;p&gt;This is the part that surprised me. A CIDR 2022 paper by Crotty, Leis, and Pavlo benchmarked mmap against traditional I&#x2F;O and the results are bad.&lt;&#x2F;p&gt;
+&lt;p&gt;Random reads on a 2TB dataset with 100GB of page cache (so ~95% of accesses are page faults):&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Traditional I&#x2F;O with &lt;code&gt;O_DIRECT&lt;&#x2F;code&gt;: stable ~900K reads&#x2F;sec&lt;&#x2F;li&gt;
+&lt;li&gt;mmap: starts fine, then collapses to near-zero when the page cache fills and eviction kicks in. Recovers to about half the throughput of traditional I&#x2F;O&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;The collapse happens because of TLB shootdowns. When the kernel evicts a page, it has to invalidate the TLB entry on every CPU core that might have it cached. CPUs don&#x27;t keep TLB entries coherent automatically. The kernel sends inter-processor interrupts—thousands of cycles each. Under heavy eviction, TLB shootdowns hit 2 million per second.&lt;&#x2F;p&gt;
+&lt;p&gt;Sequential scans on 10 NVMe SSDs in RAID 0: mmap gets ~3 GB&#x2F;s. Traditional I&#x2F;O gets ~60 GB&#x2F;s. That&#x27;s 20x worse. And mmap showed basically no improvement going from 1 SSD to 10. It can&#x27;t scale with modern storage bandwidth because the bottleneck is in the kernel&#x27;s page eviction path, not the drives.&lt;&#x2F;p&gt;
+&lt;p&gt;The page eviction itself is another problem. Linux uses a single kswapd thread per NUMA node. Under high I&#x2F;O pressure it becomes the bottleneck. And the page table is a shared data structure that all threads hit during faults, creating contention.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-graveyard&quot;&gt;the graveyard&lt;&#x2F;h2&gt;
+&lt;p&gt;The paper tracks which databases tried mmap and what happened:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;MongoDB&lt;&#x2F;strong&gt; deprecated MMAPv1 in 2015, removed it in 2019. Couldn&#x27;t compress data, too complex to maintain.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;InfluxDB&lt;&#x2F;strong&gt; replaced mmap after severe I&#x2F;O spikes when databases exceeded a few GB.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;SingleStore&lt;&#x2F;strong&gt; found mmap calls took 10-20ms per query from write lock contention.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;RocksDB&lt;&#x2F;strong&gt; exists partly because LevelDB&#x27;s mmap usage had performance bottlenecks.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;TileDB, Scylla, VictoriaMetrics&lt;&#x2F;strong&gt; all evaluated mmap during development and rejected it.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;h2 id=&quot;when-mmap-is-fine&quot;&gt;when mmap is fine&lt;&#x2F;h2&gt;
+&lt;p&gt;If your entire dataset fits in memory and you&#x27;re read-only, mmap works: eviction never kicks in, so you avoid TLB shootdowns, and transactional write hazards don&#x27;t apply. LMDB operates in this sweet spot for some workloads.&lt;&#x2F;p&gt;
+&lt;p&gt;But if your data exceeds memory, or you need writes with ACID guarantees, or you want to use fast storage at full bandwidth, mmap is the wrong tool.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-this-really-comes-down-to&quot;&gt;what this really comes down to&lt;&#x2F;h2&gt;
+&lt;p&gt;For me this comes down to one thing: the OS page cache is general-purpose while databases need very specific control. General-purpose is fine for generic workloads, but databases have specific access patterns, durability rules, and error-handling paths that the OS cannot infer.&lt;&#x2F;p&gt;
+&lt;p&gt;It&#x27;s similar to the tiered memory problem where the OS tries to manage page placement transparently, but transparency breaks down when the application knows something the kernel doesn&#x27;t. Buffer pool vs mmap is the same tension: do you trust the OS abstraction, or do you manage things yourself because you know your workload better?&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Paper: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;db.cs.cmu.edu&#x2F;papers&#x2F;2022&#x2F;cidr2022-p13-crotty.pdf&quot;&gt;Crotty, Leis, Pavlo — &quot;Are You Sure You Want to Use MMAP in Your Database Management System?&quot;, CIDR 2022&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
+&lt;li&gt;Andy Pavlo has a lecture on this topic too. Worth watching if you want the full rant.&lt;&#x2F;li&gt;
+&lt;li&gt;TLB shootdowns are also a cost in page migration for tiered memory. Same mechanism, different context.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;O_DIRECT&lt;&#x2F;code&gt; bypasses the page cache entirely, which is why buffer pool implementations prefer it. The DBMS manages its own cache.&lt;&#x2F;li&gt;
+&lt;li&gt;PostgreSQL has never used mmap for data access. It has its own buffer pool (shared_buffers). This was the right call.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>A Buffer Pool Is Just Paging in User Space</title>
+        <published>2025-12-02T00:00:00+00:00</published>
+        <updated>2025-12-02T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/buffer-pools/"/>
+        <id>https://yazeed1s.github.io/posts/buffer-pools/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/buffer-pools/">&lt;p&gt;A database buffer pool manages fixed-size pages in memory, decides which ones to keep and which to evict, tracks dirty pages, and writes them back to disk on its own schedule.&lt;&#x2F;p&gt;
+&lt;p&gt;That&#x27;s what the OS virtual memory system does. Page frames, page tables, eviction policies, dirty bit tracking, write-back. The database reimplements all of it. In user space.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-os-already-does-this&quot;&gt;the OS already does this&lt;&#x2F;h2&gt;
+&lt;p&gt;The kernel manages physical memory in page frames (4KB). It maps virtual pages to physical frames through page tables. When memory is full, it evicts cold pages to disk. When a process touches an evicted page, it faults and the kernel loads it back. It tracks which pages are dirty and writes them back when it needs to.&lt;&#x2F;p&gt;
+&lt;p&gt;This is the exact same problem a database has. The database has pages on disk. Some of them need to be in memory. Not all of them fit. The database needs to decide which pages to keep, which to evict, and when to write dirty ones back.&lt;&#x2F;p&gt;
+&lt;p&gt;So why not just let the OS handle it? Map the database file with mmap and let the kernel manage everything. Some databases tried this. &lt;a href=&quot;https:&#x2F;&#x2F;yazeed1s.github.io&#x2F;posts&#x2F;mmap-databases&#x2F;&quot;&gt;It didn&#x27;t go well&lt;&#x2F;a&gt;.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;why-databases-reimplement-it&quot;&gt;why databases reimplement it&lt;&#x2F;h2&gt;
+&lt;p&gt;The OS page cache is general purpose. It has no concept of index pages vs temporary sort pages, no awareness that a range scan is about to need the next 50 pages, and no understanding that a dirty page has to hit the WAL before it hits the data file.&lt;&#x2F;p&gt;
+&lt;p&gt;A buffer pool knows all of that.&lt;&#x2F;p&gt;
+&lt;p&gt;The database builds its own page table: a hash map from &lt;code&gt;(file_id, page_number)&lt;&#x2F;code&gt; to a frame in the buffer pool. When a query needs a page, it looks up the hash map. If the page is there, it returns the pointer. If not, it picks a frame to evict, reads the page from disk into that frame, and updates the map.&lt;&#x2F;p&gt;
+&lt;p&gt;Page fault, but in user space. Controlled entirely by the database.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-anatomy-of-a-buffer-pool&quot;&gt;the anatomy of a buffer pool&lt;&#x2F;h2&gt;
+&lt;p&gt;The structure is simple:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Frame array&lt;&#x2F;strong&gt;: a fixed-size array of page-sized slots in memory (the &quot;RAM&quot; of the buffer pool).&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Page table&lt;&#x2F;strong&gt;: a hash map from page ID to frame index (how the database translates a logical page reference into a memory location).&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Eviction policy&lt;&#x2F;strong&gt;: decides which frame to reclaim when the pool is full (LRU, clock, LRU-K).&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Dirty flag&lt;&#x2F;strong&gt;: each frame tracks whether its contents have been modified since it was read from disk.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Pin count&lt;&#x2F;strong&gt;: tracks how many operations are currently using a frame. A pinned page can&#x27;t be evicted (same idea as the kernel&#x27;s page reference count).&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;When a page is requested:&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;Check the page table. If the page is already in a frame, pin it and return the pointer.&lt;&#x2F;li&gt;
+&lt;li&gt;If not, find a victim frame (eviction policy). If the victim is dirty, write it to disk first.&lt;&#x2F;li&gt;
+&lt;li&gt;Read the requested page from disk into the victim frame.&lt;&#x2F;li&gt;
+&lt;li&gt;Update the page table. Return the pointer.&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;p&gt;That&#x27;s page fault, find victim, write back if dirty, read page, update mapping. Same flow as an OS page fault handler, different layer.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;eviction-the-database-knows-more&quot;&gt;eviction: the database knows more&lt;&#x2F;h2&gt;
+&lt;p&gt;The OS uses something like clock or a modified LRU. It works across all processes, all files, all pages. It has no application-level knowledge.&lt;&#x2F;p&gt;
+&lt;p&gt;A database can do better because it knows the access patterns.&lt;&#x2F;p&gt;
+&lt;p&gt;A sequential scan will touch every page once. An LRU policy would fill the cache with scan pages and evict hot index pages. PostgreSQL handles this by using a small ring buffer for sequential scans, so scan pages cycle through a handful of frames instead of polluting the whole pool.&lt;&#x2F;p&gt;
+&lt;p&gt;A B+tree lookup traverses root, internal, then leaf. The root page is accessed on every lookup. It should basically never be evicted. LRU handles this naturally, but a database can also pin critical pages explicitly.&lt;&#x2F;p&gt;
+&lt;p&gt;Prefetching works better too. The database knows it&#x27;s doing a range scan on a B+tree. It can issue async reads for the next few leaf pages before it needs them. The OS page cache can&#x27;t do this because it only sees physical file offsets, not logical access patterns.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;dirty-pages-and-write-back&quot;&gt;dirty pages and write-back&lt;&#x2F;h2&gt;
+&lt;p&gt;This is where the difference matters most.&lt;&#x2F;p&gt;
+&lt;p&gt;The OS can flush a dirty page to disk whenever it wants. That&#x27;s fine for normal files. For a database, it&#x27;s dangerous. If a modified data page hits disk before the corresponding WAL record, crash recovery breaks. This is the write-ahead logging rule: log first, data page second.&lt;&#x2F;p&gt;
+&lt;p&gt;A buffer pool enforces this. Before writing a dirty page back to disk, it checks that the WAL has been flushed up to the page&#x27;s last modification LSN (Log Sequence Number). The page doesn&#x27;t go to disk until its log records are safe.&lt;&#x2F;p&gt;
+&lt;p&gt;This is impossible with mmap. The kernel has no concept of WAL ordering or LSNs. It flushes when it feels like it.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;o-direct-bypassing-the-os-page-cache&quot;&gt;O_DIRECT: bypassing the OS page cache&lt;&#x2F;h2&gt;
+&lt;p&gt;Most serious databases open their files with &lt;code&gt;O_DIRECT&lt;&#x2F;code&gt;. This tells the kernel to skip its own page cache entirely. Reads and writes go straight between the database&#x27;s buffer pool and the disk.&lt;&#x2F;p&gt;
+&lt;p&gt;Without &lt;code&gt;O_DIRECT&lt;&#x2F;code&gt;, you&#x27;d have the data in two places: once in the database&#x27;s buffer pool and once in the OS page cache. Double the memory usage for no benefit. The database already manages caching. The OS cache is redundant.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;code&gt;O_DIRECT&lt;&#x2F;code&gt; also gives the database precise control over I&#x2F;O timing, no surprises from kernel write-back threads or memory pressure from the kernel evicting buffer pool pages.&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;code&gt;O_DIRECT&lt;&#x2F;code&gt; isn&#x27;t free to use. It requires buffers to be aligned to the filesystem block size (usually 512 bytes or 4KB), and I&#x2F;O sizes must also be aligned. If you get the alignment wrong, the syscall fails with EINVAL. This is why most databases that use &lt;code&gt;O_DIRECT&lt;&#x2F;code&gt; implement their own aligned allocation routines.&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;p&gt;PostgreSQL is an exception. It uses the OS page cache (buffered I&#x2F;O) rather than &lt;code&gt;O_DIRECT&lt;&#x2F;code&gt;, and relies on &lt;code&gt;fsync&lt;&#x2F;code&gt; to force data to disk. It simplifies some things but means PostgreSQL competes with the OS for memory management control.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;it-s-the-same-problem-at-a-different-layer&quot;&gt;it&#x27;s the same problem at a different layer&lt;&#x2F;h2&gt;
+&lt;p&gt;The parallel is almost exact:&lt;&#x2F;p&gt;
+&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;OS Virtual Memory&lt;&#x2F;th&gt;&lt;th&gt;Database Buffer Pool&lt;&#x2F;th&gt;&lt;&#x2F;tr&gt;&lt;&#x2F;thead&gt;&lt;tbody&gt;
+&lt;tr&gt;&lt;td&gt;Physical page frame&lt;&#x2F;td&gt;&lt;td&gt;Buffer pool frame&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;Page table (virtual to physical)&lt;&#x2F;td&gt;&lt;td&gt;Page table (page ID to frame)&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;Page fault handler&lt;&#x2F;td&gt;&lt;td&gt;Buffer pool miss handler&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;Dirty bit in PTE&lt;&#x2F;td&gt;&lt;td&gt;Dirty flag per frame&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;Reference count&lt;&#x2F;td&gt;&lt;td&gt;Pin count&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;kswapd (page reclaim)&lt;&#x2F;td&gt;&lt;td&gt;Eviction policy (LRU, clock)&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;Swap file&lt;&#x2F;td&gt;&lt;td&gt;Data file on disk&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;&lt;code&gt;write-back&lt;&#x2F;code&gt; flush&lt;&#x2F;td&gt;&lt;td&gt;WAL-ordered write-back&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;&#x2F;tbody&gt;&lt;&#x2F;table&gt;
+&lt;p&gt;The database takes this responsibility away from the OS because general-purpose policies don&#x27;t work for database workloads. Eviction needs access-pattern awareness. Write-back needs WAL ordering. Prefetching needs query-plan knowledge. The OS has none of this context.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;InnoDB (MySQL) uses a buffer pool with an LRU that splits into &quot;young&quot; and &quot;old&quot; sublists. New pages enter the old sublist, and only move to the young sublist if accessed again. This handles the scan-pollution problem.&lt;&#x2F;li&gt;
+&lt;li&gt;PostgreSQL&#x27;s shared_buffers is its buffer pool. It uses a clock-sweep eviction policy.&lt;&#x2F;li&gt;
+&lt;li&gt;SQLite in WAL mode maintains its own page cache but sits on top of the OS page cache (no O_DIRECT). It works because SQLite targets small-to-medium databases where double-caching isn&#x27;t expensive.&lt;&#x2F;li&gt;
+&lt;li&gt;The buffer pool is one of the first things a database student builds. It&#x27;s simple in concept and brutal in the details (concurrency, latch ordering, I&#x2F;O scheduling).&lt;&#x2F;li&gt;
+&lt;li&gt;Some databases are experimenting with letting the buffer pool manage allocation at finer granularity than pages. But pages have stuck around because they align with disk I&#x2F;O boundaries.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>Swap and Paging: What Actually Happens When Memory Fills Up</title>
+        <published>2025-10-30T00:00:00+00:00</published>
+        <updated>2025-10-30T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/swap-paging/"/>
+        <id>https://yazeed1s.github.io/posts/swap-paging/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/swap-paging/">&lt;p&gt;I kept hitting concepts like &quot;page fault&quot; and &quot;swap&quot; while reading memory disaggregation papers, so I figured I should actually understand what these mean at a low level before going further.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-swap-is&quot;&gt;what swap is&lt;&#x2F;h2&gt;
+&lt;p&gt;Swap is disk space that acts as overflow for RAM: when physical memory fills up, the kernel moves some data to swap, and later, if that data is needed again, it gets loaded back. That&#x27;s basically it, but the messy part is in the details.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;pages&quot;&gt;pages&lt;&#x2F;h2&gt;
+&lt;p&gt;The kernel doesn&#x27;t manage memory byte by byte because the bookkeeping would be too expensive, so instead it works in fixed-size chunks called &lt;strong&gt;pages&lt;&#x2F;strong&gt;, usually 4KB.&lt;&#x2F;p&gt;
+&lt;p&gt;When you allocate memory you get pages, and when data moves to disk it moves as pages. The physical counterpart is called a &lt;strong&gt;frame&lt;&#x2F;strong&gt;, same size, different name: pages are virtual, frames are physical.&lt;&#x2F;p&gt;
+&lt;p&gt;8GB of RAM gives you roughly 2 million frames, and a process might think it has way more pages than that, but most aren&#x27;t backed by physical memory until they&#x27;re actually used.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;page-tables-and-the-mmu&quot;&gt;page tables and the mmu&lt;&#x2F;h2&gt;
+&lt;p&gt;The CPU doesn&#x27;t know about virtual addresses on its own, there&#x27;s a &lt;strong&gt;Memory Management Unit (MMU)&lt;&#x2F;strong&gt; that translates virtual addresses to physical ones using &lt;strong&gt;page tables&lt;&#x2F;strong&gt;, which are data structures the kernel maintains that the MMU walks to find where a virtual page actually lives (which physical frame, or if it&#x27;s not in RAM at all).&lt;&#x2F;p&gt;
+&lt;p&gt;Walking page tables on every memory access would be slow, so the MMU keeps a cache called the &lt;strong&gt;TLB (Translation Lookaside Buffer)&lt;&#x2F;strong&gt; where recent translations are stored: a hit is fast, and a miss pays for the full page table walk. Most accesses hit the TLB, and that&#x27;s what makes virtual memory practical.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;page-faults&quot;&gt;page faults&lt;&#x2F;h2&gt;
+&lt;p&gt;When a program accesses a virtual address, the MMU checks whether that page is in RAM, and if it&#x27;s not, you get a &lt;strong&gt;page fault&lt;&#x2F;strong&gt;. This isn&#x27;t an error, it&#x27;s just the kernel saying &quot;hold on, I need to go get that.&quot; The program accesses memory, the MMU finds the page isn&#x27;t resident, the CPU traps to the kernel, the kernel figures out where the page lives (swap, file, or nowhere), loads it into a frame, updates the page table, and then the program resumes.&lt;&#x2F;p&gt;
+&lt;p&gt;There are two kinds: a &lt;strong&gt;minor fault&lt;&#x2F;strong&gt; is when the page is already somewhere in memory (page cache, shared mapping) and the kernel just fixes the page table, which is fast. A &lt;strong&gt;major fault&lt;&#x2F;strong&gt; means the page has to be read from disk, which is really slow.&lt;&#x2F;p&gt;
+&lt;p&gt;Some faults are expected. &lt;strong&gt;Lazy allocation&lt;&#x2F;strong&gt; means the kernel doesn&#x27;t back memory until you touch it, so the first access causes a minor fault. &lt;strong&gt;Copy-on-write&lt;&#x2F;strong&gt; means shared pages aren&#x27;t copied until someone writes. &lt;strong&gt;Swapping&lt;&#x2F;strong&gt; means a page was evicted earlier and now needs to come back. Other faults mean bugs, like accessing a garbage address gives you SIGSEGV.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;paging-in-and-out&quot;&gt;paging in and out&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;strong&gt;Page in&lt;&#x2F;strong&gt; means loading a page from disk into RAM, and &lt;strong&gt;page out&lt;&#x2F;strong&gt; means moving a page from RAM to disk to free space.&lt;&#x2F;p&gt;
+&lt;p&gt;When RAM is full and a new page is needed, the kernel picks a &lt;strong&gt;victim&lt;&#x2F;strong&gt; (some page not accessed recently). If the victim is dirty (modified since it was loaded), the kernel writes it to swap first, and if it&#x27;s clean, the kernel just drops it and reloads later if needed.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Before:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;RAM:  [A][B][C][D] ← full&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Swap: [empty]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Need page E. Pick B as victim.&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;After:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;RAM:  [A][E][C][D]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Swap: [B]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;If B is accessed again, you take a major fault, load B, and evict something else; this happens constantly under memory pressure.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-dirty-bit&quot;&gt;the dirty bit&lt;&#x2F;h2&gt;
+&lt;p&gt;Each page has a &lt;strong&gt;dirty bit&lt;&#x2F;strong&gt; that gets set if the page has been modified since it was loaded.&lt;&#x2F;p&gt;
+&lt;p&gt;Why it matters: clean pages can be dropped because the kernel can reload them from the file or wherever they came from, but dirty pages can&#x27;t be dropped without writing them somewhere first. Anonymous memory (heap, stack) that&#x27;s dirty goes to swap, and file-backed memory that&#x27;s been modified goes back to the file (or swap, depends).&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;why-disk-access-hurts&quot;&gt;why disk access hurts&lt;&#x2F;h2&gt;
+&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Access&lt;&#x2F;th&gt;&lt;th&gt;Latency&lt;&#x2F;th&gt;&lt;&#x2F;tr&gt;&lt;&#x2F;thead&gt;&lt;tbody&gt;
+&lt;tr&gt;&lt;td&gt;RAM&lt;&#x2F;td&gt;&lt;td&gt;~100 nanoseconds&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;SSD&lt;&#x2F;td&gt;&lt;td&gt;~100 microseconds&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;HDD&lt;&#x2F;td&gt;&lt;td&gt;~10 milliseconds&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;&#x2F;tbody&gt;&lt;&#x2F;table&gt;
+&lt;p&gt;SSD is 1,000× slower than RAM, and HDD is 100,000× slower.&lt;&#x2F;p&gt;
+&lt;p&gt;A major fault means a disk access, which means the program stalls for an eternity in CPU time. One major fault, who cares. Hundred per second and the app feels sluggish. Thousand and the system is unusable.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;thrashing&quot;&gt;thrashing&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;strong&gt;Thrashing&lt;&#x2F;strong&gt; is what happens when the working set doesn&#x27;t fit in RAM.&lt;&#x2F;p&gt;
+&lt;p&gt;Working set is the memory you&#x27;re actively using right now, and if it&#x27;s bigger than RAM, the kernel constantly swaps pages in and out because every page you load evicts something you need again soon.&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;Need page A -&amp;gt; fault, load A, evict B&lt;&#x2F;li&gt;
+&lt;li&gt;Need page B -&amp;gt; fault, load B, evict A&lt;&#x2F;li&gt;
+&lt;li&gt;Need page A -&amp;gt; fault, load A, evict B&lt;&#x2F;li&gt;
+&lt;li&gt;Forever&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;p&gt;The system spends 99% of its time moving data and 1% doing work, and this is where you get the &quot;stuck mouse&quot; feeling.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;lru-picking-victims&quot;&gt;lru: picking victims&lt;&#x2F;h2&gt;
+&lt;p&gt;How does the kernel decide which page to evict? The ideal strategy would be to evict the one that won&#x27;t be needed soonest, but you can&#x27;t predict the future, so the kernel approximates with &lt;strong&gt;LRU (Least Recently Used)&lt;&#x2F;strong&gt; where pages not accessed in a while are good candidates.&lt;&#x2F;p&gt;
+&lt;p&gt;Linux maintains active&#x2F;inactive lists where pages accessed recently go to active and cold pages drift to inactive, and reclaim takes from inactive first. True LRU would track exact access times for every page, which is too expensive, so Linux settles for &quot;recently used&quot; vs &quot;not recently used.&quot;&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;swappiness&quot;&gt;swappiness&lt;&#x2F;h2&gt;
+&lt;p&gt;Linux doesn&#x27;t wait until RAM is completely full to start swapping, there&#x27;s a knob called &lt;strong&gt;swappiness&lt;&#x2F;strong&gt;.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; cat&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; &#x2F;proc&#x2F;sys&#x2F;vm&#x2F;swappiness&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;60&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Range is 0-200 and it affects how willing the kernel is to swap anonymous memory vs reclaim file cache. At &lt;strong&gt;0&lt;&#x2F;strong&gt; it avoids swapping and holds app memory while sacrificing cache, &lt;strong&gt;60&lt;&#x2F;strong&gt; is the default and balanced, and &lt;strong&gt;100+&lt;&#x2F;strong&gt; means swap more aggressively and keep the file cache warm. No universal right answer, depends on workload.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-can-t-be-swapped&quot;&gt;what can&#x27;t be swapped&lt;&#x2F;h2&gt;
+&lt;p&gt;Not everything can go to disk. &lt;strong&gt;Kernel memory&lt;&#x2F;strong&gt; like page tables, process descriptors, and driver state must stay in RAM because if the kernel got paged out, who pages it back in? &lt;strong&gt;Pinned memory&lt;&#x2F;strong&gt; is memory explicitly locked by the application using mlock, and it&#x27;s used by RDMA, databases, and similar systems. Kernel memory leaks are dangerous because that memory is gone until reboot.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;overcommit&quot;&gt;overcommit&lt;&#x2F;h2&gt;
+&lt;p&gt;Linux lets you allocate more memory than exists, so &lt;code&gt;malloc(1GB)&lt;&#x2F;code&gt; succeeds even with 512MB free. This is intentional, called &lt;strong&gt;overcommit&lt;&#x2F;strong&gt;, and it makes sense because most programs allocate more than they use (sparse arrays, forked processes before exec), and refusing would break software.&lt;&#x2F;p&gt;
+&lt;p&gt;The downside: actually use all that memory and the OOM killer fires. Allocation succeeded, using it didn&#x27;t.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; cat&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; &#x2F;proc&#x2F;sys&#x2F;vm&#x2F;overcommit_memory&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;  #&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; heuristic (default)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; 0 = guess what&amp;#39;s safe&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; 1 = always allow (yolo)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; 2 = strict (refuse if exceeds limit)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Mode 2 is safer but breaks things, and mode 1 is living dangerously.&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Mode 0 isn&#x27;t blind. The kernel uses heuristics that account for total RAM, swap space, and current usage. It will still refuse obviously absurd allocations. Mode 2 enforces a strict limit based on &lt;code&gt;overcommit_ratio&lt;&#x2F;code&gt; (default 50%) of physical RAM plus swap. So &quot;always allow&quot; vs &quot;strict&quot; is more nuanced than it looks.&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;h2 id=&quot;why-this-matters-for-remote-memory&quot;&gt;why this matters for remote memory&lt;&#x2F;h2&gt;
+&lt;p&gt;The main problem is that disk is slow, 1,000-100,000× slower than RAM.&lt;&#x2F;p&gt;
+&lt;p&gt;Systems like Infiniswap replace swap with network access to remote memory; RDMA gives single-digit microsecond latency, which is still slower than local RAM but 10-1000× faster than disk. Keep the paging model, replace the slow part, and the performance cliff becomes a slope.&lt;&#x2F;p&gt;
+&lt;p&gt;The interesting thing is that Linux has a &lt;strong&gt;frontswap&lt;&#x2F;strong&gt; interface, which is a hook that lets you intercept pages before they go to disk. Implement a few callbacks and your module becomes an alternative swap backend, and that&#x27;s how Infiniswap plugs into the kernel: pages that would go to disk get redirected over the network instead.&lt;&#x2F;p&gt;
+&lt;p&gt;I want to look at this interface in more detail later, how frontswap works, what the callbacks look like, and what&#x27;s involved in building something like Infiniswap. Different post.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Page size usually 4KB. Huge pages exist (2MB, 1GB) to reduce TLB pressure.&lt;&#x2F;li&gt;
+&lt;li&gt;&quot;Anonymous memory&quot; = heap, stack (no backing file). &quot;File-backed&quot; = mmap&#x27;d files, page cache.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;vmstat&lt;&#x2F;code&gt;, &lt;code&gt;sar&lt;&#x2F;code&gt;, &lt;code&gt;&#x2F;proc&#x2F;meminfo&lt;&#x2F;code&gt; for monitoring paging activity.&lt;&#x2F;li&gt;
+&lt;li&gt;Swap on SSD helps. Swap on HDD is pain.&lt;&#x2F;li&gt;
+&lt;li&gt;zswap = compressed swap cache in RAM. Buys time before hitting disk.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>mmap: Mapping Files into Memory</title>
+        <published>2024-11-08T00:00:00+00:00</published>
+        <updated>2024-11-08T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/mmap/"/>
+        <id>https://yazeed1s.github.io/posts/mmap/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/mmap/">&lt;p&gt;&lt;code&gt;mmap&lt;&#x2F;code&gt; maps a file (or anonymous memory) into your process&#x27;s address space so you can access it through pointers instead of read&#x2F;write syscalls. The kernel sets up page table entries pointing to the file&#x27;s pages, and when you access a mapped region the data appears in memory through the standard page fault mechanism.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;how-it-works&quot;&gt;how it works&lt;&#x2F;h2&gt;
+&lt;p&gt;When you call &lt;code&gt;mmap&lt;&#x2F;code&gt;, the kernel creates a virtual memory area (VMA) in your process but doesn&#x27;t actually load any data yet. The first time you access a page in the mapped region, a page fault fires, the kernel loads that page from the file into the page cache (or allocates a zero page for anonymous mappings), updates the page table, and your access continues. Subsequent accesses to the same page hit the page cache directly, no fault needed.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;c&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;int&lt;&#x2F;span&gt;&lt;span&gt; fd &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt; open&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;data.bin&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; O_RDONLY&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;struct&lt;&#x2F;span&gt;&lt;span&gt; stat st&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;fstat&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;fd&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt; &amp;amp;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7D4242, #D4D4C0);&quot;&gt;st&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt; *&lt;&#x2F;span&gt;&lt;span&gt;ptr &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt; mmap&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;NULL&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; st.st_size&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; PROT_READ&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; MAP_PRIVATE&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; fd&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;&#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; now ptr[0..st.st_size-1] is the file contents&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;The file is accessible through pointer arithmetic. No &lt;code&gt;read()&lt;&#x2F;code&gt; calls, no user-space buffers. The kernel handles paging transparently.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;flags-that-matter&quot;&gt;flags that matter&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;code&gt;mmap&lt;&#x2F;code&gt; behavior changes significantly based on the flags you pass, and the two most important are the sharing flags: &lt;code&gt;MAP_PRIVATE&lt;&#x2F;code&gt; creates a copy-on-write mapping where writes go to a private copy and the original file is unchanged, while &lt;code&gt;MAP_SHARED&lt;&#x2F;code&gt; means writes go through to the actual file (other processes mapping the same file see your changes, and changes eventually get written back to disk).&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;code&gt;MAP_ANONYMOUS&lt;&#x2F;code&gt; creates a mapping not backed by any file, just zero-filled pages, and this is what malloc uses internally for large allocations. &lt;code&gt;MAP_FIXED&lt;&#x2F;code&gt; forces the mapping at a specific address (dangerous if you don&#x27;t know what&#x27;s there), and &lt;code&gt;MAP_POPULATE&lt;&#x2F;code&gt; pre-faults all pages at mmap time instead of waiting for access, which avoids page faults later but means the mmap call itself is slow.&lt;&#x2F;p&gt;
+&lt;p&gt;Protection flags control access: &lt;code&gt;PROT_READ&lt;&#x2F;code&gt; for read-only, &lt;code&gt;PROT_WRITE&lt;&#x2F;code&gt; for writable, &lt;code&gt;PROT_EXEC&lt;&#x2F;code&gt; for executable (JIT compilers use this), and &lt;code&gt;PROT_NONE&lt;&#x2F;code&gt; for no access (useful for guard pages). You can change protections later with &lt;code&gt;mprotect&lt;&#x2F;code&gt;.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;anonymous-mappings&quot;&gt;anonymous mappings&lt;&#x2F;h2&gt;
+&lt;p&gt;When you &lt;code&gt;mmap&lt;&#x2F;code&gt; with &lt;code&gt;MAP_ANONYMOUS&lt;&#x2F;code&gt;, there&#x27;s no file involved, you just get zero-filled memory. This is actually how glibc malloc works for large allocations: small allocations come from &lt;code&gt;sbrk&lt;&#x2F;code&gt; (the heap), but anything over a threshold (usually 128KB) gets its own anonymous mmap.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;c&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;&#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; what malloc does internally for large allocs&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt; *&lt;&#x2F;span&gt;&lt;span&gt;p &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt; mmap&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;NULL&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; size&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    PROT_READ &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;|&lt;&#x2F;span&gt;&lt;span&gt; PROT_WRITE&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    MAP_PRIVATE &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;|&lt;&#x2F;span&gt;&lt;span&gt; MAP_ANONYMOUS&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;    -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;The advantage is that when you free a large allocation, the kernel can immediately reclaim the pages since the mapping is independent. With sbrk, the heap can only shrink from the end, so fragmentation keeps memory allocated.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;shared-memory&quot;&gt;shared memory&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;code&gt;MAP_SHARED&lt;&#x2F;code&gt; with &lt;code&gt;MAP_ANONYMOUS&lt;&#x2F;code&gt; gives you shared memory between parent and child processes (across &lt;code&gt;fork&lt;&#x2F;code&gt;), and &lt;code&gt;MAP_SHARED&lt;&#x2F;code&gt; with a named file gives you shared memory between unrelated processes. The file acts as the backing store, and the kernel ensures coherence through the page cache.&lt;&#x2F;p&gt;
+&lt;p&gt;For IPC, you can also use &lt;code&gt;shm_open&lt;&#x2F;code&gt; + &lt;code&gt;mmap&lt;&#x2F;code&gt; to create a named shared memory region without a real file on disk, which is how many high-performance IPC mechanisms work.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;msync-and-coherence&quot;&gt;msync and coherence&lt;&#x2F;h2&gt;
+&lt;p&gt;With &lt;code&gt;MAP_SHARED&lt;&#x2F;code&gt; file mappings, your writes eventually make it to disk, but &quot;eventually&quot; isn&#x27;t a guarantee of when. If you need to ensure data has been written, you call &lt;code&gt;msync&lt;&#x2F;code&gt; which flushes dirty pages to the file.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;c&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;msync&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;ptr&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; length&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; MS_SYNC&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;  &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; blocks until written&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;msync&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;ptr&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; length&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; MS_ASYNC&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; schedules write, returns immediately&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;This matters for databases and anything that needs durability. Without explicit msync, a crash might lose recent writes. With MAP_PRIVATE you don&#x27;t need msync because writes never go to the file anyway.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;when-mmap-is-good&quot;&gt;when mmap is good&lt;&#x2F;h2&gt;
+&lt;p&gt;File I&#x2F;O without syscall overhead is the classic use case, and it works well when you&#x27;re reading a large file sequentially or doing random access across a file that mostly fits in memory. There are no read&#x2F;write syscalls per access, just page faults on cold pages, and the kernel manages caching automatically.&lt;&#x2F;p&gt;
+&lt;p&gt;Memory-mapped I&#x2F;O also shines for read-only shared data where multiple processes can map the same file and share the physical pages through the page cache, meaning ten processes mapping the same 1GB file don&#x27;t use 10GB of RAM.&lt;&#x2F;p&gt;
+&lt;p&gt;Other good uses include loading shared libraries (&lt;code&gt;.so&lt;&#x2F;code&gt; files are mmap&#x27;d into process address space), JIT compilation (&lt;code&gt;PROT_EXEC&lt;&#x2F;code&gt; on anonymous mappings), and inter-process communication through shared mappings.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;when-mmap-is-bad&quot;&gt;when mmap is bad&lt;&#x2F;h2&gt;
+&lt;p&gt;For databases, mmap is &lt;a href=&quot;https:&#x2F;&#x2F;yazeed1s.github.io&#x2F;posts&#x2F;mmap-databases&#x2F;&quot;&gt;usually the wrong choice&lt;&#x2F;a&gt;. The OS can flush dirty pages whenever it wants, which breaks write-ahead logging. Page faults stall threads unpredictably, and there&#x27;s no async fault interface. Error handling goes through SIGBUS instead of return codes. And under memory pressure, TLB shootdowns during eviction can collapse throughput.&lt;&#x2F;p&gt;
+&lt;p&gt;Sequential writes to a new file are also better with &lt;code&gt;write()&lt;&#x2F;code&gt; because mmap requires you to know the file size upfront (or use &lt;code&gt;ftruncate&lt;&#x2F;code&gt; to grow it), and the page-fault-per-page overhead can be worse than buffered writes.&lt;&#x2F;p&gt;
+&lt;p&gt;Small files aren&#x27;t worth the mmap overhead either, since the setup cost (VMA creation, page table manipulation) is higher than just calling read() once.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;munmap-and-cleanup&quot;&gt;munmap and cleanup&lt;&#x2F;h2&gt;
+&lt;p&gt;When you&#x27;re done with a mapping, call &lt;code&gt;munmap&lt;&#x2F;code&gt; to release it. For &lt;code&gt;MAP_SHARED&lt;&#x2F;code&gt; mappings, you should &lt;code&gt;msync&lt;&#x2F;code&gt; first if you care about durability.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;c&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;msync&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;ptr&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; length&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; MS_SYNC&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;munmap&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;ptr&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; length&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;close&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;fd&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;If you just exit without munmap, the kernel cleans up all mappings on process exit (same as all resources), but explicit cleanup is good practice for long-running processes to avoid accumulating VMAs.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;MAP_HUGETLB&lt;&#x2F;code&gt; for huge page mappings, reduces TLB pressure for large mappings&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;madvise()&lt;&#x2F;code&gt; hints to the kernel about access patterns: &lt;code&gt;MADV_SEQUENTIAL&lt;&#x2F;code&gt;, &lt;code&gt;MADV_RANDOM&lt;&#x2F;code&gt;, &lt;code&gt;MADV_DONTNEED&lt;&#x2F;code&gt;&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;MADV_DONTNEED&lt;&#x2F;code&gt; on anonymous memory zeros the pages, on file-backed it drops them from cache&lt;&#x2F;li&gt;
+&lt;li&gt;The 64-bit address space means you can mmap very large files without worrying about address space exhaustion&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;mmap&lt;&#x2F;code&gt; on &lt;code&gt;&#x2F;dev&#x2F;mem&lt;&#x2F;code&gt; gives access to physical memory (requires root, used for hardware access)&lt;&#x2F;li&gt;
+&lt;li&gt;On 32-bit systems, mmap was limited by the 3GB user-space address space&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+</feed>

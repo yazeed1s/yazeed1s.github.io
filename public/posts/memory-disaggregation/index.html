@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="What memory disaggregation is and why people are talking about it now." />
+<meta
+    name="keywords"
+    content="yazeed, blog, alharthi, yaz, yazeed1s"
+/>
+<link rel="canonical" href="https://yazeed1s.github.io/posts/memory-disaggregation/" />
+
+<title>Memory Disaggregation | Yazeed&#x27;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
+<meta property="og:title" content="Memory Disaggregation | Yazeed&#x27;s Blog" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://yazeed1s.github.io/posts/memory-disaggregation/" />
+<meta property="og:description" content="What memory disaggregation is and why people are talking about it now." />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Memory Disaggregation" />
+<meta name="twitter:description" content="What memory disaggregation is and why people are talking about it now." />
+
+    <link rel="icon" href="&#x2F;favicon.ico" />
+    
+    <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
+    <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+
+           
+    
+    
+    
+
+          
+    
+    
+    
+    <style>
+        :root {
+            --nav-basis: 25%;
+            --light-bg: #eae6deff;
+            --light-text: #1a1410;
+            --light-text-muted: #1a1410;
+            --light-accent: #9E4440;
+            --light-accent-hover: #7A3533;
+            --light-code-bg: #e1ded6ff;
+            --light-border: #abaaaaff;
+            --light-bold: #1a1410;
+            --light-italic: #1a1410;
+            --light-headers: #1a1410;
+            --dark-bg: #303132;
+            --dark-text: #bebbb9ff;
+            --dark-text-muted: #d5d2cf;
+            --dark-accent: #e57665;
+            --dark-accent-hover: #888885;
+            --dark-code-bg: #282829;
+            --dark-border: #524f4c;
+            --dark-bold: #d5d2cf;
+            --dark-italic: #d5d2cf;
+            --dark-headers: #d5d2cf;
+        }
+    </style>
+    <meta name="theme-color" id="tc" />
+    <script>
+        (function () {
+            var m = matchMedia("(prefers-color-scheme:dark)"),
+                t = localStorage.theme || (m.matches ? "dark" : "light"),
+                h = document.documentElement,
+                c = document.getElementById("tc");
+            h.className = t;
+            function u() {
+                c.content = getComputedStyle(h).getPropertyValue("--tc");
+            }
+            u();
+            window.T = function () {
+                t = t === "dark" ? "light" : "dark";
+                localStorage.theme = t;
+                h.className = t;
+                u();
+            };
+        })();
+    </script>
+    
+</head>
+
+<body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><symbol id="light" viewBox="0 0 32 32"><rect x="15" y="2" width="2" height="5"/><rect x="21.6675" y="6.8536" width="4.958" height="1.9998" transform="translate(1.5191 19.3744) rotate(-45)"/><rect x="25" y="15" width="5" height="2"/><rect x="23.1466" y="21.6675" width="1.9998" height="4.958" transform="translate(-10.0018 24.1465) rotate(-45)"/><rect x="15" y="25" width="2" height="5"/><rect x="5.3745" y="23.1466" width="4.958" height="1.9998" transform="translate(-14.7739 12.6256) rotate(-45)"/><rect x="2" y="15" width="5" height="2"/><rect x="6.8536" y="5.3745" width="1.9998" height="4.958" transform="translate(-3.253 7.8535) rotate(-45)"/><path d="M16,12a4,4,0,1,1-4,4,4.0045,4.0045,0,0,1,4-4m0-2a6,6,0,1,0,6,6,6,6,0,0,0-6-6Z"/></symbol>
+<symbol id="asleep" viewBox="0 0 32 32"><path d="M13.5025,5.4136A15.0755,15.0755,0,0,0,25.096,23.6082a11.1134,11.1134,0,0,1-7.9749,3.3893c-.1385,0-.2782.0051-.4178,0A11.0944,11.0944,0,0,1,13.5025,5.4136M14.98,3a1.0024,1.0024,0,0,0-.1746.0156A13.0959,13.0959,0,0,0,16.63,28.9973c.1641.006.3282,0,.4909,0a13.0724,13.0724,0,0,0,10.702-5.5556,1.0094,1.0094,0,0,0-.7833-1.5644A13.08,13.08,0,0,1,15.8892,4.38,1.0149,1.0149,0,0,0,14.98,3Z"/></symbol>
+<symbol id="rss" viewBox="0 0 32 32"><path d="M8,18c-3.3,0-6,2.7-6,6s2.7,6,6,6s6-2.7,6-6C14,20.7,11.3,18,8,18z M8,28c-2.2,0-4-1.8-4-4s1.8-4,4-4s4,1.8,4,4C12,26.2,10.2,28,8,28z"/><path d="M30,24h-2C28,13,19,4,8,4V2C20.1,2,30,11.9,30,24z"/><path d="M22,24h-2c0-6.6-5.4-12-12-12v-2C15.7,10,22,16.3,22,24z"/></symbol>
+</svg>
+
+    <header id="site-header">
+        <div>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <nav>
+                <a href="https://yazeed1s.github.io/" >Home</a>
+                <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
+                <a href="https://yazeed1s.github.io/projects/" >Projects</a>
+                <a href="https://yazeed1s.github.io/tags/" >Tags</a>
+                </nav>
+            <a href="#" onclick="
+                        T();
+                        return false;
+                    " class="theme" aria-label="Toggle theme" title="Toggle theme">
+<svg><use href="#light"/></svg>
+<svg><use href="#asleep"/></svg></a>
+        </div>
+    </header>
+    <hr class="site-sep" />
+    <main id="main">
+<article>
+    <header>
+        <h1>Memory Disaggregation</h1>
+        <div class="post-meta">
+            <time datetime="2026-02-02">02 Feb 2026</time>
+            
+            <span>What memory disaggregation is and why people are talking about it now.</span>
+             
+            <span class="post-tags">
+                <span class="post-tags-label">Tags: </span>
+                
+                <a href="https://yazeed1s.github.io/tags/memory">Memory</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/distributed-systems">Distributed Systems</a>
+            </span>
+            
+        </div>
+    </header>
+     <p>Memory is expensive, and in some clusters it's half the server cost while a lot of it sits idle. Over 70% of the time more than half of aggregate cluster memory is unused, yet some machines are paging to disk because they ran out.</p>
+<p>Memory disaggregation is the idea that you pull memory out of servers, pool it, and let machines use what they need. A VMware Research paper I read recently asks why this hasn't happened already, and their answer is that the economics were bad but tolerable and the technology didn't exist, but now both are changing.</p>
+<h2 id="the-basic-idea">the basic idea</h2>
+<p>Traditional servers bundle CPU, memory, and storage into one box. Need more RAM? Buy a bigger box or add DIMMs if you haven't hit the motherboard limit. Don't use all your RAM? It sits idle and you can't share it.</p>
+<p>Memory disaggregation pulls memory out into separate pools that multiple servers can access, similar to how we went from local storage to SAN/NAS but for memory instead.</p>
+<p>This gives you two things: capacity expansion where a server can use more memory than it physically contains by reaching into the pool (similar to what Infiniswap does but with hardware support instead of software paging tricks), and data sharing where pool memory can be mapped into multiple hosts at once so they can load/store to the same bytes without serializing everything into messages. You still need software to handle ownership and synchronization and failures, but the access itself looks like memory, not network messages.</p>
+<h2 id="why-is-this-coming-up-now">why is this coming up now</h2>
+<p>The economics are getting painful because memory is like 50% of server cost and 37% of TCO, three companies control DRAM production, and demand is exploding from data centers and ML and in-memory databases. And here's the frustrating part: clusters waste a lot of memory where over 70% of the time more than half of aggregate memory sits unused while some machines are paging to disk because they ran out.</p>
+<p>The technology also finally exists since RDMA gives single-digit microsecond latencies, but the bigger thing is CXL which gives you cache-coherent load/store access over PCIe, plus there's a roadmap toward switches and pooling and shared memory fabrics. The pool can even use cheaper denser slower DRAM since it's already the "slow tier" compared to local DIMMs anyway.</p>
+<h2 id="what-i-found-interesting">what I found interesting</h2>
+<p>This isn't only about capacity because most remote-memory systems like Infiniswap focus on paging to remote RAM, which helps but stays limited. CXL is aiming for memory that still behaves like memory with load/store access to a larger pool, and with the right fabric features you can even map the same bytes into multiple hosts, which is very different from shipping pages around.</p>
+<p>The OS problems are hard though, and the paper mostly focuses on what's still unsolved: memory allocation at scale, scheduling with memory locality, pointer sharing across servers, failure handling for "optional" memory, and security for hot-swappable pools, all of which need fundamental rethinking.</p>
+<p>The timeline matches what happened with storage disaggregation: start small with a few hosts per pool, add switches for rack-scale, then push the fabric boundary outward. Whether it ends up being "CXL over something" or something else is open, but the trajectory rhymes with how storage disaggregation went.</p>
+<h2 id="where-it-fits-and-where-it-doesn-t">where it fits and where it doesn't</h2>
+<p>Good for data-intensive workloads like Spark or Ray or distributed DBs that spend cycles serializing and copying, working sets that barely fit in local memory, clusters with memory imbalance, and places where memory is already 50%+ of server cost.</p>
+<p>Bad for workloads that already fit in local memory (you're just adding latency for no reason), latency-sensitive apps that can't handle hundreds of extra nanoseconds, and traditional apps that don't share data across processes anyway.</p>
+<p>Pool memory is slower than local (hundreds of ns vs ~100ns) but still way faster than SSD or disk. For workloads that currently page to disk this could be big, but for workloads that don't page at all adding a slower tier might just make things worse.</p>
+<h2 id="notes">notes</h2>
+<ul>
+<li>Paper: <a rel="external" href="https://dl.acm.org/doi/10.1145/3606557.3606563">Aguilera et al., "Memory disaggregation: why now and what are the challenges", ACM SIGOPS, 2023</a></li>
+<li>Position paper, no benchmarks, just analysis of the problem space</li>
+<li>CXL 1.0: local memory expansion cards (shipping now)</li>
+<li>CXL 2.0/3.0: fabric switches for pool memory (maybe 3-5 years out)</li>
+<li>Latency estimates: local ~100ns, CXL local ~200-300ns, CXL pool ~500-1000ns, RDMA ~1-5μs, SSD ~100μs</li>
+<li>Memory population rules (balanced channels, identical DIMMs) make upgrades nearly impossible in practice</li>
+<li>Distributed shared memory from 90s taught us: cache coherence doesn't scale beyond rack</li>
+<li>Security: DRAM retains data after power-down and pool memory is hot-swappable so encryption matters</li>
+<li>Related work: Infiniswap, LegoOS, The Machine (HPE, discontinued)</li>
+</ul>
+  
+</article>
+</main>
+    <hr class="site-sep bottom-sep" />
+    <footer class="s">
+        
+    </footer>
+    
+
+    <script>
+        document.querySelectorAll("article img[srcset]").forEach((i) => {
+            if (i.closest("a")) return;
+            i.style.cursor = "pointer";
+            i.onclick = () => {
+                let d = document.createElement("div"),
+                    s = i.srcset.split(",").pop().trim().split(" ")[0];
+                d.className = "lb";
+                d.innerHTML = '<img src="' + s + '">';
+                document.body.style.overflow = "hidden";
+                d.onclick = () => {
+                    d.remove();
+                    document.body.style.overflow = "";
+                };
+                document.body.appendChild(d);
+            };
+        });
+    </script>
+    
+<button id="scroll-to-top" aria-label="Scroll to top" title="Scroll to top">↑</button>
+<script>
+    (function() {
+        var btn = document.getElementById("scroll-to-top");
+        if (btn) {
+            window.addEventListener("scroll", function() {
+                if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                    btn.classList.add("show");
+                } else {
+                    btn.classList.remove("show");
+                }
+            });
+            btn.addEventListener("click", function() {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        }
+    })();
+</script>
+</body>
+
+</html>

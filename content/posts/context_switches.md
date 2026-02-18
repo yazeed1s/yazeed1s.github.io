@@ -1,80 +1,67 @@
 +++
-title = "Context Switches"
-date = 2025-04-03
-description = "What context switches are, why we need them, and what they cost."
+title = "Context Switches: What Actually Happens"
+date = 2024-11-18
+description = "A context switch is the mechanism that lets the OS multitask."
 [taxonomies]
-tags = ["OS", "CPU", "Scheduling"]
+tags = ["OS", "CPU", "Linux"]
 +++
 
-A CPU can only run one thing at a time. When the OS needs to switch from one process to another, it saves everything about the current one and loads everything about the next. That's a context switch.
+A context switch is what happens when the OS takes one process off the CPU and puts another one on. It happens constantly, thousands of times per second, and your programs never notice because the whole point is that it looks seamless.
+
+## why context switches exist
+
+CPUs don't multitask on their own, they execute one instruction stream at a time (per core). The OS creates the illusion of parallelism by rapidly switching between processes, giving each one a time slice of maybe 1-10 milliseconds, executing its instructions, then saving its state and loading the next process's state. Do this fast enough and it looks like everything runs at the same time.
 
 ## what gets saved
 
-"Everything" means the program counter (where the process was in its code), the register values, the stack pointer, and some other CPU state. This is called the process context.
+A process's execution state lives in CPU registers, and when the OS switches away from a process it needs to save all of them: general purpose registers (rax, rbx, rcx on x86-64), the instruction pointer (rip, which says where execution was), the stack pointer (rsp), flags register, floating point and SIMD registers (SSE, AVX), and the memory mappings reference (CR3 on x86, which points to the page tables).
 
-The reason we need this is simple: we have more processes than CPUs. On my laptop I might have hundreds of processes but only 8 cores. They all need to run somehow, so they take turns. The OS gives each process a slice of time on a CPU, and when the slice is up (or something else happens), it switches to another process.
+All of this gets saved to the process's kernel data structure (the task_struct on Linux), and the incoming process's saved state gets loaded into the CPU registers. The CPU then continues executing from wherever the new process left off.
 
-## when do context switches happen
+## what actually happens step by step
 
-A few situations:
+The timer interrupt fires (or the process yields, or it blocks on I/O), the CPU traps to the kernel, the scheduler picks the next process, the kernel saves current registers to the outgoing task_struct, loads registers from the incoming task_struct, switches the page tables by writing CR3 (which changes the entire virtual memory mapping), flushes TLB entries that are no longer valid, and returns to user space where the new process resumes as if nothing happened.
 
-**Timer interrupt.** The scheduler sets a timer (maybe 1-10ms depending on the OS and config). When it fires, the kernel gets control and can decide to switch to another process. This is called preemption.
+```
+Process A running
+  -> timer interrupt fires
+  -> save A's registers to A's task_struct
+  -> scheduler picks Process B
+  -> load B's registers from B's task_struct
+  -> switch page tables (CR3)
+  -> flush TLB
+  -> Process B is now running
+```
 
-**Process blocks.** If a process does something that has to wait (reading from disk, waiting for network, waiting for a lock), it makes no sense to keep it on the CPU. The kernel switches to something that can actually run.
+The key thing is that the process doesn't know. It saved no state, it called no function. The kernel did everything while the process wasn't looking.
 
-**Explicit yield.** A process can voluntarily give up the CPU. This is rare in practice, most of the time the kernel just preempts.
+## the cost
 
-**Higher priority process wakes up.** If something more important becomes runnable (like a real-time task or an interactive process that was waiting for input), the kernel might preempt the current process immediately.
+Context switches aren't free. The direct cost is saving and restoring register state, which is maybe a few hundred nanoseconds. But the indirect cost is worse: the TLB gets flushed (partially or fully) because the new process has different page tables, so the first memory accesses after the switch take page table walks instead of TLB hits. The CPU caches (L1, L2) are now full of the old process's data, and the new process suffers cache misses until it warms them up. Branch predictors trained on the old process's code are useless for the new process.
 
-## what actually happens during a switch
+These indirect costs can add up to several microseconds of effective penalty, and on workloads with many short-lived operations it can matter a lot.
 
-When the kernel decides to switch from process A to process B:
+## thread switches vs process switches
 
-1. Save A's registers to memory (usually in some kernel data structure associated with A, like the task_struct in Linux)
-2. Save A's stack pointer
-3. Update page tables or TLB if the processes have different address spaces (this is where it gets expensive)
-4. Load B's registers from memory
-5. Load B's stack pointer
-6. Jump to wherever B left off
+Threads within the same process share address space, so switching between them doesn't require changing CR3 or flushing the TLB. That makes thread switches cheaper: you still save/restore registers, but you skip the expensive page table swap and TLB invalidation.
 
-If A and B are threads in the same process, step 3 is simpler because they share the same address space. This is one reason thread switches are cheaper than process switches.
+This is one reason why multi-threaded servers outperform multi-process ones for high-concurrency workloads, fewer and cheaper context switches.
 
-> This is the common case, but not always true. With Spectre mitigations like KPTI enabled, the kernel uses separate page tables for user and kernel space. Even a thread switch within the same process pays for the kernel page table switch on entry and exit.
+## voluntary vs involuntary
 
-## why context switches are expensive
+A **voluntary** context switch happens when a process can't continue: it calls `read()` and waits for disk, calls `sleep()`, waits on a mutex, or does any blocking operation. The process essentially says "I have nothing to do, give the CPU to someone else."
 
-The direct cost isn't that bad. Saving and restoring registers takes maybe hundreds of nanoseconds to a few microseconds. The bigger costs are indirect:
+An **involuntary** context switch happens when the scheduler preempts the process because its time slice expired (the timer interrupt fires and the scheduler decides it's someone else's turn), a higher-priority process becomes runnable, or load balancing moves the process to another core. You can see both types in `/proc/<pid>/status` under `voluntary_ctxt_switches` and `nonvoluntary_ctxt_switches`.
 
-**TLB flush.** The TLB caches virtual-to-physical address translations. If you switch to a process with a different address space, those cached translations are useless (or worse, wrong). The TLB gets flushed and the new process starts cold. Every memory access causes a TLB miss until the cache warms up again.
+## what triggers a switch
 
-**Cache pollution.** The new process touches different memory. The L1/L2/L3 caches fill up with its data, evicting the old process's data. When you switch back, you start with cold caches again.
-
-**Pipeline flush.** Modern CPUs have deep pipelines with speculative execution. A context switch might flush all of that.
-
-So the direct cost is maybe 1-10 microseconds depending on the hardware. But the indirect costs from cache/TLB warming can add hundreds of microseconds or more to the next stretch of execution.
-
-## why this matters
-
-If you're doing I/O-bound work, context switches are probably fine. You're waiting on disk or network anyway, the overhead is noise compared to the wait time.
-
-If you're doing CPU-bound work and switching a lot, you're wasting cycles. This is why things like busy-waiting or spinning on a lock can sometimes outperform blocking (at least for short waits). You avoid the context switch overhead.
-
-It's also why async I/O and event loops (like epoll, io_uring, kqueue) are popular. Instead of blocking and switching, you check if something is ready and move on. You stay on the CPU. Fewer switches, warmer caches.
-
-## some numbers
-
-These are rough and depend heavily on hardware and workload:
-
-- Direct context switch cost: ~1-5 μs on modern hardware
-- TLB flush + warmup: can add 10-100+ μs depending on working set size
-- Thread switch (same process): cheaper, maybe 0.5-2 μs since no page table switch
-- Typical scheduler timeslice: 1-10 ms
-
-The kernel tries to be smart about this. Linux's CFS scheduler considers cache locality when picking where to run a task. It tries to keep tasks on the same CPU they ran on last time (CPU affinity) to preserve cache warmth.
+Most context switches come from I/O waits (process blocks, voluntary), timer expiry (time slice used up, involuntary), synchronization (mutex, semaphore, condition variable), and inter-process communication (pipe, signal). A busy process that never blocks still gets switched out involuntarily when its time slice expires.
 
 ## notes
 
-- You can measure context switches on Linux with `perf stat -e context-switches ./your_program` or by reading `/proc/[pid]/status`
-- `vmstat 1` shows system-wide context switches per second
-- Voluntary vs involuntary: voluntary means the process blocked or yielded, involuntary means the scheduler preempted it
-- In user-space threading (green threads, goroutines), "context switches" are much cheaper because you're not going through the kernel and not touching page tables
+- `perf stat` shows context switch counts for a command
+- `/proc/<pid>/status` shows voluntary and involuntary counts per process
+- `vmstat` shows system-wide context switches per second (cs column)
+- On a typical desktop system you might see 10,000-50,000 context switches per second
+- PCID (Process Context ID) on modern x86 lets the TLB keep entries from multiple processes, reducing the flush cost
+- Kernel preemption means the kernel itself can be context-switched mid-operation (when configured with `PREEMPT`)

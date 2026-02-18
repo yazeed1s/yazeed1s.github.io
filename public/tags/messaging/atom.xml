@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <title>Yazeed&#x27;s Blog - Messaging</title>
+    <subtitle>Notes on systems and low-level software.</subtitle>
+    <link rel="self" type="application/atom+xml" href="https://yazeed1s.github.io/tags/messaging/atom.xml"/>
+    <link rel="alternate" type="text/html" href="https://yazeed1s.github.io"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2025-08-04T00:00:00+00:00</updated>
+    <id>https://yazeed1s.github.io/tags/messaging/atom.xml</id>
+    <entry xml:lang="en">
+        <title>Exactly-Once Is a Lie</title>
+        <published>2025-08-04T00:00:00+00:00</published>
+        <updated>2025-08-04T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/exactly-once/"/>
+        <id>https://yazeed1s.github.io/posts/exactly-once/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/exactly-once/">&lt;p&gt;Every message broker eventually puts &quot;exactly-once&quot; somewhere in its docs. Kafka has it, Pulsar claims it, NATS JetStream has a version of it, and it sounds like the thing you want: send a message, it arrives once, nobody worries.&lt;&#x2F;p&gt;
+&lt;p&gt;But exactly-once delivery doesn&#x27;t exist. What exists is engineering around the fact that it doesn&#x27;t.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-can-actually-happen&quot;&gt;what can actually happen&lt;&#x2F;h2&gt;
+&lt;p&gt;A producer sends a message to a broker, and there are three outcomes: the broker receives it, acknowledges, and the producer gets the ack (success); the broker receives it, acknowledges, but the ack is lost so the producer doesn&#x27;t know it worked and retries, creating two copies; or the broker never receives it and the message is gone.&lt;&#x2F;p&gt;
+&lt;p&gt;That&#x27;s it, those are the options on an unreliable network. You can avoid case 3 by retrying, but retrying introduces case 2, and you cannot eliminate both. At the network level you get at-most-once (don&#x27;t retry, accept losses) or at-least-once (retry, accept duplicates), and there&#x27;s no third option that the network gives you for free.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-kafka-actually-does&quot;&gt;what Kafka actually does&lt;&#x2F;h2&gt;
+&lt;p&gt;Kafka advertises exactly-once semantics, but what it actually implements is two things working together.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Idempotent producer.&lt;&#x2F;strong&gt; Each producer gets an ID, and each message gets a sequence number. If the broker sees the same producer ID + sequence number twice, it drops the duplicate, which handles the lost-ack problem: the producer retries, the broker deduplicates. This only works within a single producer session though; if the producer crashes and restarts with a new ID, the deduplication state is gone.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Transactions.&lt;&#x2F;strong&gt; Kafka lets you wrap a consume-process-produce cycle in a transaction: read from input topic, do work, write to output topic, commit offsets, all atomically. If anything fails, everything rolls back.&lt;&#x2F;p&gt;
+&lt;p&gt;So Kafka doesn&#x27;t deliver messages exactly once. It uses at-least-once delivery with deduplication and atomic commits to make the &lt;em&gt;processing&lt;&#x2F;em&gt; behave as if messages were delivered once, but the duplicates still happen at the transport layer and the broker just hides them.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;delivery-vs-processing&quot;&gt;delivery vs processing&lt;&#x2F;h2&gt;
+&lt;p&gt;This distinction matters. &lt;strong&gt;Exactly-once delivery&lt;&#x2F;strong&gt; would mean the network guarantees each message arrives once, and no system does this because the network is unreliable: acks get lost, connections drop, machines crash between receiving and acknowledging.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Exactly-once processing&lt;&#x2F;strong&gt; means the side effects of handling a message happen once, even if the message itself arrives more than once. That&#x27;s achievable, but it requires work: deduplication, idempotency, transactions. It&#x27;s not a delivery guarantee, it&#x27;s an application-level property.&lt;&#x2F;p&gt;
+&lt;p&gt;When brokers say &quot;exactly-once&quot; they mean the second thing, and they don&#x27;t say that clearly.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-broker-can-t-save-you-everywhere&quot;&gt;the broker can&#x27;t save you everywhere&lt;&#x2F;h2&gt;
+&lt;p&gt;Even with Kafka transactions, exactly-once only works within Kafka: read from Kafka, write to Kafka, commit. That&#x27;s a closed system where Kafka controls both sides.&lt;&#x2F;p&gt;
+&lt;p&gt;The moment your consumer does something outside Kafka, the guarantee breaks. Write to a database? Send an HTTP request? Call an external API? Kafka doesn&#x27;t know about those. If your consumer processes a message, writes to Postgres, then crashes before committing the Kafka offset, it&#x27;ll reprocess on restart and Postgres gets the write twice.&lt;&#x2F;p&gt;
+&lt;p&gt;This is where the inbox pattern from my &lt;a href=&quot;https:&#x2F;&#x2F;yazeed1s.github.io&#x2F;posts&#x2F;outbox-inbox-patterns&#x2F;&quot;&gt;outbox&#x2F;inbox post&lt;&#x2F;a&gt; comes in: you need idempotency at your handler level, recording that you processed this message before doing the work, so if you see it again you skip it.&lt;&#x2F;p&gt;
+&lt;p&gt;The broker gives you tools, it doesn&#x27;t give you a complete solution.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;idempotency-is-always-your-problem&quot;&gt;idempotency is always your problem&lt;&#x2F;h2&gt;
+&lt;p&gt;Regardless of what your broker promises, if your consumer has side effects you need to handle duplicates. Either make the operation naturally idempotent (SET is idempotent, INCREMENT is not), track processed message IDs and skip duplicates, or use transactions that span both the broker offset and your external state (hard, often impractical).&lt;&#x2F;p&gt;
+&lt;p&gt;At-least-once delivery + idempotent handling gives you the effect of exactly-once, and that&#x27;s what production systems actually do. The &quot;exactly-once&quot; label is marketing over a real but narrower mechanism.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Two Generals Problem: you can&#x27;t get agreement over an unreliable channel with finite messages, which is why ack-loss is unavoidable&lt;&#x2F;li&gt;
+&lt;li&gt;Kafka&#x27;s exactly-once (KIP-98) was controversial when introduced, and the original blog post title was literally &quot;Exactly-once Semantics are Possible&quot; which tells you something&lt;&#x2F;li&gt;
+&lt;li&gt;NATS JetStream does deduplication by message ID with a configurable window, similar idea but simpler scope&lt;&#x2F;li&gt;
+&lt;li&gt;Pulsar transactions work similarly to Kafka: read-process-write atomically within Pulsar&lt;&#x2F;li&gt;
+&lt;li&gt;If you&#x27;re using a broker without deduplication, you&#x27;re getting at-least-once at best, plan for it&lt;&#x2F;li&gt;
+&lt;li&gt;&quot;Effectively exactly-once&quot; is the more honest term some people use, and I prefer it&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+</feed>

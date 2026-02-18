@@ -12,7 +12,7 @@ For a database, this looks perfect at first: map data files, access pages throug
 
 ## why it's tempting
 
-A traditional DBMS maintains its own buffer pool. It tracks which pages are in memory, decides what to evict, handles I/O explicitly. That's a lot of code. Thousands of lines just to manage what's cached.
+A traditional DBMS maintains its own buffer pool where it tracks which pages are in memory, decides what to evict, and handles I/O explicitly, which is a lot of code (thousands of lines just to manage what's cached).
 
 With mmap you skip all that because the kernel already has a page cache, already tracks access patterns, and already evicts pages under memory pressure, so the question becomes: why duplicate it?
 
@@ -24,7 +24,7 @@ The OS can flush dirty pages to disk whenever it wants. You don't control when.
 
 If your DBMS modifies a page through the mmap'd region, that change can hit disk before the transaction commits. Crash at the wrong time and your database is inconsistent. You've violated durability, or atomicity, or both.
 
-A buffer pool doesn't have this problem. Pages live in user-space memory. The DBMS decides when to write them to disk. It writes the WAL first, then the data pages. Control flow is explicit.
+A buffer pool doesn't have this problem because pages live in user-space memory and the DBMS decides when to write them to disk, always writing the WAL first then the data pages, so control flow is explicit.
 
 With mmap, you need workarounds. MongoDB's MMAPv1 engine used `MAP_PRIVATE` to create a copy-on-write workspace. Two copies of the database in memory. SQLite copies pages to user-space buffers before modifying them, which defeats the purpose of mmap. LMDB uses shadow paging, which forces single-writer concurrency.
 
@@ -32,9 +32,9 @@ All of these are complex. And all of them give back the simplicity that mmap was
 
 ## I/O stalls you can't control
 
-When you access an mmap'd page that's been evicted, you get a page fault. The thread blocks until the OS reads the page from disk.
+When you access an mmap'd page that's been evicted you get a page fault and the thread blocks until the OS reads the page from disk.
 
-You can't do anything about this. There isn't an async page-fault interface to say "I'm going to need this page soon, start loading it." The thread just stops.
+You can't do anything about this since there isn't an async page-fault interface to say "I'm going to need this page soon, start loading it," the thread just stops.
 
 With a buffer pool, you control I/O explicitly. You can use `io_uring` or `libaio` for async reads. You can prefetch pages you know you'll need. A B+tree range scan can issue reads for the next few leaf pages ahead of time.
 
@@ -44,11 +44,11 @@ With mmap, a range scan hits a page fault on every cold page. Sequentially. Each
 
 ## error handling gets weird
 
-With a buffer pool, error handling is centralized. You read a page, check the checksum, handle I/O errors, all in one place.
+With a buffer pool error handling is centralized: you read a page, check the checksum, handle I/O errors, all in one place.
 
-With mmap, pages can be evicted and reloaded transparently. So you'd need to verify checksums on every access, not just the first read. An I/O error during transparent page-in doesn't return an error code. It raises SIGBUS. Your error handling is now a signal handler scattered across the codebase.
+With mmap pages can be evicted and reloaded transparently, so you'd need to verify checksums on every access not just the first read. An I/O error during transparent page-in doesn't return an error code either, it raises SIGBUS, which means your error handling is now a signal handler scattered across the codebase.
 
-If a page in your buffer gets corrupted, you catch it before writing to disk. With mmap, the OS can flush a corrupted page without asking. Silent data corruption.
+If a page in your buffer gets corrupted you catch it before writing to disk, but with mmap the OS can flush a corrupted page without asking, which is silent data corruption.
 
 ## the performance collapse
 
@@ -83,9 +83,9 @@ But if your data exceeds memory, or you need writes with ACID guarantees, or you
 
 ## what this really comes down to
 
-For me this comes down to one thing: the OS page cache is general-purpose, while databases need very specific control. General-purpose is fine for generic workloads, but databases have specific access patterns, durability rules, and error-handling paths that the OS cannot infer.
+For me this comes down to one thing: the OS page cache is general-purpose while databases need very specific control. General-purpose is fine for generic workloads, but databases have specific access patterns, durability rules, and error-handling paths that the OS cannot infer.
 
-It's similar to the tiered memory problem. The OS tries to manage page placement transparently, but transparency breaks down when the application knows something the kernel doesn't. Buffer pool vs mmap is the same tension. Do you trust the OS abstraction, or do you manage things yourself because you know your workload better?
+It's similar to the tiered memory problem where the OS tries to manage page placement transparently, but transparency breaks down when the application knows something the kernel doesn't. Buffer pool vs mmap is the same tension: do you trust the OS abstraction, or do you manage things yourself because you know your workload better?
 
 ## notes
 

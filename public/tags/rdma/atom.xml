@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <title>Yazeed&#x27;s Blog - RDMA</title>
+    <subtitle>Notes on systems and low-level software.</subtitle>
+    <link rel="self" type="application/atom+xml" href="https://yazeed1s.github.io/tags/rdma/atom.xml"/>
+    <link rel="alternate" type="text/html" href="https://yazeed1s.github.io"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2026-01-18T00:00:00+00:00</updated>
+    <id>https://yazeed1s.github.io/tags/rdma/atom.xml</id>
+    <entry xml:lang="en">
+        <title>Infiniswap</title>
+        <published>2026-01-18T00:00:00+00:00</published>
+        <updated>2026-01-18T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/infiniswap/"/>
+        <id>https://yazeed1s.github.io/posts/infiniswap/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/infiniswap/">&lt;p&gt;I found this paper while reading about memory disaggregation. The idea is simple: when a machine runs out of RAM, page to another machine&#x27;s unused memory instead of disk.&lt;&#x2F;p&gt;
+&lt;p&gt;What caught my attention is how they did it: it works without application changes or core kernel patches through a kernel module that hooks into Linux&#x27;s swap path, where remote RAM becomes the fast tier and disk is just the fallback.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-problem-they-re-solving&quot;&gt;the problem they&#x27;re solving&lt;&#x2F;h2&gt;
+&lt;p&gt;Production clusters waste a lot of memory. Some machines are memory-starved while others sit idle. The 99th percentile machine uses 2-3× more memory than the median. Over half the cluster&#x27;s aggregate memory goes unused.&lt;&#x2F;p&gt;
+&lt;p&gt;When apps can&#x27;t fit their working set in RAM, performance falls off a cliff. VoltDB drops from 95K TPS to 4K TPS. Memcached&#x27;s tail latency shoots up 21×. Disk is just too slow (like 1000× slower than memory).&lt;&#x2F;p&gt;
+&lt;p&gt;So they thought: RDMA gives single-digit microsecond latencies. That&#x27;s fast enough to make remote memory a viable swap target. Pages go to remote RAM over RDMA instead of disk. The remote CPU stays out of the data movement entirely since the RNIC does the DMA.&lt;&#x2F;p&gt;
+&lt;p&gt;Result: swap that looks normal to Linux but is backed by slabs of remote memory scattered across the cluster.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-i-thought-was-clever&quot;&gt;what I thought was clever&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;strong&gt;Using swap as the integration point.&lt;&#x2F;strong&gt; Instead of modifying the page fault handler or remapping virtual memory, they plug into Linux&#x27;s swap subsystem. The kernel already knows how to page out and page in. Infiniswap just changes where those pages live. The trade-off is you still go through the swap path (page faults, context switches). But you get deployment simplicity because everything else just works.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;One-sided RDMA.&lt;&#x2F;strong&gt; Traditional network block devices like Mellanox&#x27;s nbdX use send&#x2F;recv. Remote CPU wakes up, copies data, responds. Infiniswap uses RDMA_READ and RDMA_WRITE. The RNIC accesses remote memory directly without running any code on the remote side. nbdX burns multiple vCPUs on the remote machine. Infiniswap doesn&#x27;t touch the remote CPU at all.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Slab-based design.&lt;&#x2F;strong&gt; Pages are grouped into 1GB slabs. Each slab maps to one remote machine. This keeps metadata manageable. Tracking millions of 4KB pages across the cluster would be expensive. Hot slabs (more than 20 page I&#x2F;O ops&#x2F;sec) get mapped to remote memory. Cold slabs stay on disk.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;where-it-works-well&quot;&gt;where it works well&lt;&#x2F;h2&gt;
+&lt;p&gt;Memory-bound workloads see big wins. Memcached stays nearly flat even when only 50% of the working set fits in memory. PowerGraph runs 6.5× faster. VoltDB sees 15× throughput improvement over disk.&lt;&#x2F;p&gt;
+&lt;p&gt;Cluster memory utilization: goes from 40% to 60%. That&#x27;s 47% more effective use of RAM. Network overhead is less than 1% of capacity.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;where-it-doesn-t-work&quot;&gt;where it doesn&#x27;t work&lt;&#x2F;h2&gt;
+&lt;p&gt;CPU-bound workloads don&#x27;t benefit much. VoltDB and Spark already run at high CPU utilization. Adding paging overhead (context switches, TLB flushes, page table walks) eats into that. Spark at 50% memory thrashes so badly it doesn&#x27;t complete.&lt;&#x2F;p&gt;
+&lt;p&gt;There&#x27;s a fundamental limit here: this isn&#x27;t local memory. Page faults still happen. You&#x27;re masking latency, not eliminating it. For workloads where microseconds matter deterministically, that&#x27;s still a problem.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Paper: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;www.usenix.org&#x2F;system&#x2F;files&#x2F;conference&#x2F;nsdi17&#x2F;nsdi17-gu.pdf&quot;&gt;Gu et al., &quot;Efficient Memory Disaggregation with Infiniswap&quot;, NSDI 2017&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
+&lt;li&gt;Tested on 32 machines, 56 Gbps Infiniband, 64GB RAM each&lt;&#x2F;li&gt;
+&lt;li&gt;Slab placement uses &quot;power of two choices&quot; (pick two random machines, query free memory, use the one with more headroom)&lt;&#x2F;li&gt;
+&lt;li&gt;Slab eviction queries E+5 machines, evicts coldest (~363μs median)&lt;&#x2F;li&gt;
+&lt;li&gt;Page-out: synchronous RDMA_WRITE + async disk write (disk is fallback if remote crashes)&lt;&#x2F;li&gt;
+&lt;li&gt;Page-in: check bitmap → RDMA_READ if remote, else disk&lt;&#x2F;li&gt;
+&lt;li&gt;Slab remapping after failure takes ~54ms (Infiniband memory registration)&lt;&#x2F;li&gt;
+&lt;li&gt;Default headroom threshold: 8GB per machine&lt;&#x2F;li&gt;
+&lt;li&gt;Hot slab threshold: 20 page I&#x2F;O ops&#x2F;sec (EWMA, α=0.2)&lt;&#x2F;li&gt;
+&lt;li&gt;Compared against nbdX (Mellanox), Fastswap, LegoOS&lt;&#x2F;li&gt;
+&lt;li&gt;Code: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;SymbioticLab&#x2F;Infiniswap&quot;&gt;SymbioticLab&#x2F;infiniswap&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>RDMA: Bypassing the Kernel for Network I&#x2F;O</title>
+        <published>2026-01-16T00:00:00+00:00</published>
+        <updated>2026-01-16T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/rdma/"/>
+        <id>https://yazeed1s.github.io/posts/rdma/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/rdma/">&lt;p&gt;RDMA lets one machine read and write another machine&#x27;s memory, the network card handles it, and the remote CPU doesn&#x27;t even know it happened.&lt;&#x2F;p&gt;
+&lt;p&gt;That sounded wrong to me at first. I knew the slogan, &quot;skip the kernel, go fast,&quot; but I didn&#x27;t understand what it meant at the hardware level.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-s-wrong-with-normal-networking&quot;&gt;what&#x27;s wrong with normal networking&lt;&#x2F;h2&gt;
+&lt;p&gt;When you use TCP, the kernel is always involved. The app calls &lt;code&gt;send()&lt;&#x2F;code&gt;, which is a syscall, so execution enters the kernel; your data gets copied from the app buffer to a kernel buffer, TCP runs its state machine (checksum, segmentation, queueing), and eventually the driver sends it to the NIC.&lt;&#x2F;p&gt;
+&lt;p&gt;Receive side is the same thing: NIC gets packet, interrupt, kernel wakes up, copies to socket buffer, and then the app calls &lt;code&gt;recv()&lt;&#x2F;code&gt; which triggers another copy into the app buffer. So you end up with two copies, multiple syscalls, and context switches every time, and the CPU stays busy with all of it.&lt;&#x2F;p&gt;
+&lt;p&gt;If you&#x27;re moving big files, it&#x27;s OK because the overhead doesn&#x27;t matter much. But if you want millions of small operations per second (like key-value gets), this overhead is too much.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-rdma-does-different&quot;&gt;what rdma does different&lt;&#x2F;h2&gt;
+&lt;p&gt;With RDMA, the network card reads and writes directly to your app memory. When you send, the NIC reads from your buffer via DMA, and when you receive, it writes into your buffer via DMA, so the kernel is off the fast path and the extra copies disappear.&lt;&#x2F;p&gt;
+&lt;p&gt;There&#x27;s also one-sided operations: RDMA_WRITE puts bytes into remote memory and RDMA_READ pulls bytes from it, while the remote CPU keeps running because nobody wakes it up. First time I saw this it looked strange, you&#x27;re writing to memory on a different machine, through the network card, and that machine doesn&#x27;t know it happened.&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&quot;Doesn&#x27;t know&quot; means the remote CPU isn&#x27;t interrupted and doesn&#x27;t execute any code. But the NIC is still doing DMA over PCIe, which consumes memory bandwidth on the remote machine. At high throughput, one-sided RDMA operations can noticeably affect remote-side performance even though no software runs there.&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;p&gt;&lt;img src=&quot;&#x2F;images&#x2F;rdma.png&quot; alt=&quot;TCP vs RDMA&quot; &#x2F;&gt;&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;setup-vs-data-path&quot;&gt;setup vs data path&lt;&#x2F;h2&gt;
+&lt;p&gt;The kernel is still there, just not on the data path. Before you send anything, you have to set things up by opening the device, creating queues, registering memory, and connecting to the remote side, and all of this goes through syscalls and kernel checks.&lt;&#x2F;p&gt;
+&lt;p&gt;Only after setup does the fast path work, where you post work directly to hardware and poll completions without syscalls for that part. So the trade is expensive setup but cheap operations after, which is good if you do many operations and not good for connections that don&#x27;t last.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;queue-pairs&quot;&gt;queue pairs&lt;&#x2F;h2&gt;
+&lt;p&gt;RDMA doesn&#x27;t use sockets, it uses queues instead. A &lt;strong&gt;Queue Pair&lt;&#x2F;strong&gt; is your connection, and it has a send queue and a receive queue where you put work requests saying what to do (send this buffer, read from that address), and the NIC processes them when it can.&lt;&#x2F;p&gt;
+&lt;p&gt;A &lt;strong&gt;Completion Queue&lt;&#x2F;strong&gt; is how you know things finished: the NIC puts entries there and you poll or wait.&lt;&#x2F;p&gt;
+&lt;p&gt;The annoying thing is that queue pairs start in RESET state and must move through RESET → INIT → RTR → RTS, and if you miss one transition nothing works and you usually don&#x27;t get a useful error, which took me a while to learn the first time.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;memory-registration&quot;&gt;memory registration&lt;&#x2F;h2&gt;
+&lt;p&gt;Before the NIC can touch your memory, you register it. What registration does is pin the pages so memory can&#x27;t go to swap (physical addresses stay valid because the hardware will DMA there), build a translation in the NIC so it knows where virtual address X is in physical memory, and give you keys (lkey for your own ops, rkey to share with the remote side so they can access your memory).&lt;&#x2F;p&gt;
+&lt;p&gt;Registration is a syscall, and this is where the kernel checks permissions.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;who-checks-if-not-kernel&quot;&gt;who checks if not kernel&lt;&#x2F;h2&gt;
+&lt;p&gt;This part confused me for a while. With normal networking the kernel validates everything: bad pointer gives you SIGSEGV, wrong permission gives you an error, the kernel is the one checking. But with RDMA the kernel is not in the data path, so how do bad accesses get stopped?&lt;&#x2F;p&gt;
+&lt;p&gt;The answer is hardware. When you register memory, the kernel tells the NIC which addresses are valid and what permissions they have and which protection domain they belong to, and the NIC stores all this in its memory protection tables. Then during transfers the NIC checks every operation: is the address in a registered region, are the permissions OK, does the key match. If something is wrong, the operation fails and the error shows up in the completion queue (not SIGSEGV, because the NIC caught it, not the CPU). Hardware does what the kernel would do, just at wire speed.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;protection-domains&quot;&gt;protection domains&lt;&#x2F;h2&gt;
+&lt;p&gt;You can&#x27;t access anyone&#x27;s memory. A &lt;strong&gt;Protection Domain&lt;&#x2F;strong&gt; is a security boundary: when you make a queue pair and register memory, you put them in a PD, and operations only work on memory in the same PD. This is like kernel process isolation but for RDMA, where different apps get different PDs.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;one-sided-and-two-sided&quot;&gt;one-sided and two-sided&lt;&#x2F;h2&gt;
+&lt;p&gt;There are two kinds of operations. &lt;strong&gt;Two-sided&lt;&#x2F;strong&gt; means both sides do something: the receiver posts a buffer first, the sender posts a send, and both CPUs are involved. &lt;strong&gt;One-sided&lt;&#x2F;strong&gt; means only you do something: RDMA_WRITE pushes data to remote memory, RDMA_READ pulls data, and the remote CPU is not involved, not even aware.&lt;&#x2F;p&gt;
+&lt;p&gt;One-sided is where RDMA is really powerful, but it&#x27;s also more work because if the remote app needs to know you wrote, you have to tell it somehow. Usually you write a flag that it polls, or use atomics, and synchronization becomes your problem to solve.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;atomics&quot;&gt;atomics&lt;&#x2F;h2&gt;
+&lt;p&gt;There are atomic operations (compare-and-swap and fetch-and-add) that run at remote memory, atomically, without involving the remote CPU. Good for locks and counters, but slower than regular read&#x2F;write, and some NICs implement them in firmware so even slower. Depends on the card.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-hardware&quot;&gt;the hardware&lt;&#x2F;h2&gt;
+&lt;p&gt;You need a special NIC because normal ones don&#x27;t do RDMA.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;InfiniBand&lt;&#x2F;strong&gt; is the original, it needs its own switches and cables, has very low latency (under a microsecond), and HPC clusters use it. &lt;strong&gt;RoCE&lt;&#x2F;strong&gt; is RDMA over Ethernet, which works on regular switches, but Ethernet drops packets and RDMA really doesn&#x27;t like that, so you configure switches for &quot;lossless&quot; mode with priority flow control and so on, and it gets complicated. &lt;strong&gt;iWARP&lt;&#x2F;strong&gt; is RDMA over TCP, which is the most compatible option, but TCP adds latency. I think most datacenters use RoCE v2 now.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;some-numbers&quot;&gt;some numbers&lt;&#x2F;h2&gt;
+&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;What&lt;&#x2F;th&gt;&lt;th&gt;How long&lt;&#x2F;th&gt;&lt;&#x2F;tr&gt;&lt;&#x2F;thead&gt;&lt;tbody&gt;
+&lt;tr&gt;&lt;td&gt;TCP round trip&lt;&#x2F;td&gt;&lt;td&gt;10-50 μs&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;RDMA round trip&lt;&#x2F;td&gt;&lt;td&gt;1-5 μs&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;Local memory&lt;&#x2F;td&gt;&lt;td&gt;~100 ns&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;&#x2F;tbody&gt;&lt;&#x2F;table&gt;
+&lt;p&gt;RDMA is maybe 10x faster than TCP, but still 10x slower than local RAM. This is important when you think about memory disaggregation because you&#x27;re replacing local memory with remote, and microseconds add up.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-s-hard-about-it&quot;&gt;what&#x27;s hard about it&lt;&#x2F;h2&gt;
+&lt;p&gt;Debugging is not fun because problems show up as completion queue errors with codes you have to look up, there&#x27;s no tcpdump, and when something breaks you look at hardware counters and guess.&lt;&#x2F;p&gt;
+&lt;p&gt;Before RDMA works, both sides have to exchange info (queue pair numbers, memory keys, addresses), and usually you do this over TCP first, which is extra complexity. Registered memory is pinned, so big registrations hit ulimit. For two-sided operations, the receiver must post buffers before the sender sends, and if the receiver runs out of buffers the sender&#x27;s operations fail.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Verbs API is standard interface. libibverbs on Linux.&lt;&#x2F;li&gt;
+&lt;li&gt;Watch &lt;code&gt;ulimit -l&lt;&#x2F;code&gt; for locked memory limit.&lt;&#x2F;li&gt;
+&lt;li&gt;One app can have many queue pairs and completion queues. Common pattern is one QP per thread.&lt;&#x2F;li&gt;
+&lt;li&gt;Atomic ops: compare-and-swap, fetch-and-add. Support varies by hardware.&lt;&#x2F;li&gt;
+&lt;li&gt;Paper: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;www.usenix.org&#x2F;system&#x2F;files&#x2F;nsdi22-paper-reda_1.pdf&quot;&gt;RDMA is Turing complete&lt;&#x2F;a&gt; (yes really)&lt;&#x2F;li&gt;
+&lt;li&gt;Man pages: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;linux-rdma&#x2F;rdma-core&#x2F;blob&#x2F;master&#x2F;libibverbs&#x2F;man&#x2F;ibv_create_qp.3&quot;&gt;ibv_create_qp&lt;&#x2F;a&gt;, &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;linux-rdma&#x2F;rdma-core&#x2F;blob&#x2F;master&#x2F;libibverbs&#x2F;man&#x2F;ibv_reg_mr.3&quot;&gt;ibv_reg_mr&lt;&#x2F;a&gt;, &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;linux-rdma&#x2F;rdma-core&#x2F;blob&#x2F;master&#x2F;libibverbs&#x2F;man&#x2F;ibv_post_send.3&quot;&gt;ibv_post_send&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
+&lt;li&gt;Nvidia docs: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;docs.nvidia.com&#x2F;networking&#x2F;display&#x2F;RDMAAwareProgrammingv17&quot;&gt;RDMA Aware Networks Programming User Manual&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+</feed>

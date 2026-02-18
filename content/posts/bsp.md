@@ -38,21 +38,17 @@ Whatever structure we pick, it should make the common operations cheap and match
 
 ## Why a Linear Structure Falls Apart
 
-Given those constraints, the obvious first thought is a linked list. Simple, well understood. But there's a mismatch: linked lists are linear, window layouts are 2D.
+Given those constraints, the obvious first thought is a linked list since it's simple and well understood, but there's a fundamental mismatch: linked lists are linear and window layouts are 2D.
 
-When windows tile, they form a hierarchy; this half of the screen, that quarter, and so on. A list doesn't capture this naturally. Every time you add or remove a window, you'd have to recalculate all the rectangles from scratch. It works, but it's more math than I want to deal with.
+When windows tile they form a hierarchy (this half of the screen, that quarter, and so on), and a list doesn't capture this naturally. Every time you add or remove a window you'd have to recalculate all the rectangles from scratch, which works but it's more math than I want to deal with.
 
 ## Trees Handle It Better
 
-So if the problem is hierarchical, the structure should be too.
-
-Trees fit naturally. The screen is the root, each split creates two children. Windows live in the leaves. The structure maps directly to what you see on screen
-
-That's where BSP trees come in.
+If the problem is hierarchical, the structure should be too. Trees fit naturally: the screen is the root, each split creates two children, windows live in the leaves, and the structure maps directly to what you see on screen. That's where BSP trees come in.
 
 ## Binary Space Partitioning
 
-BSP trees are a specific kind of tree designed for recursive spatial division. The idea is simple: start with the full screen, split it in half (horizontal or vertical), keep splitting as needed. Each split point becomes an internal node, each final region becomes a leaf.
+BSP trees are a specific kind of tree designed for recursive spatial division: start with the full screen, split it in half (horizontal or vertical), and keep splitting as needed. Each split point becomes an internal node and each final region becomes a leaf.
 
 In my implementation:
 
@@ -98,9 +94,7 @@ struct node_t {
 };
 ```
 
-I include a parent pointer. Some implementations skip it to save memory, but having it makes traversal and sibling access trivial. Worth the extra 8 bytes per node.
-
-With the structure in place, the next parts are insertion and deletion.
+I include a parent pointer because some implementations skip it to save memory, but having it makes traversal and sibling access trivial and worth the extra 8 bytes per node. With the structure in place, the next parts are insertion and deletion.
 
 ## Insertion
 
@@ -256,11 +250,7 @@ Each internal node's rectangle contains its children. The tree structure directl
 
 ## Deletion
 
-Insertion is the easy part. Deletion is where tree operations get interesting.
-
-When you close a window, the node gets removed. But you can't just delete it as the tree needs to stay valid.
-
-The key insight: when you remove a leaf, its parent (an internal node) now has only one child. That's not valid. So the sibling "takes over" the parent's position.
+Insertion is the easy part, deletion is where tree operations get interesting. When you close a window the node gets removed, but you can't just delete it because the tree needs to stay valid. The key insight is that when you remove a leaf, its parent (an internal node) now has only one child, and that's not valid, so the sibling "takes over" the parent's position.
 
 ### Case 1: Simple deletion (sibling is external, parent is root)
 
@@ -437,6 +427,6 @@ render_tree(node_t *node)
 
 ## wrap-up
 
-BSP trees aren't complicated once you see them as just recursive space division. The tree structure matches the visual layout, which makes most operations straightforward. Insertion splits a rectangle, deletion merges back up. Add/remove windows, the tree adjusts.
+BSP trees aren't complicated once you see them as just recursive space division, where the tree structure matches the visual layout and makes most operations straightforward. Insertion splits a rectangle, deletion merges back up, and the tree adjusts as windows come and go.
 
 The full implementation handles more edge cases (floating windows, fullscreen, gaps, borders, multiple monitors), but the core idea is what I described here. Code is here: [github.com/yazeed1s/zwm](https://github.com/yazeed1s/zwm).

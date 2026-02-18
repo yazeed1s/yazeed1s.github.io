@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <title>Yazeed&#x27;s Blog - Video</title>
+    <subtitle>Notes on systems and low-level software.</subtitle>
+    <link rel="self" type="application/atom+xml" href="https://yazeed1s.github.io/tags/video/atom.xml"/>
+    <link rel="alternate" type="text/html" href="https://yazeed1s.github.io"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2025-12-22T00:00:00+00:00</updated>
+    <id>https://yazeed1s.github.io/tags/video/atom.xml</id>
+    <entry xml:lang="en">
+        <title>How Live Streaming Actually Works</title>
+        <published>2025-12-22T00:00:00+00:00</published>
+        <updated>2025-12-22T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/live-streaming/"/>
+        <id>https://yazeed1s.github.io/posts/live-streaming/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/live-streaming/">&lt;p&gt;I spent a lot of time thinking about this because of Strimo. Most people look at a Twitch stream and think it&#x27;s just video going from a camera to their browser, but between the streamer&#x27;s screen and yours there&#x27;s encoding, protocol negotiation, transcoding into multiple qualities, segmentation into tiny files, CDN distribution, and adaptive playback. And each step adds latency and cost.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-pipeline&quot;&gt;the pipeline&lt;&#x2F;h2&gt;
+&lt;p&gt;A live stream passes through roughly five stages: the streamer&#x27;s machine captures and encodes the video, then pushes it over RTMP to the platform&#x27;s ingest server, which transcodes it into several quality levels, chops it into HLS segments, distributes those segments through a CDN, and finally the viewer&#x27;s player pulls them and stitches them back together.&lt;&#x2F;p&gt;
+&lt;p&gt;Add up the latency from each stage and you land somewhere between 5 and 15 seconds of delay on most platforms. Some of that (or most of it) is unavoidable physics, or buffering decisions, or the platform choosing to trade latency for cheaper infrastructure.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;capture-and-encoding&quot;&gt;capture and encoding&lt;&#x2F;h2&gt;
+&lt;p&gt;The streamer runs OBS or something similar. OBS records the screen, webcam, and audio sources, composites them into one feed, and encodes it. Raw 1080p60 video is around 3 Gbps, which nobody can upload, so the encoder compresses it down to maybe 4-8 Mbps using H.264 (most common), or H.265 (better ratio but heavier), or AV1 (best compression but still too expensive for real-time on most hardware).&lt;&#x2F;p&gt;
+&lt;p&gt;OBS can use x264 in software (runs on CPU, good quality, eats cores) or hardware encoding through NVENC on Nvidia, QSV on Intel, or AMF on AMD. Most streamers use NVENC because it offloads the work to the GPU&#x27;s dedicated encoder block and barely affects game performance, even though historically the quality per bitrate was worse than a well-tuned x264. That gap has mostly closed with newer Nvidia architectures.&lt;&#x2F;p&gt;
+&lt;p&gt;You also pick a preset (faster = less CPU = worse compression), a bitrate, resolution, and framerate. The encoder has a hard real-time deadline as it must finish each frame before the next one arrives at 16ms intervals for 60fps. If it can&#x27;t keep up, frames get dropped and you see that in the stream.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;rtmp-getting-the-stream-out&quot;&gt;RTMP: getting the stream out&lt;&#x2F;h2&gt;
+&lt;p&gt;OBS connects to the platform&#x27;s ingest server over RTMP, which is a protocol Adobe built for Flash in the early 2000s. Flash died but RTMP stuck around because it does one specific thing well: push a continuous audio&#x2F;video stream to a server over TCP with minimal framing overhead. OBS does a handshake, authenticates with your stream key, and starts sending FLV-wrapped H.264 and AAC.&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;RTMP doesn&#x27;t natively support newer codecs like HEVC or AV1 (there are vendor extensions but nothing standardized), and being TCP-only means any packet loss causes head-of-line blocking. Despite that, it&#x27;s still the default for ingest everywhere because SRT and RIST just haven&#x27;t reached the same adoption level.&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;p&gt;Upload bandwidth is a real constraint. Pushing 6 Mbps of video plus audio means you need 8-10 Mbps of stable upstream, and fluctuations cause dropped frames that viewers actually notice. Platforms put ingest servers in dozens of cities so streamers connect to one nearby with low latency.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;ingest-and-transcoding&quot;&gt;ingest and transcoding&lt;&#x2F;h2&gt;
+&lt;p&gt;Once the ingest server has the RTMP stream, the platform transcodes it into multiple quality levels so viewers on different connections can watch. This is called an ABR ladder (adaptive bitrate). A typical setup is source at 1080p60&#x2F;6Mbps, then 720p60 at 3 Mbps, 480p30 at 1.5 Mbps, and maybe 360p30 at 600 kbps. Each of those is a separate encoder instance running in parallel, so that&#x27;s four encodes per stream.&lt;&#x2F;p&gt;
+&lt;p&gt;FFmpeg is the standard tool for this, you can feed it a single RTMP ingest and it transcodes into multiple renditions simultaneously, each one produces its own HLS playlist. Smaller platforms literally just run FFmpeg behind Nginx-RTMP and call it a day. At scale though, CPU-based encoding gets too expensive, so giants like Twitch and YouTube use custom FPGA-based encoders and ASICs.&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Twitch doesn&#x27;t give transcoding to every streamer by default, only partners and affiliates get guaranteed transcode. The reason is straightforward: tens of thousands of concurrent streams × four encoder instances each is an enormous amount of compute, and specialized encoding hardware is a major capital expense on top of the electricity to run it.&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;h2 id=&quot;hls-how-viewers-get-the-stream&quot;&gt;HLS: how viewers get the stream&lt;&#x2F;h2&gt;
+&lt;p&gt;HLS (HTTP Live Streaming) is how the video actually reaches viewers. The idea is simple, break the continuous video into small segment files (2-6 seconds each), and then write a playlist (&lt;code&gt;.m3u8&lt;&#x2F;code&gt;) listing the available segments, and let the player download them one by one over plain HTTP.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;#EXTM3U&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;#EXT-X-STREAM-INF:BANDWIDTH=6000000,RESOLUTION=1920x1080&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;1080p&#x2F;playlist.m3u8&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;#EXT-X-STREAM-INF:BANDWIDTH=3000000,RESOLUTION=1280x720&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;720p&#x2F;playlist.m3u8&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;#EXT-X-STREAM-INF:BANDWIDTH=1500000,RESOLUTION=854x480&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;480p&#x2F;playlist.m3u8&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;The player does adaptive bitrate switching, like if bandwidth drops it falls to a lower rendition automatically, if bandwidth recovers it steps back up, and switches happen at segment boundaries to avoid visual artifacts.&lt;&#x2F;p&gt;
+&lt;p&gt;The tradeoff tho is latency. The player has to buffer at least a segment or two before it starts playing, so with 4-second segments and 2 buffered, you&#x27;re at 8 seconds of delay before you even account for anything else in the pipeline. That&#x27;s the fundamental reason HLS streams have higher latency than something like a WebRTC call.&lt;&#x2F;p&gt;
+&lt;p&gt;HLS was created by Apple, I think.&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Apple introduced Low-Latency HLS which uses partial segments (sub-second chunks) to bring latency closer to 2-3 seconds, and Twitch uses a proprietary low-latency HLS variant. These help but they add real complexity to both server and player implementations.&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;h2 id=&quot;cdn-distribution&quot;&gt;CDN: distribution&lt;&#x2F;h2&gt;
+&lt;p&gt;One server can&#x27;t push a stream to 50,000 viewers, the bandwidth alone would be 200 Gbps, which is absurd for a single origin. So the origin generates HLS segments and edge servers around the world and cache them close to viewers. A viewer in Tokyo pulls from a Tokyo edge, not from a datacenter in Virginia.&lt;&#x2F;p&gt;
+&lt;p&gt;CDN cost is bandwidth. Providers charge per GB transferred. A stream at 4 Mbps to 10,000 viewers for 3 hours works out to roughly 54 TB of data:&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;4 Mbps × 10,000 × 10,800 seconds ≈ 54 TB&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Even at bulk pricing, that&#x27;s expensive. Twitch and YouTube operate their own edge networks partly to keep these costs under control. Smaller platforms pay CloudFront or Fastly or Akamai rates, and the bandwidth bill is usually their single largest expense.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;webrtc-the-low-latency-option&quot;&gt;WebRTC: the low-latency option&lt;&#x2F;h2&gt;
+&lt;p&gt;WebRTC uses UDP, skips segmentation entirely, and achieves sub-second latency. It was designed for video calls though, not broadcast, and the scaling model reflects that. A 4-person video call is peer-to-peer, everyone sends to everyone. Each one sends to the other three, so 4 people × 3 connections = 12 connections total. That doesn&#x27;t work for thousands of viewers.&lt;&#x2F;p&gt;
+&lt;p&gt;You can put an SFU (Selective Forwarding Unit) in the middle: the streamer sends one stream to the server and the server forwards it to every viewer. But each viewer connection is stateful, it needs DTLS handshake, SRTP encryption state, per-connection bandwidth estimation, RTCP feedback. At 10,000 viewers that&#x27;s 10,000 concurrent stateful connections with active feedback loops, which is a fundamentally different scaling challenge than HLS where viewers just download files over stateless HTTP and CDN caching handles the rest.&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Some platforms use WebRTC for the first mile (streamer to server, low latency) and HLS for the last mile (server to viewers, scales with CDN). A few like Millicast do full WebRTC end-to-end with large SFU clusters, but the per-viewer infrastructure cost is much higher than HLS.&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;h2 id=&quot;ffmpeg-the-glue&quot;&gt;FFmpeg: the glue&lt;&#x2F;h2&gt;
+&lt;p&gt;FFmpeg shows up at almost every stage. A minimal ingest-to-HLS pipeline is one command:&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;ffmpeg&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;i&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; rtmp:&#x2F;&#x2F;localhost&#x2F;live&#x2F;stream_key&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; \&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;  -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;c:v&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; libx264&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;preset&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; veryfast&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;b:v&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 3000k&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; \&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;  -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;c:a&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; aac&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;b:a&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 128k&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; \&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;  -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;f&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; hls&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;hls_time&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 4&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;hls_list_size&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 5&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; \&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;  &#x2F;var&#x2F;www&#x2F;stream&#x2F;playlist.m3u8&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;That takes an RTMP stream, re-encodes it to H.264 at 3 Mbps, outputs HLS segments of 4 seconds each, and writes playlist files to disk. Serve those with nginx and you have a working live streaming backend. For multiple renditions you run multiple outputs or use the &lt;code&gt;split&lt;&#x2F;code&gt; filter. In production, platforms wrap FFmpeg&#x27;s libraries (libavcodec, libavformat) in their own orchestration with health checks and failover, but the encoding core is the same, you just need engineer and build around&#x2F;on top of it.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;where-the-money-goes&quot;&gt;where the money goes&lt;&#x2F;h2&gt;
+&lt;p&gt;Encoding and transcoding is compute cost that scales linearly with active streams. More streamers means more encoder instances, and specialized hardware or GPU rentals aren&#x27;t cheap. CDN bandwidth is the biggest variable cost and scales with viewers × bitrate × time, so a viral stream with 100,000 viewers can generate a terrifying bill in a few hours, which is why platforms cap bitrates or limit quality options. Storage for VODs adds up quietly as every saved stream is hours of multi-bitrate video, and Twitch keeps them for 14-60 days while YouTube keeps them forever. Ingest infrastructure is the global network of servers accepting RTMP connections, each location with its own hardware and bandwidth costs.&lt;&#x2F;p&gt;
+&lt;p&gt;The economics are hard for anyone competing with Twitch (Amazon infrastructure), YouTube (Google infrastructure), or Kick (deep investment backing). The infrastructure costs are a barrier to entry that has nothing to do with product quality.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-latency-budget&quot;&gt;the latency budget&lt;&#x2F;h2&gt;
+&lt;p&gt;Where the delay actually lives:&lt;&#x2F;p&gt;
+&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Stage&lt;&#x2F;th&gt;&lt;th&gt;Typical latency&lt;&#x2F;th&gt;&lt;&#x2F;tr&gt;&lt;&#x2F;thead&gt;&lt;tbody&gt;
+&lt;tr&gt;&lt;td&gt;Encoding (frame buffering)&lt;&#x2F;td&gt;&lt;td&gt;30-60 ms&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;RTMP to ingest&lt;&#x2F;td&gt;&lt;td&gt;50-200 ms&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;Transcoding&lt;&#x2F;td&gt;&lt;td&gt;500-2000 ms&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;HLS segmentation&lt;&#x2F;td&gt;&lt;td&gt;2000-6000 ms&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;CDN propagation&lt;&#x2F;td&gt;&lt;td&gt;50-200 ms&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;Player buffering&lt;&#x2F;td&gt;&lt;td&gt;2000-8000 ms&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;&lt;strong&gt;Total&lt;&#x2F;strong&gt;&lt;&#x2F;td&gt;&lt;td&gt;&lt;strong&gt;~5-15 seconds&lt;&#x2F;strong&gt;&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;&#x2F;tbody&gt;&lt;&#x2F;table&gt;
+&lt;p&gt;Almost all of it is HLS segmentation and player buffering (assuming you actually write good performant code). The actual encoding and network transit are fast. Reducing stream latency basically means either making segments smaller (LL-HLS) or abandoning HLS for WebRTC.&lt;&#x2F;p&gt;
+&lt;p&gt;Btw, this whole thing is called &quot;glass-to-glass&quot; latency.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;RTMP uses port 1935 which corporate firewalls often block, so some streamers use RTMPS (TLS on 443) to get around it.&lt;&#x2F;li&gt;
+&lt;li&gt;SRT handles packet loss better than RTMP on unreliable networks. Haivision made it, OBS supports it, but adoption is still limited.&lt;&#x2F;li&gt;
+&lt;li&gt;AV1 software encoding can&#x27;t do 1080p60 in real-time on current hardware. Hardware AV1 encoding (Intel Arc, Nvidia 40-series) exists but adoption is early.&lt;&#x2F;li&gt;
+&lt;li&gt;Twitch caps ingest at 8500 kbps partly because higher bitrates mean more expensive transcoding. YouTube allows up to 51 Mbps for 4K.&lt;&#x2F;li&gt;
+&lt;li&gt;Chat infrastructure is completely separate, WebSocket-based or whatever, its own scaling problems with millions of connections and message fan-out, shares almost nothing with video.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+</feed>

@@ -87,8 +87,6 @@ Now you care about access frequency, stall contribution, memory-level parallelis
 
 In a way, tiered memory isn't a brand new idea. It's swap, compressed into the nanosecond domain. But once you compress the scale, all the small details start to matter.
 
----
-
 ## notes / random thoughts
 
 - Swap is emergency capacity management. Tiered memory is performance optimization.

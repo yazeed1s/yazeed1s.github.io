@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="How I use binary space partitioning to manage windows in my X11 window manager." />
+<meta
+    name="keywords"
+    content="yazeed, blog, alharthi, yaz, yazeed1s"
+/>
+<link rel="canonical" href="https://yazeed1s.github.io/posts/bsp/" />
+
+<title>BSP Trees for Tiling Window Management | Yazeed&#x27;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
+<meta property="og:title" content="BSP Trees for Tiling Window Management | Yazeed&#x27;s Blog" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://yazeed1s.github.io/posts/bsp/" />
+<meta property="og:description" content="How I use binary space partitioning to manage windows in my X11 window manager." />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="BSP Trees for Tiling Window Management" />
+<meta name="twitter:description" content="How I use binary space partitioning to manage windows in my X11 window manager." />
+
+    <link rel="icon" href="&#x2F;favicon.ico" />
+    
+    <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
+    <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+
+           
+    
+    
+    
+
+          
+    
+    
+    
+    <style>
+        :root {
+            --nav-basis: 25%;
+            --light-bg: #eae6deff;
+            --light-text: #1a1410;
+            --light-text-muted: #1a1410;
+            --light-accent: #9E4440;
+            --light-accent-hover: #7A3533;
+            --light-code-bg: #e1ded6ff;
+            --light-border: #abaaaaff;
+            --light-bold: #1a1410;
+            --light-italic: #1a1410;
+            --light-headers: #1a1410;
+            --dark-bg: #303132;
+            --dark-text: #bebbb9ff;
+            --dark-text-muted: #d5d2cf;
+            --dark-accent: #e57665;
+            --dark-accent-hover: #888885;
+            --dark-code-bg: #282829;
+            --dark-border: #524f4c;
+            --dark-bold: #d5d2cf;
+            --dark-italic: #d5d2cf;
+            --dark-headers: #d5d2cf;
+        }
+    </style>
+    <meta name="theme-color" id="tc" />
+    <script>
+        (function () {
+            var m = matchMedia("(prefers-color-scheme:dark)"),
+                t = localStorage.theme || (m.matches ? "dark" : "light"),
+                h = document.documentElement,
+                c = document.getElementById("tc");
+            h.className = t;
+            function u() {
+                c.content = getComputedStyle(h).getPropertyValue("--tc");
+            }
+            u();
+            window.T = function () {
+                t = t === "dark" ? "light" : "dark";
+                localStorage.theme = t;
+                h.className = t;
+                u();
+            };
+        })();
+    </script>
+    
+</head>
+
+<body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><symbol id="light" viewBox="0 0 32 32"><rect x="15" y="2" width="2" height="5"/><rect x="21.6675" y="6.8536" width="4.958" height="1.9998" transform="translate(1.5191 19.3744) rotate(-45)"/><rect x="25" y="15" width="5" height="2"/><rect x="23.1466" y="21.6675" width="1.9998" height="4.958" transform="translate(-10.0018 24.1465) rotate(-45)"/><rect x="15" y="25" width="2" height="5"/><rect x="5.3745" y="23.1466" width="4.958" height="1.9998" transform="translate(-14.7739 12.6256) rotate(-45)"/><rect x="2" y="15" width="5" height="2"/><rect x="6.8536" y="5.3745" width="1.9998" height="4.958" transform="translate(-3.253 7.8535) rotate(-45)"/><path d="M16,12a4,4,0,1,1-4,4,4.0045,4.0045,0,0,1,4-4m0-2a6,6,0,1,0,6,6,6,6,0,0,0-6-6Z"/></symbol>
+<symbol id="asleep" viewBox="0 0 32 32"><path d="M13.5025,5.4136A15.0755,15.0755,0,0,0,25.096,23.6082a11.1134,11.1134,0,0,1-7.9749,3.3893c-.1385,0-.2782.0051-.4178,0A11.0944,11.0944,0,0,1,13.5025,5.4136M14.98,3a1.0024,1.0024,0,0,0-.1746.0156A13.0959,13.0959,0,0,0,16.63,28.9973c.1641.006.3282,0,.4909,0a13.0724,13.0724,0,0,0,10.702-5.5556,1.0094,1.0094,0,0,0-.7833-1.5644A13.08,13.08,0,0,1,15.8892,4.38,1.0149,1.0149,0,0,0,14.98,3Z"/></symbol>
+<symbol id="rss" viewBox="0 0 32 32"><path d="M8,18c-3.3,0-6,2.7-6,6s2.7,6,6,6s6-2.7,6-6C14,20.7,11.3,18,8,18z M8,28c-2.2,0-4-1.8-4-4s1.8-4,4-4s4,1.8,4,4C12,26.2,10.2,28,8,28z"/><path d="M30,24h-2C28,13,19,4,8,4V2C20.1,2,30,11.9,30,24z"/><path d="M22,24h-2c0-6.6-5.4-12-12-12v-2C15.7,10,22,16.3,22,24z"/></symbol>
+</svg>
+
+    <header id="site-header">
+        <div>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <nav>
+                <a href="https://yazeed1s.github.io/" >Home</a>
+                <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
+                <a href="https://yazeed1s.github.io/projects/" >Projects</a>
+                <a href="https://yazeed1s.github.io/tags/" >Tags</a>
+                </nav>
+            <a href="#" onclick="
+                        T();
+                        return false;
+                    " class="theme" aria-label="Toggle theme" title="Toggle theme">
+<svg><use href="#light"/></svg>
+<svg><use href="#asleep"/></svg></a>
+        </div>
+    </header>
+    <hr class="site-sep" />
+    <main id="main">
+<article>
+    <header>
+        <h1>BSP Trees for Tiling Window Management</h1>
+        <div class="post-meta">
+            <time datetime="2024-07-21">21 Jul 2024</time>
+            
+            <span>How I use binary space partitioning to manage windows in my X11 window manager.</span>
+             
+            <span class="post-tags">
+                <span class="post-tags-label">Tags: </span>
+                
+                <a href="https://yazeed1s.github.io/tags/c">C</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/spatial-data-structures">Spatial Data Structures</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/tiling-window-manager">Tiling Window Manager</a>
+            </span>
+            
+        </div>
+    </header>
+     <hr />
+<p>At some point I decided to build my own tiling window manager from scratch. I was working with spatial data structures at work, and BSP trees looked like a good fit for this kind of problem. It also sounded like a fun challenge.</p>
+<hr />
+<h2 id="what-s-a-tiling-window-manager">What's a Tiling Window Manager?</h2>
+<p>A tiling window manager arranges windows so they don't overlap. Instead of floating windows on top of each other like macOS or Windows, it splits the screen into sections. You open a window, it goes into a tile. Open another, the screen splits. You don't manually position anything.</p>
+<p>Linux has a bunch of these (dwm, i3, bspwm). On Mac there's Yabai. They're not mainstream, but if you're into keyboard-driven workflows, they're nice.</p>
+<p>The question is: how do you represent this layout in memory?</p>
+<h2 id="what-the-layout-data-structure-needs-to-do">What the Layout Data Structure Needs to Do</h2>
+<p>Before picking a data structure, it helps to think about what operations matter.</p>
+<p>A tiling window manager, at minimum, needs to:</p>
+<ul>
+<li><strong>Insert</strong> a new window when one opens, splitting the focused region</li>
+<li><strong>Delete</strong> a window when it closes, reclaiming the space</li>
+<li><strong>Resize</strong> regions by adjusting split ratios</li>
+<li><strong>Traverse</strong> the layout to find the next/previous window</li>
+<li><strong>Render</strong> by walking the structure and applying positions to X11</li>
+</ul>
+<p>The shape of the data matters too. Window layouts are inherently hierarchical and spatial. The screen splits into halves, those halves split again. It's not a flat sequence at all.</p>
+<p>Whatever structure we pick, it should make the common operations cheap and match this hierarchical shape. Otherwise we're fighting the data.</p>
+<h2 id="why-a-linear-structure-falls-apart">Why a Linear Structure Falls Apart</h2>
+<p>Given those constraints, the obvious first thought is a linked list since it's simple and well understood, but there's a fundamental mismatch: linked lists are linear and window layouts are 2D.</p>
+<p>When windows tile they form a hierarchy (this half of the screen, that quarter, and so on), and a list doesn't capture this naturally. Every time you add or remove a window you'd have to recalculate all the rectangles from scratch, which works but it's more math than I want to deal with.</p>
+<h2 id="trees-handle-it-better">Trees Handle It Better</h2>
+<p>If the problem is hierarchical, the structure should be too. Trees fit naturally: the screen is the root, each split creates two children, windows live in the leaves, and the structure maps directly to what you see on screen. That's where BSP trees come in.</p>
+<h2 id="binary-space-partitioning">Binary Space Partitioning</h2>
+<p>BSP trees are a specific kind of tree designed for recursive spatial division: start with the full screen, split it in half (horizontal or vertical), and keep splitting as needed. Each split point becomes an internal node and each final region becomes a leaf.</p>
+<p>In my implementation:</p>
+<ul>
+<li><strong>Root node</strong> = the entire screen/monitor rectangle</li>
+<li><strong>Internal nodes</strong> = split regions (no window, just children)</li>
+<li><strong>External/leaf nodes</strong> = actual windows</li>
+</ul>
+<p>Each node can have zero or two children. Never one.</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="plain"><span class="giallo-l"><span>    Tree Node Types:</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>           I           ROOT (root is INTERNAL unless it&#39;s a single leaf)</span></span>
+<span class="giallo-l"><span>          / \</span></span>
+<span class="giallo-l"><span>         /   \</span></span>
+<span class="giallo-l"><span>        I     I        INTERNAL NODES (screen sections/partitions)</span></span>
+<span class="giallo-l"><span>       / \   / \</span></span>
+<span class="giallo-l"><span>      /   \ /   \</span></span>
+<span class="giallo-l"><span>     E    E E    E     EXTERNAL NODES (windows/leaves)</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>    - Internal Nodes (I): represent screen partitions, no window</span></span>
+<span class="giallo-l"><span>    - External Nodes (E): hold actual windows</span></span></code></pre><h2 id="the-node-structure">The Node Structure</h2>
+<p>Here's the actual node definition from my code:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">typedef</span><span style="color: light-dark(#784367, #D4B399);"> struct</span><span style="color: light-dark(#855959, #A6BCAD);"> node_t</span><span style="color: light-dark(#855959, #A6BCAD);"> node_t</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">struct</span><span style="color: light-dark(#855959, #A6BCAD);"> node_t</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#855959, #A6BCAD);">    node_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);">     *</span><span>parent</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#855959, #A6BCAD);">    node_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);">     *</span><span>first_child</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#855959, #A6BCAD);">    node_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);">     *</span><span>second_child</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#855959, #A6BCAD);">    client_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);">   *</span><span>client</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">           //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> the window, only for leaves</span></span>
+<span class="giallo-l"><span style="color: light-dark(#855959, #A6BCAD);">    rectangle_t</span><span> rectangle</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">        //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> position and size</span></span>
+<span class="giallo-l"><span style="color: light-dark(#855959, #A6BCAD);">    rectangle_t</span><span> floating_rectangle</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#855959, #A6BCAD);">    node_type_t</span><span> node_type</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">        //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> ROOT_NODE, INTERNAL_NODE, EXTERNAL_NODE</span></span>
+<span class="giallo-l"><span style="color: light-dark(#855959, #A6BCAD);">    split_type_t</span><span> split_type</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">      //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> HORIZONTAL, VERTICAL, or DYNAMIC</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    double</span><span>      split_ratio</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">      //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> how to divide the space (0.0-1.0)</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    bool</span><span>        is_focused</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    bool</span><span>        is_master</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span></code></pre>
+<p>I include a parent pointer because some implementations skip it to save memory, but having it makes traversal and sibling access trivial and worth the extra 8 bytes per node. With the structure in place, the next parts are insertion and deletion.</p>
+<h2 id="insertion">Insertion</h2>
+<p>When you open a new window, here's what happens:</p>
+<ol>
+<li>Find the currently focused leaf node</li>
+<li>Turn it into an internal node</li>
+<li>Create two new leaf nodes as children</li>
+<li>Move the existing window into the first child</li>
+<li>Put the new window into the second child</li>
+<li>Split the parent's rectangle between them</li>
+</ol>
+<p>The split direction depends on the rectangle shape; if it's wider than tall, split vertically (side by side). Otherwise, split horizontally (top and bottom).</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">void</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">insert_node</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#855959, #A6BCAD);">node_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#7D4242, #D4D4C0);">node</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#855959, #A6BCAD);"> node_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#7D4242, #D4D4C0);">new_node</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#855959, #A6BCAD);"> layout_t</span><span style="color: light-dark(#7D4242, #D4D4C0);"> layout</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">{</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>node </span><span style="color: light-dark(#4B4B48, #CB8B8B);">==</span><span style="color: light-dark(#784367, #CA9D7D);"> NULL</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> ||</span><span style="color: light-dark(#7D4242, #D4D4C0);"> node</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">client</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> ==</span><span style="color: light-dark(#784367, #CA9D7D);"> NULL</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">        return</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    }</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> change node type to INTERNAL if it&#39;s not ROOT</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#4B4B48, #CB8B8B);">!</span><span style="color: light-dark(#3C6362, #A2BD90);">IS_ROOT</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>node</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7D4242, #D4D4C0);">        node</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">node_type</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> =</span><span> INTERNAL_NODE</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> move existing client to first child</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7D4242, #D4D4C0);">    node</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">first_child</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> =</span><span style="color: light-dark(#3C6362, #A2BD90);"> create_node</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#7D4242, #D4D4C0);">node</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">client</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7D4242, #D4D4C0);">    node</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">first_child</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">parent</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> =</span><span> node</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7D4242, #D4D4C0);">    node</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">first_child</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">node_type</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> =</span><span> EXTERNAL_NODE</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7D4242, #D4D4C0);">    node</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">client</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> =</span><span style="color: light-dark(#784367, #CA9D7D);"> NULL</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> new window becomes second child</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7D4242, #D4D4C0);">    node</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">second_child</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> =</span><span> new_node</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7D4242, #D4D4C0);">    node</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">second_child</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">parent</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> =</span><span> node</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7D4242, #D4D4C0);">    node</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">second_child</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">node_type</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> =</span><span> EXTERNAL_NODE</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> split the rectangle</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    split_node</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>node</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> new_node</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre>
+<p>The splitting logic:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">static</span><span style="color: light-dark(#784367, #D4B399);"> void</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">split_rect</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#855959, #A6BCAD);">node_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#7D4242, #D4D4C0);">n</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#855959, #A6BCAD);"> split_type_t</span><span style="color: light-dark(#7D4242, #D4D4C0);"> s</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">{</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    const</span><span style="color: light-dark(#784367, #D4B399);"> int16_t</span><span> gap   </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#7D4242, #D4D4C0);"> conf</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">window_gap</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> -</span><span style="color: light-dark(#7D4242, #D4D4C0);"> conf</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">border_width</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    const</span><span style="color: light-dark(#784367, #D4B399);"> int16_t</span><span> pgap  </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#7D4242, #D4D4C0);"> conf</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">window_gap</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> +</span><span style="color: light-dark(#7D4242, #D4D4C0);"> conf</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">border_width</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    const</span><span style="color: light-dark(#784367, #D4B399);"> double</span><span>  ratio </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#3C6362, #A2BD90);"> normalize_split_ratio</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#7D4242, #D4D4C0);">n</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">split_ratio</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#855959, #A6BCAD);">    node_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);">       *</span><span>n1    </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#7D4242, #D4D4C0);"> n</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">first_child</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#855959, #A6BCAD);">    node_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);">       *</span><span>n2    </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#7D4242, #D4D4C0);"> n</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">second_child</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#855959, #A6BCAD);">    rectangle_t</span><span>   nr    </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#7D4242, #D4D4C0);"> n</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">rectangle</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    bool</span><span>          h     </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>s </span><span style="color: light-dark(#4B4B48, #CB8B8B);">==</span><span> HORIZONTAL_TYPE</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> first child rectangle</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7D4242, #D4D4C0);">    n1</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">rectangle</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">x</span><span style="color: light-dark(#4B4B48, #CB8B8B);">      =</span><span style="color: light-dark(#7D4242, #D4D4C0);"> nr</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">x</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7D4242, #D4D4C0);">    n1</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">rectangle</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">y</span><span style="color: light-dark(#4B4B48, #CB8B8B);">      =</span><span style="color: light-dark(#7D4242, #D4D4C0);"> nr</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">y</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7D4242, #D4D4C0);">    n1</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">rectangle</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">width</span><span style="color: light-dark(#4B4B48, #CB8B8B);">  =</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>h</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> ?</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#7D4242, #D4D4C0);">nr</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">width</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> -</span><span> gap</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span> ratio </span><span style="color: light-dark(#4B4B48, #CB8B8B);">:</span><span style="color: light-dark(#7D4242, #D4D4C0);"> nr</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">width</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7D4242, #D4D4C0);">    n1</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">rectangle</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">height</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> =</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>h</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> ?</span><span style="color: light-dark(#7D4242, #D4D4C0);"> nr</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">height</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> :</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#7D4242, #D4D4C0);">nr</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">height</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> -</span><span> gap</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span> ratio</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> second child rectangle</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7D4242, #D4D4C0);">    n2</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">rectangle</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">x</span><span style="color: light-dark(#4B4B48, #CB8B8B);">      =</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>h</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> ?</span><span style="color: light-dark(#7D4242, #D4D4C0);"> nr</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">x</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> +</span><span style="color: light-dark(#7D4242, #D4D4C0);"> n1</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">rectangle</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">width</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> +</span><span> pgap </span><span style="color: light-dark(#4B4B48, #CB8B8B);">:</span><span style="color: light-dark(#7D4242, #D4D4C0);"> nr</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">x</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7D4242, #D4D4C0);">    n2</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">rectangle</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">y</span><span style="color: light-dark(#4B4B48, #CB8B8B);">      =</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>h</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> ?</span><span style="color: light-dark(#7D4242, #D4D4C0);"> nr</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">y</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> :</span><span style="color: light-dark(#7D4242, #D4D4C0);"> nr</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">y</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> +</span><span style="color: light-dark(#7D4242, #D4D4C0);"> n1</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">rectangle</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">height</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> +</span><span> pgap</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7D4242, #D4D4C0);">    n2</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">rectangle</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">width</span><span style="color: light-dark(#4B4B48, #CB8B8B);">  =</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>h</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> ?</span><span style="color: light-dark(#7D4242, #D4D4C0);"> nr</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">width</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> -</span><span style="color: light-dark(#7D4242, #D4D4C0);"> n1</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">rectangle</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">width</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> -</span><span> gap </span><span style="color: light-dark(#4B4B48, #CB8B8B);">:</span><span style="color: light-dark(#7D4242, #D4D4C0);"> nr</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">width</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7D4242, #D4D4C0);">    n2</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">rectangle</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">height</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> =</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>h</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> ?</span><span style="color: light-dark(#7D4242, #D4D4C0);"> nr</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">height</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> :</span><span style="color: light-dark(#7D4242, #D4D4C0);"> nr</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">height</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> -</span><span style="color: light-dark(#7D4242, #D4D4C0);"> n1</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">rectangle</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">height</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> -</span><span> gap</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre><h3 id="visual-example-adding-windows">Visual Example: Adding Windows</h3>
+<p><strong>Empty screen - null tree:</strong></p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="plain"><span class="giallo-l"><span>    Screen                          BSP-tree</span></span>
+<span class="giallo-l"><span>    +-----------------------+</span></span>
+<span class="giallo-l"><span>    |                       |         [NULL]</span></span>
+<span class="giallo-l"><span>    |        empty          |</span></span>
+<span class="giallo-l"><span>    |                       |</span></span>
+<span class="giallo-l"><span>    +-----------------------+</span></span></code></pre>
+<p><strong>First window - takes the whole screen:</strong></p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="plain"><span class="giallo-l"><span>    Screen                          BSP-tree</span></span>
+<span class="giallo-l"><span>    +-----------------------+</span></span>
+<span class="giallo-l"><span>    |                       |       ROOT_NODE</span></span>
+<span class="giallo-l"><span>    |       window 1        |      (window 1 &amp;</span></span>
+<span class="giallo-l"><span>    |      rectangle 1      |      rectangle 1)</span></span>
+<span class="giallo-l"><span>    +-----------------------+</span></span></code></pre>
+<p><strong>Second window - screen splits, root becomes internal:</strong></p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="plain"><span class="giallo-l"><span>    Screen                          BSP-tree</span></span>
+<span class="giallo-l"><span>    +-----------------------+</span></span>
+<span class="giallo-l"><span>    |           |           |          ROOT_NODE</span></span>
+<span class="giallo-l"><span>    |           |           |         (rectangle 1)</span></span>
+<span class="giallo-l"><span>    | window 1  | window 2  |           /     \</span></span>
+<span class="giallo-l"><span>    |   rect 2  |   rect 3  |          /       \</span></span>
+<span class="giallo-l"><span>    |           |           |     EXTERNAL  EXTERNAL</span></span>
+<span class="giallo-l"><span>    |           |           |     (win 1,   (win 2,</span></span>
+<span class="giallo-l"><span>    +-----------------------+     rect 2)   rect 3)</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>    - Screen divided into rectangle 1 (whole screen)</span></span>
+<span class="giallo-l"><span>    - Window 1 -&gt; rectangle 2, Window 2 -&gt; rectangle 3</span></span>
+<span class="giallo-l"><span>    - Both rect 2 and rect 3 are inside rect 1</span></span></code></pre>
+<p><strong>Third window - one side splits again:</strong></p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="plain"><span class="giallo-l"><span>    Screen                          BSP-tree</span></span>
+<span class="giallo-l"><span>    +-----------------------+</span></span>
+<span class="giallo-l"><span>    |           |           |            ROOT_NODE</span></span>
+<span class="giallo-l"><span>    |           |  window 2 |            (rect 1)</span></span>
+<span class="giallo-l"><span>    |           |   rect 4  |            /      \</span></span>
+<span class="giallo-l"><span>    | window 1  |-----------|           /        \</span></span>
+<span class="giallo-l"><span>    |   rect 2  |           |      EXTERNAL   INTERNAL</span></span>
+<span class="giallo-l"><span>    |           |  window 3 |      (win 1,    (rect 3)</span></span>
+<span class="giallo-l"><span>    |           |   rect 5  |      rect 2)     /    \</span></span>
+<span class="giallo-l"><span>    +-----------------------+                 /      \</span></span>
+<span class="giallo-l"><span>                                         EXTERNAL EXTERNAL</span></span>
+<span class="giallo-l"><span>                                         (win 2,  (win 3,</span></span>
+<span class="giallo-l"><span>                                         rect 4)  rect 5)</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>    - rectangle 3 (right half) splits into rect 4 and rect 5</span></span>
+<span class="giallo-l"><span>    - Window 2 moves to rect 4, Window 3 takes rect 5</span></span></code></pre>
+<p><strong>Fourth window:</strong></p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="plain"><span class="giallo-l"><span>    Screen                              BSP-tree</span></span>
+<span class="giallo-l"><span>    +-----------------------+</span></span>
+<span class="giallo-l"><span>    |  window 1 |  window 2 |                ROOT_NODE</span></span>
+<span class="giallo-l"><span>    |   rect 6  |   rect 4  |                (rect 1)</span></span>
+<span class="giallo-l"><span>    |-----------|-----------|               /        \</span></span>
+<span class="giallo-l"><span>    |  window 4 |  window 3 |              /          \</span></span>
+<span class="giallo-l"><span>    |   rect 7  |   rect 5  |        INTERNAL       INTERNAL</span></span>
+<span class="giallo-l"><span>    +-----------------------+        (rect 2)       (rect 3)</span></span>
+<span class="giallo-l"><span>                                      /    \         /    \</span></span>
+<span class="giallo-l"><span>                                     /      \       /      \</span></span>
+<span class="giallo-l"><span>                                   EXT     EXT    EXT      EXT</span></span>
+<span class="giallo-l"><span>                                  (w1,    (w4,   (w2,     (w3,</span></span>
+<span class="giallo-l"><span>                                   r6)     r7)    r4)      r5)</span></span></code></pre>
+<p>Each internal node's rectangle contains its children. The tree structure directly mirrors the screen layout.</p>
+<h2 id="deletion">Deletion</h2>
+<p>Insertion is the easy part, deletion is where tree operations get interesting. When you close a window the node gets removed, but you can't just delete it because the tree needs to stay valid. The key insight is that when you remove a leaf, its parent (an internal node) now has only one child, and that's not valid, so the sibling "takes over" the parent's position.</p>
+<h3 id="case-1-simple-deletion-sibling-is-external-parent-is-root">Case 1: Simple deletion (sibling is external, parent is root)</h3>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="plain"><span class="giallo-l"><span>    Before:                             After:</span></span>
+<span class="giallo-l"><span>    +-----------------------+           +-----------------------+</span></span>
+<span class="giallo-l"><span>    |           |           |           |                       |</span></span>
+<span class="giallo-l"><span>    | window 1  |  window 2 | delete    |                       |</span></span>
+<span class="giallo-l"><span>    |  Node B   |  Node C   | ------&gt;   |  Node A (now has      |</span></span>
+<span class="giallo-l"><span>    |           |  (delete) |           |     window 1)         |</span></span>
+<span class="giallo-l"><span>    +-----------------------+           +-----------------------+</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>    BSP-tree Before:                    BSP-tree After:</span></span>
+<span class="giallo-l"><span>        ROOT_NODE                           ROOT_NODE</span></span>
+<span class="giallo-l"><span>         Node A                              Node A</span></span>
+<span class="giallo-l"><span>         /    \                            (window 1)</span></span>
+<span class="giallo-l"><span>        /      \</span></span>
+<span class="giallo-l"><span>   EXTERNAL  EXTERNAL</span></span>
+<span class="giallo-l"><span>    Node B    Node C</span></span>
+<span class="giallo-l"><span>   (win 1)   (win 2)</span></span>
+<span class="giallo-l"><span>             [DELETE]</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>    - Node C is deleted</span></span>
+<span class="giallo-l"><span>    - Node B&#39;s client moves up to Node A</span></span>
+<span class="giallo-l"><span>    - Node A becomes a leaf with window 1</span></span></code></pre><h3 id="case-2-deletion-with-grandparent-sibling-is-external">Case 2: Deletion with grandparent (sibling is external)</h3>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="plain"><span class="giallo-l"><span>    Before:                              After:</span></span>
+<span class="giallo-l"><span>    +-----------------------+            +-----------------------+</span></span>
+<span class="giallo-l"><span>    |           |           |            |           |           |</span></span>
+<span class="giallo-l"><span>    |           |  window 2 |            |           |           |</span></span>
+<span class="giallo-l"><span>    | window 1  |  Node B   |  delete    | window 1  |  window 2 |</span></span>
+<span class="giallo-l"><span>    |  Node EA  |-----------|  ------&gt;   |  Node EA  |  Node A   |</span></span>
+<span class="giallo-l"><span>    |           |  window 3 |            |           | (was B)   |</span></span>
+<span class="giallo-l"><span>    |           |  Node C   |            |           |           |</span></span>
+<span class="giallo-l"><span>    +-----------------------+            +-----------------------+</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>    BSP-tree Before:                     BSP-tree After:</span></span>
+<span class="giallo-l"><span>         ROOT_NODE                            ROOT_NODE</span></span>
+<span class="giallo-l"><span>          Node PA                              Node PA</span></span>
+<span class="giallo-l"><span>          /     \                              /     \</span></span>
+<span class="giallo-l"><span>         /       \                            /       \</span></span>
+<span class="giallo-l"><span>    EXTERNAL  INTERNAL                   EXTERNAL  EXTERNAL</span></span>
+<span class="giallo-l"><span>     Node EA   Node A                     Node EA   Node A</span></span>
+<span class="giallo-l"><span>    (win 1)    /    \                    (win 1)   (win 2)</span></span>
+<span class="giallo-l"><span>              /      \</span></span>
+<span class="giallo-l"><span>         EXTERNAL EXTERNAL</span></span>
+<span class="giallo-l"><span>          Node B   Node C</span></span>
+<span class="giallo-l"><span>         (win 2)  (win 3)</span></span>
+<span class="giallo-l"><span>                  [DELETE]</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>    - Delete Node C (window 3)</span></span>
+<span class="giallo-l"><span>    - Its sibling Node B takes Node A&#39;s place</span></span>
+<span class="giallo-l"><span>    - Node B becomes External directly under root</span></span>
+<span class="giallo-l"><span>    - Free Node A and Node C</span></span></code></pre><h3 id="case-3-deletion-when-sibling-is-internal">Case 3: Deletion when sibling is internal</h3>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="plain"><span class="giallo-l"><span>    Before:                              After update links:       Final state:</span></span>
+<span class="giallo-l"><span>    +-----------------------+            +-----------------------+  +-----------------------+</span></span>
+<span class="giallo-l"><span>    |           |           |            |           |           |  |           |           |</span></span>
+<span class="giallo-l"><span>    |           |  window 2 |            |  window 2 |  window 3 |  |  window 2 |  window 3 |</span></span>
+<span class="giallo-l"><span>    | window 1  |  Node B   |            |  node B   |  node C   |  |  node B   |  node C   |</span></span>
+<span class="giallo-l"><span>    |  Node EA  |-----------|  ------&gt;   |           |           |  |           |           |</span></span>
+<span class="giallo-l"><span>    | [DELETE]  |  window 3 |            +-----------------------+  +-----------------------+</span></span>
+<span class="giallo-l"><span>    |           |  Node C   |</span></span>
+<span class="giallo-l"><span>    +-----------------------+</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>    BSP-tree:</span></span>
+<span class="giallo-l"><span>    Initial:                   After unlink:               Final:</span></span>
+<span class="giallo-l"><span>         ROOT_NODE                  ROOT_NODE                   ROOT_NODE</span></span>
+<span class="giallo-l"><span>          Node PA                    Node PA                     Node PA</span></span>
+<span class="giallo-l"><span>          /     \                        \                       /     \</span></span>
+<span class="giallo-l"><span>         /       \                        \                     /       \</span></span>
+<span class="giallo-l"><span>    EXTERNAL  INTERNAL               INTERNAL               EXTERNAL EXTERNAL</span></span>
+<span class="giallo-l"><span>     Node EA   Node A                 Node A                 Node B   Node C</span></span>
+<span class="giallo-l"><span>    (win 1)    /    \                 /    \                (win 2)  (win 3)</span></span>
+<span class="giallo-l"><span>    [DELETE]  /      \               /      \</span></span>
+<span class="giallo-l"><span>         EXTERNAL EXTERNAL      EXTERNAL EXTERNAL</span></span>
+<span class="giallo-l"><span>          Node B   Node C        Node B   Node C</span></span>
+<span class="giallo-l"><span>         (win 2)  (win 3)       (win 2)  (win 3)</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>    - Delete Node EA (window 1)</span></span>
+<span class="giallo-l"><span>    - Its sibling Node A is internal, has children B and C</span></span>
+<span class="giallo-l"><span>    - Node A&#39;s children (B, C) get promoted to Node PA&#39;s children</span></span>
+<span class="giallo-l"><span>    - Free Node EA and Node A</span></span></code></pre>
+<p>Here's the code:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">bool</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">unlink_node</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#855959, #A6BCAD);">node_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#7D4242, #D4D4C0);">n</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#855959, #A6BCAD);"> desktop_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#7D4242, #D4D4C0);">d</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">{</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>d </span><span style="color: light-dark(#4B4B48, #CB8B8B);">==</span><span style="color: light-dark(#784367, #CA9D7D);"> NULL</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> ||</span><span> n </span><span style="color: light-dark(#4B4B48, #CB8B8B);">==</span><span style="color: light-dark(#784367, #CA9D7D);"> NULL</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">        return</span><span style="color: light-dark(#784367, #CA9D7D);"> false</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    }</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> if node is root, tree becomes empty</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#7D4242, #D4D4C0);">n</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">parent</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> ==</span><span style="color: light-dark(#784367, #CA9D7D);"> NULL</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7D4242, #D4D4C0);">        d</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">tree</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> =</span><span style="color: light-dark(#784367, #CA9D7D);"> NULL</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">        return</span><span style="color: light-dark(#784367, #CA9D7D);"> true</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    }</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#855959, #A6BCAD);">    node_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>parent  </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#7D4242, #D4D4C0);"> n</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">parent</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#855959, #A6BCAD);">    node_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>sibling </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#3C6362, #A2BD90);"> get_sibling</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>n</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#855959, #A6BCAD);">    node_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>grandparent </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#7D4242, #D4D4C0);"> parent</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">parent</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#7D4242, #D4D4C0);">    sibling</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">parent</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> =</span><span> grandparent</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>grandparent</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">        //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> replace parent with sibling in grandparent&#39;s children</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">        if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#7D4242, #D4D4C0);">grandparent</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">first_child</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> ==</span><span> parent</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7D4242, #D4D4C0);">            grandparent</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">first_child</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> =</span><span> sibling</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">        }</span><span style="color: light-dark(#784367, #D4B399);"> else</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7D4242, #D4D4C0);">            grandparent</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">second_child</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> =</span><span> sibling</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">        }</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    }</span><span style="color: light-dark(#784367, #D4B399);"> else</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">        //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> sibling becomes new root</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7D4242, #D4D4C0);">        sibling</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">node_type</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> =</span><span> ROOT_NODE</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7D4242, #D4D4C0);">        d</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">tree</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> =</span><span> sibling</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    }</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> cleanup</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7D4242, #D4D4C0);">    parent</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">first_child</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> =</span><span style="color: light-dark(#784367, #CA9D7D);"> NULL</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7D4242, #D4D4C0);">    parent</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">second_child</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> =</span><span style="color: light-dark(#784367, #CA9D7D);"> NULL</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    free</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>parent</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7D4242, #D4D4C0);">    n</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">parent</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> =</span><span style="color: light-dark(#784367, #CA9D7D);"> NULL</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    return</span><span style="color: light-dark(#784367, #CA9D7D);"> true</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre>
+<p>The sibling inherits the parent's rectangle, so after deletion, the remaining windows still fill the screen properly.</p>
+<h2 id="other-operations">Other Operations</h2>
+<p>Beyond insert/delete, there's a bunch of other stuff the tree needs to handle:</p>
+<ul>
+<li><strong>Finding nodes by window ID</strong> - recursive search through the tree</li>
+<li><strong>Traversal</strong> - next/previous window in the tree</li>
+<li><strong>Resizing</strong> - adjusting split ratios and propagating changes down</li>
+<li><strong>Layout switching</strong> - master/stack layouts recalculate all rectangles</li>
+<li><strong>Rendering</strong> - BFS traversal to apply positions to actual X11 windows</li>
+</ul>
+<p>The tree traversal uses a simple queue for BFS:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">int</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">render_tree</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#855959, #A6BCAD);">node_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#7D4242, #D4D4C0);">node</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">{</span></span>
+<span class="giallo-l"><span style="color: light-dark(#855959, #A6BCAD);">    queue_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>q </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#3C6362, #A2BD90);"> create_queue</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    enqueue</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>q</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> node</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    while</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#7D4242, #D4D4C0);">q</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">front</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#855959, #A6BCAD);">        node_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>current </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#3C6362, #A2BD90);"> dequeue</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>q</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">        if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#4B4B48, #CB8B8B);">!</span><span style="color: light-dark(#3C6362, #A2BD90);">IS_INTERNAL</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>current</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> &amp;&amp;</span><span style="color: light-dark(#7D4242, #D4D4C0);"> current</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">client</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">            tile</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>current</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">  //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> apply position to X11 window</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">            continue</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">        }</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">        if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#7D4242, #D4D4C0);">current</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">first_child</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">            enqueue</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>q</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#7D4242, #D4D4C0);"> current</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">first_child</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">        if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#7D4242, #D4D4C0);">current</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">second_child</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">            enqueue</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>q</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#7D4242, #D4D4C0);"> current</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">second_child</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    }</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    free_queue</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>q</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    return</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre><h2 id="wrap-up">wrap-up</h2>
+<p>BSP trees aren't complicated once you see them as just recursive space division, where the tree structure matches the visual layout and makes most operations straightforward. Insertion splits a rectangle, deletion merges back up, and the tree adjusts as windows come and go.</p>
+<p>The full implementation handles more edge cases (floating windows, fullscreen, gaps, borders, multiple monitors), but the core idea is what I described here. Code is here: <a rel="external" href="https://github.com/yazeed1s/zwm">github.com/yazeed1s/zwm</a>.</p>
+  
+</article>
+</main>
+    <hr class="site-sep bottom-sep" />
+    <footer class="s">
+        
+    </footer>
+    
+
+    <script>
+        document.querySelectorAll("article img[srcset]").forEach((i) => {
+            if (i.closest("a")) return;
+            i.style.cursor = "pointer";
+            i.onclick = () => {
+                let d = document.createElement("div"),
+                    s = i.srcset.split(",").pop().trim().split(" ")[0];
+                d.className = "lb";
+                d.innerHTML = '<img src="' + s + '">';
+                document.body.style.overflow = "hidden";
+                d.onclick = () => {
+                    d.remove();
+                    document.body.style.overflow = "";
+                };
+                document.body.appendChild(d);
+            };
+        });
+    </script>
+    
+<button id="scroll-to-top" aria-label="Scroll to top" title="Scroll to top">↑</button>
+<script>
+    (function() {
+        var btn = document.getElementById("scroll-to-top");
+        if (btn) {
+            window.addEventListener("scroll", function() {
+                if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                    btn.classList.add("show");
+                } else {
+                    btn.classList.remove("show");
+                }
+            });
+            btn.addEventListener("click", function() {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        }
+    })();
+</script>
+</body>
+
+</html>

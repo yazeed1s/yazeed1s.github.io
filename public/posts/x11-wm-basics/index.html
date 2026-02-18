@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="XCB event masks, SubstructureRedirect, and how a WM becomes the WM." />
+<meta
+    name="keywords"
+    content="yazeed, blog, alharthi, yaz, yazeed1s"
+/>
+<link rel="canonical" href="https://yazeed1s.github.io/posts/x11-wm-basics/" />
+
+<title>How a Window Manager Talks to X11 | Yazeed&#x27;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
+<meta property="og:title" content="How a Window Manager Talks to X11 | Yazeed&#x27;s Blog" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://yazeed1s.github.io/posts/x11-wm-basics/" />
+<meta property="og:description" content="XCB event masks, SubstructureRedirect, and how a WM becomes the WM." />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="How a Window Manager Talks to X11" />
+<meta name="twitter:description" content="XCB event masks, SubstructureRedirect, and how a WM becomes the WM." />
+
+    <link rel="icon" href="&#x2F;favicon.ico" />
+    
+    <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
+    <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+
+           
+    
+    
+    
+
+          
+    
+    
+    
+    <style>
+        :root {
+            --nav-basis: 25%;
+            --light-bg: #eae6deff;
+            --light-text: #1a1410;
+            --light-text-muted: #1a1410;
+            --light-accent: #9E4440;
+            --light-accent-hover: #7A3533;
+            --light-code-bg: #e1ded6ff;
+            --light-border: #abaaaaff;
+            --light-bold: #1a1410;
+            --light-italic: #1a1410;
+            --light-headers: #1a1410;
+            --dark-bg: #303132;
+            --dark-text: #bebbb9ff;
+            --dark-text-muted: #d5d2cf;
+            --dark-accent: #e57665;
+            --dark-accent-hover: #888885;
+            --dark-code-bg: #282829;
+            --dark-border: #524f4c;
+            --dark-bold: #d5d2cf;
+            --dark-italic: #d5d2cf;
+            --dark-headers: #d5d2cf;
+        }
+    </style>
+    <meta name="theme-color" id="tc" />
+    <script>
+        (function () {
+            var m = matchMedia("(prefers-color-scheme:dark)"),
+                t = localStorage.theme || (m.matches ? "dark" : "light"),
+                h = document.documentElement,
+                c = document.getElementById("tc");
+            h.className = t;
+            function u() {
+                c.content = getComputedStyle(h).getPropertyValue("--tc");
+            }
+            u();
+            window.T = function () {
+                t = t === "dark" ? "light" : "dark";
+                localStorage.theme = t;
+                h.className = t;
+                u();
+            };
+        })();
+    </script>
+    
+</head>
+
+<body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><symbol id="light" viewBox="0 0 32 32"><rect x="15" y="2" width="2" height="5"/><rect x="21.6675" y="6.8536" width="4.958" height="1.9998" transform="translate(1.5191 19.3744) rotate(-45)"/><rect x="25" y="15" width="5" height="2"/><rect x="23.1466" y="21.6675" width="1.9998" height="4.958" transform="translate(-10.0018 24.1465) rotate(-45)"/><rect x="15" y="25" width="2" height="5"/><rect x="5.3745" y="23.1466" width="4.958" height="1.9998" transform="translate(-14.7739 12.6256) rotate(-45)"/><rect x="2" y="15" width="5" height="2"/><rect x="6.8536" y="5.3745" width="1.9998" height="4.958" transform="translate(-3.253 7.8535) rotate(-45)"/><path d="M16,12a4,4,0,1,1-4,4,4.0045,4.0045,0,0,1,4-4m0-2a6,6,0,1,0,6,6,6,6,0,0,0-6-6Z"/></symbol>
+<symbol id="asleep" viewBox="0 0 32 32"><path d="M13.5025,5.4136A15.0755,15.0755,0,0,0,25.096,23.6082a11.1134,11.1134,0,0,1-7.9749,3.3893c-.1385,0-.2782.0051-.4178,0A11.0944,11.0944,0,0,1,13.5025,5.4136M14.98,3a1.0024,1.0024,0,0,0-.1746.0156A13.0959,13.0959,0,0,0,16.63,28.9973c.1641.006.3282,0,.4909,0a13.0724,13.0724,0,0,0,10.702-5.5556,1.0094,1.0094,0,0,0-.7833-1.5644A13.08,13.08,0,0,1,15.8892,4.38,1.0149,1.0149,0,0,0,14.98,3Z"/></symbol>
+<symbol id="rss" viewBox="0 0 32 32"><path d="M8,18c-3.3,0-6,2.7-6,6s2.7,6,6,6s6-2.7,6-6C14,20.7,11.3,18,8,18z M8,28c-2.2,0-4-1.8-4-4s1.8-4,4-4s4,1.8,4,4C12,26.2,10.2,28,8,28z"/><path d="M30,24h-2C28,13,19,4,8,4V2C20.1,2,30,11.9,30,24z"/><path d="M22,24h-2c0-6.6-5.4-12-12-12v-2C15.7,10,22,16.3,22,24z"/></symbol>
+</svg>
+
+    <header id="site-header">
+        <div>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <nav>
+                <a href="https://yazeed1s.github.io/" >Home</a>
+                <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
+                <a href="https://yazeed1s.github.io/projects/" >Projects</a>
+                <a href="https://yazeed1s.github.io/tags/" >Tags</a>
+                </nav>
+            <a href="#" onclick="
+                        T();
+                        return false;
+                    " class="theme" aria-label="Toggle theme" title="Toggle theme">
+<svg><use href="#light"/></svg>
+<svg><use href="#asleep"/></svg></a>
+        </div>
+    </header>
+    <hr class="site-sep" />
+    <main id="main">
+<article>
+    <header>
+        <h1>How a Window Manager Talks to X11</h1>
+        <div class="post-meta">
+            <time datetime="2024-05-08">08 May 2024</time>
+            
+            <span>XCB event masks, SubstructureRedirect, and how a WM becomes the WM.</span>
+             
+            <span class="post-tags">
+                <span class="post-tags-label">Tags: </span>
+                
+                <a href="https://yazeed1s.github.io/tags/linux">Linux</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/x11">x11</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/window-manager">Window Manager</a>
+            </span>
+            
+        </div>
+    </header>
+     <p>When I started writing ZWM I didn't understand how a window manager intercepts window creation, because applications create windows by talking to the X server directly so how does the WM get in the middle? turns out the WM is just another X client, but it asks the server to redirect certain events to it instead of handling them normally.</p>
+<h2 id="everything-is-events">everything is events</h2>
+<p>X11 is event-driven: when something happens (key press, window created, window resized) the server generates an event, and clients tell the server which events they want to receive by setting event masks on windows.</p>
+<p>In XCB, event masks are just bit flags you OR together:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">#</span><span style="color: light-dark(#784367, #CA9D7D);">define</span><span style="color: light-dark(#784367, #CA9D7D);"> S_NOTIFY</span><span style="color: light-dark(#4B4B48, #7F7C77);">    (</span><span style="color: light-dark(#784367, #CA9D7D);">XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">#</span><span style="color: light-dark(#784367, #CA9D7D);">define</span><span style="color: light-dark(#784367, #CA9D7D);"> S_REDIRECT</span><span style="color: light-dark(#4B4B48, #7F7C77);">  (</span><span style="color: light-dark(#784367, #CA9D7D);">XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">#</span><span style="color: light-dark(#784367, #CA9D7D);">define</span><span style="color: light-dark(#784367, #CA9D7D);"> SUBSTRUCTURE</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#784367, #CA9D7D);">S_NOTIFY </span><span style="color: light-dark(#4B4B48, #CB8B8B);">|</span><span style="color: light-dark(#784367, #CA9D7D);"> S_REDIRECT</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">#</span><span style="color: light-dark(#784367, #CA9D7D);">define</span><span style="color: light-dark(#784367, #CA9D7D);"> PROPERTY_CHANGE</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#784367, #CA9D7D);">XCB_EVENT_MASK_PROPERTY_CHANGE</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">#</span><span style="color: light-dark(#784367, #CA9D7D);">define</span><span style="color: light-dark(#784367, #CA9D7D);"> FOCUS_CHANGE</span><span style="color: light-dark(#4B4B48, #7F7C77);">    (</span><span style="color: light-dark(#784367, #CA9D7D);">XCB_EVENT_MASK_FOCUS_CHANGE</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">#</span><span style="color: light-dark(#784367, #CA9D7D);">define</span><span style="color: light-dark(#784367, #CA9D7D);"> ENTER_WINDOW</span><span style="color: light-dark(#4B4B48, #7F7C77);">    (</span><span style="color: light-dark(#784367, #CA9D7D);">XCB_EVENT_MASK_ENTER_WINDOW</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">#</span><span style="color: light-dark(#784367, #CA9D7D);">define</span><span style="color: light-dark(#784367, #CA9D7D);"> LEAVE_WINDOW</span><span style="color: light-dark(#4B4B48, #7F7C77);">    (</span><span style="color: light-dark(#784367, #CA9D7D);">XCB_EVENT_MASK_LEAVE_WINDOW</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">#</span><span style="color: light-dark(#784367, #CA9D7D);">define</span><span style="color: light-dark(#784367, #CA9D7D);"> BUTTON_PRESS</span><span style="color: light-dark(#4B4B48, #7F7C77);">    (</span><span style="color: light-dark(#784367, #CA9D7D);">XCB_EVENT_MASK_BUTTON_PRESS</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span></span></code></pre>
+<p>You combine whatever you need for a specific window.</p>
+<h2 id="the-root-window">the root window</h2>
+<p>There's one special window called the root window that covers the entire screen, and all other windows are children of it.</p>
+<p>The root window is how the WM gets control, because by setting certain masks on it the WM intercepts events that would normally be handled by the server. In ZWM I define what the root window listens for:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">#</span><span style="color: light-dark(#784367, #CA9D7D);">define</span><span style="color: light-dark(#784367, #CA9D7D);"> ROOT_EVENT_MASK</span><span style="color: light-dark(#784367, #CA9D7D);"> \</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    (</span><span style="color: light-dark(#784367, #CA9D7D);">SUBSTRUCTURE </span><span style="color: light-dark(#4B4B48, #CB8B8B);">|</span><span style="color: light-dark(#784367, #CA9D7D);"> BUTTON_PRESS </span><span style="color: light-dark(#4B4B48, #CB8B8B);">|</span><span style="color: light-dark(#784367, #CA9D7D);"> FOCUS_CHANGE </span><span style="color: light-dark(#4B4B48, #CB8B8B);">|</span><span style="color: light-dark(#784367, #CA9D7D);"> ENTER_WINDOW</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span></span></code></pre>
+<p><code>SUBSTRUCTURE</code> is the key part. That's <code>SubstructureNotify | SubstructureRedirect</code>.</p>
+<h2 id="substructureredirectmask">SubstructureRedirectMask</h2>
+<p>When you set <code>XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT</code> on the root window, you're telling the X server: don't automatically handle requests that affect the root window's children. Send them to me instead.</p>
+<p>What gets redirected:</p>
+<ul>
+<li><code>XCB_MAP_REQUEST</code> — client wants to show a window</li>
+<li><code>XCB_CONFIGURE_REQUEST</code> — client wants to move/resize</li>
+<li><code>XCB_CIRCULATE_REQUEST</code> — client wants to change stacking order</li>
+</ul>
+<p>Without this mask, when an app wants to map a window the server just shows it wherever the app asked. With the mask you get a <code>MapRequest</code> event and decide what to do, which is how tiling WMs work: the app says "make me 800x600" and the WM intercepts it, ignores the size, and tiles it wherever it should go.</p>
+<h2 id="only-one-wm">only one WM</h2>
+<p>Only one client can hold <code>SubstructureRedirectMask</code> on root at a time, so if another client already has it you get <code>BadAccess</code>, which is how you detect if another WM is already running.</p>
+<h2 id="what-clients-listen-for">what clients listen for</h2>
+<p>Client windows need different masks than root. In ZWM:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">#</span><span style="color: light-dark(#784367, #CA9D7D);">define</span><span style="color: light-dark(#784367, #CA9D7D);"> CLIENT_EVENT_MASK</span><span style="color: light-dark(#784367, #CA9D7D);"> \</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    (</span><span style="color: light-dark(#784367, #CA9D7D);">PROPERTY_CHANGE </span><span style="color: light-dark(#4B4B48, #CB8B8B);">|</span><span style="color: light-dark(#784367, #CA9D7D);"> FOCUS_CHANGE </span><span style="color: light-dark(#4B4B48, #CB8B8B);">|</span><span style="color: light-dark(#784367, #CA9D7D);"> ENTER_WINDOW </span><span style="color: light-dark(#4B4B48, #CB8B8B);">|</span><span style="color: light-dark(#784367, #CA9D7D);"> LEAVE_WINDOW</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span></span></code></pre>
+<ul>
+<li><code>PROPERTY_CHANGE</code> — know when window title or state changes</li>
+<li><code>FOCUS_CHANGE</code> — track focus in/out</li>
+<li><code>ENTER_WINDOW</code> / <code>LEAVE_WINDOW</code> — for focus-follows-mouse</li>
+</ul>
+<h2 id="the-event-loop">the event loop</h2>
+<p>XCB uses <code>xcb_wait_for_event()</code> which blocks until there's an event, and my event loop in ZWM looks like this:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">static</span><span style="color: light-dark(#784367, #D4B399);"> void</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">event_loop</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#855959, #A6BCAD);">wm_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#7D4242, #D4D4C0);">w</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">{</span></span>
+<span class="giallo-l"><span style="color: light-dark(#855959, #A6BCAD);">    xcb_event_t</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>event</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    while</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#4B4B48, #CB8B8B);">!</span><span>should_shutdown </span><span style="color: light-dark(#4B4B48, #CB8B8B);">&amp;&amp;</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>event </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#3C6362, #A2BD90);"> xcb_wait_for_event</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#7D4242, #D4D4C0);">w</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">connection</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">        if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#7D4242, #D4D4C0);">event</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">response_type</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> ==</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">            _FREE_</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>event</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">            continue</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">        }</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">        if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#3C6362, #A2BD90);">handle_event</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>event</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> !=</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">            uint8_t</span><span> type </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#7D4242, #D4D4C0);"> event</span><span style="color: light-dark(#4B4B48, #7F7C77);">-&gt;</span><span style="color: light-dark(#7D4242, #D4D4C0);">response_type</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> &amp;</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> ~</span><span style="color: light-dark(#784367, #D4B399);">0x</span><span style="color: light-dark(#784367, #CA9D7D);">80</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">            char</span><span style="color: light-dark(#4B4B48, #CB8B8B);">   *</span><span>es   </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#3C6362, #A2BD90);"> xcb_event_to_string</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>type</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">            _LOG_</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>ERROR</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#4B4B48, #7F7C77);"> &quot;</span><span style="color: light-dark(#4A6934, #CB8B8B);">error processing event: </span><span style="color: light-dark(#784367, #CA9D7D);">%s</span><span style="color: light-dark(#4B4B48, #7F7C77);"> &quot;</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> es</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">        }</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">        _FREE_</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>event</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    }</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre>
+<p>The <code>&amp; ~0x80</code> strips the "sent by SendEvent" flag. You dispatch on the event type.</p>
+<h2 id="dispatching-events">dispatching events</h2>
+<p>I use a table-driven approach where each event type maps to a handler function:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">static</span><span style="color: light-dark(#784367, #D4B399);"> const</span><span style="color: light-dark(#855959, #A6BCAD);"> event_handler_entry_t</span><span> _handlers_</span><span style="color: light-dark(#784367, #D4B399);">[]</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> =</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> map request - window wants to be displayed</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    DEFINE_MAPPING</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>XCB_MAP_REQUEST</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> handle_map_request</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> unmap notify - window was hidden</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    DEFINE_MAPPING</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>XCB_UNMAP_NOTIFY</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> handle_unmap_notify</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> destroy notify - window was killed</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    DEFINE_MAPPING</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>XCB_DESTROY_NOTIFY</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> handle_destroy_notify</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> client message - EWMH requests from other apps</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    DEFINE_MAPPING</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>XCB_CLIENT_MESSAGE</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> handle_client_message</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> configure request - client wants to resize/move</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    DEFINE_MAPPING</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>XCB_CONFIGURE_REQUEST</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> handle_configure_request</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> enter notify - cursor entered window</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    DEFINE_MAPPING</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>XCB_ENTER_NOTIFY</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> handle_enter_notify</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> button press - mouse button clicked</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    DEFINE_MAPPING</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>XCB_BUTTON_PRESS</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> handle_button_press_event</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> key press - keyboard input</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    DEFINE_MAPPING</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>XCB_KEY_PRESS</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> handle_key_press</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> property notify - window property changed</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    DEFINE_MAPPING</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>XCB_PROPERTY_NOTIFY</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> handle_property_notify</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span></code></pre>
+<p>Then dispatch is just a loop through the table:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">size_t</span><span> n </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> sizeof</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>_handlers_</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> /</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> sizeof</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#7D4242, #D4D4C0);">_handlers_</span><span style="color: light-dark(#4B4B48, #7F7C77);">[</span><span style="color: light-dark(#784367, #CA9D7D);">0</span><span style="color: light-dark(#4B4B48, #7F7C77);">]</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">for</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#784367, #D4B399);">size_t</span><span> i </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span> i </span><span style="color: light-dark(#4B4B48, #CB8B8B);">&lt;</span><span> n</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span> i</span><span style="color: light-dark(#4B4B48, #CB8B8B);">++</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#7D4242, #D4D4C0);">_handlers_</span><span style="color: light-dark(#4B4B48, #7F7C77);">[</span><span>i</span><span style="color: light-dark(#4B4B48, #7F7C77);">]</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#7D4242, #D4D4C0);">type</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> ==</span><span> event_type</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">        return</span><span style="color: light-dark(#7D4242, #D4D4C0);"> _handlers_</span><span style="color: light-dark(#4B4B48, #7F7C77);">[</span><span>i</span><span style="color: light-dark(#4B4B48, #7F7C77);">]</span><span style="color: light-dark(#4B4B48, #7F7C77);">.</span><span style="color: light-dark(#3C6362, #A2BD90);">handle</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>event</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    }</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre><h2 id="the-important-events">the important events</h2>
+<p><strong>MapRequest</strong> — a window wants to appear, so you decide if you manage it, where it goes, and what size it gets.</p>
+<p><strong>ConfigureRequest</strong> — client wants to move or resize. For a tiling WM you mostly ignore the requested geometry, but for floating windows you might honor it.</p>
+<p><strong>ClientMessage</strong> — EWMH protocol. Other apps send these to request things like:</p>
+<ul>
+<li><code>_NET_WM_STATE</code> — toggle fullscreen, above, below</li>
+<li><code>_NET_ACTIVE_WINDOW</code> — bring window to front</li>
+<li><code>_NET_CLOSE_WINDOW</code> — close a window (from a pager)</li>
+<li><code>_NET_CURRENT_DESKTOP</code> — switch desktop</li>
+</ul>
+<p><strong>PropertyNotify</strong> — window title changed, WM hints updated, etc.</p>
+<p><strong>EnterNotify</strong> — cursor entered a window. Used for focus-follows-mouse.</p>
+<h2 id="reparenting-vs-non-reparenting">reparenting vs non-reparenting</h2>
+<p>When a WM "manages" a window there are two approaches:</p>
+<p><strong>Reparenting WMs</strong> create a frame window for each client. The client window becomes a child of the frame:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="plain"><span class="giallo-l"><span>Before managing:</span></span>
+<span class="giallo-l"><span>  root -&gt; client</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>After managing (reparenting):</span></span>
+<span class="giallo-l"><span>  root -&gt; frame -&gt; client</span></span></code></pre>
+<p>The frame is where decorations go: title bar, borders, close button. When you move the frame, the client moves with it. i3 does this. It draws frames around windows and uses them for the colored borders and title bars.</p>
+<p><strong>Non-reparenting WMs</strong> leave the client as a direct child of root:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="plain"><span class="giallo-l"><span>After managing (non-reparenting):</span></span>
+<span class="giallo-l"><span>  root -&gt; client</span></span></code></pre>
+<p>No frame. If you want borders, you manipulate the client window's X11 border directly (<code>xcb_configure_window</code> with <code>XCB_CONFIG_WINDOW_BORDER_WIDTH</code>). dwm does this. ZWM does this too.</p>
+<p>The tradeoff is that reparenting gives you more flexibility for decorations but adds complexity: you have to handle ReparentNotify events, manage the frame lifecycle, and deal with apps that don't like being reparented. Non-reparenting is simpler but you're limited to what X11 window borders can do (basically solid color rectangles).</p>
+<p>Some apps behave differently under reparenting WMs. Java apps ARE THE WORST, they historically had issues with reparenting and they still do and expect things to work a certain way and a certain order. Chrome/Electron apps sometimes need hints. Most modern apps handle it fine though.</p>
+<h2 id="what-i-learned">what I learned</h2>
+<p>The WM isn't special at all, it's just a client that grabbed redirect on root first. The X server doesn't even know what a "window manager" is, it just follows the rules about who gets which events.</p>
+<h2 id="notes">notes</h2>
+<ul>
+<li>XCB is lower level than Xlib. No magic, you manage memory yourself.</li>
+<li>ICCCM and EWMH define conventions. Not enforced, just expected.</li>
+<li><code>xcb_wait_for_event()</code> blocks. For non-blocking, use <code>xcb_poll_for_event()</code>.</li>
+<li>Event response type 0 means error, not a real event.</li>
+</ul>
+  
+</article>
+</main>
+    <hr class="site-sep bottom-sep" />
+    <footer class="s">
+        
+    </footer>
+    
+
+    <script>
+        document.querySelectorAll("article img[srcset]").forEach((i) => {
+            if (i.closest("a")) return;
+            i.style.cursor = "pointer";
+            i.onclick = () => {
+                let d = document.createElement("div"),
+                    s = i.srcset.split(",").pop().trim().split(" ")[0];
+                d.className = "lb";
+                d.innerHTML = '<img src="' + s + '">';
+                document.body.style.overflow = "hidden";
+                d.onclick = () => {
+                    d.remove();
+                    document.body.style.overflow = "";
+                };
+                document.body.appendChild(d);
+            };
+        });
+    </script>
+    
+<button id="scroll-to-top" aria-label="Scroll to top" title="Scroll to top">↑</button>
+<script>
+    (function() {
+        var btn = document.getElementById("scroll-to-top");
+        if (btn) {
+            window.addEventListener("scroll", function() {
+                if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                    btn.classList.add("show");
+                } else {
+                    btn.classList.remove("show");
+                }
+            });
+            btn.addEventListener("click", function() {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        }
+    })();
+</script>
+</body>
+
+</html>

@@ -6,15 +6,11 @@ description = "When your program crashes, how do you run cleanup code?"
 tags = ["C", "Signals", "Linux"]
 +++
 
----
+In C, you put cleanup code at the end of `main()` to free your allocations, close your files, and so on. But what if your program crashes before reaching that code?
 
-In C, you put cleanup code at the end of `main()` to free your allocations, close your files, etc. But what if your program crashes before reaching that code?
+## the problem
 
----
-
-## The Problem
-
-Standard cleanup at the end of main only works if your program exits normally. If it crashes (e.g., a null pointer dereference), the OS raises SIGSEGV and your program dies immediately. Your cleanup code never runs.
+Standard cleanup at the end of main only works if your program exits normally. If it crashes (a null pointer dereference, for example), the OS raises SIGSEGV and your program dies immediately, so your cleanup code never runs.
 
 ```c
 #include <stdio.h>
@@ -50,9 +46,9 @@ Segmentation fault (core dumped)
 
 The `free(buffer)` never runs.
 
-## First Thought: atexit()
+## first thought: atexit()
 
-You might think `atexit()` solves this:
+You might think `atexit()` solves this, where you register a cleanup function and it gets called on exit:
 
 ```c
 void cleanup(void) {
@@ -65,11 +61,11 @@ int main(void) {
 }
 ```
 
-But `atexit()` handlers only run on **normal** exit, when main returns or when you call `exit()`. A signal like SIGSEGV bypasses atexit entirely.
+But `atexit()` handlers only run on **normal** exit (when main returns or when you call `exit()`), and a signal like SIGSEGV bypasses atexit entirely.
 
-## The Solution: Signal Handlers
+## the solution: signal handlers
 
-To run cleanup code on crash, you register a signal handler:
+To run cleanup code on crash, you register a signal handler that catches the signal before the process dies:
 
 ```c
 #include <signal.h>
@@ -112,17 +108,11 @@ int main(void) {
 
 Now when the program crashes, the handler runs first.
 
-## Important: Async-Signal-Safety
+## async-signal-safety
 
-There's a catch. Signal handlers can interrupt your program at any point, even in the middle of malloc or printf. If your handler then calls malloc or printf, you can deadlock or corrupt memory.
+There's an important catch: signal handlers can interrupt your program at any point, even in the middle of malloc or printf. If your handler then calls malloc or printf, you can deadlock or corrupt memory because those functions aren't reentrant.
 
-Only certain functions are safe to call from signal handlers. These are called "async-signal-safe" functions. The POSIX standard defines the list. Key ones:
-
-- `write()` - safe (printf is NOT safe)
-- `_exit()` - safe (exit is NOT safe, it runs atexit handlers)
-- `close()`, `unlink()`, `fsync()` - safe
-
-`free()` is **not** async-signal-safe. It might "work" in a toy program, and then deadlock in production because the signal interrupted malloc/free internals. Don't rely on it.
+Only certain functions are safe to call from signal handlers, and POSIX defines the list. The key safe ones are `write()` (printf is NOT safe), `_exit()` (exit is NOT safe because it runs atexit handlers), `close()`, `unlink()`, and `fsync()`. Notably, `free()` is **not** async-signal-safe; it might "work" in a toy program and then deadlock in production because the signal interrupted malloc/free internals.
 
 A safer pattern is to set a flag and let the main program handle cleanup:
 
@@ -146,43 +136,17 @@ int main(void) {
 }
 ```
 
-But for crash signals (SIGSEGV, SIGABRT), you can't return to normal execution, the program is already broken. So you do what cleanup you can in the handler and exit.
+But for crash signals (SIGSEGV, SIGABRT), you can't return to normal execution because the program is already broken, so you do what cleanup you can in the handler and exit.
 
-## Wait, Doesn't the OS Clean Up Anyway?
+## wait, doesn't the OS clean up anyway?
 
-Yes. On any modern OS (Linux, macOS, Windows), when your process terminates (normally or not), the kernel reclaims all its resources:
+Yes. On any modern OS (Linux, macOS, Windows), when your process terminates the kernel reclaims all its resources: heap memory gets freed, file descriptors get closed, and memory mappings get unmapped.
 
-- Heap memory (malloc'd memory) - freed
-- File descriptors - closed
-- Memory mappings - unmapped
+So for plain `malloc()` and regular files, you don't actually need signal handlers for cleanup because the OS handles it. Where signal handlers really matter is shared resources (shared memory segments from `shm_open`, semaphores, message queues) that persist beyond process lifetime, temp files you want to delete on crash, external state like network connections or database transactions you want to close gracefully, and custom cleanup like resetting terminal modes or unlocking files.
 
-So for plain `malloc()` and regular files, you don't actually need signal handlers for cleanup. The OS handles it.
+For my window manager, I use signal handlers to unmap windows gracefully, restore X11 state, and close the connection to the X server properly. Regular heap memory? I just let the OS clean it up because it's going to do it anyway.
 
-**Where signal handlers matter:**
-
-1. **Shared resources** - shared memory segments (`shm_open`), semaphores, message queues. These persist beyond process lifetime.
-2. **Temp files** - if you want to delete temp files on crash.
-3. **External state** - network connections you want to close gracefully, database transactions to rollback.
-4. **Custom cleanup** - resetting terminal modes, unlocking files, etc.
-
-For my window manager, I use signal handlers to:
-
-- Unmap windows gracefully
-- Restore X11 state
-- Close the connection to the X server properly
-
-Regular heap memory? I just let the OS clean it up. It's going to do it anyway.
-
-## Summary
-
-- Cleanup at end of main doesn't run if you crash
-- `atexit()` doesn't help - it's for normal exits only
-- Signal handlers let you run code on crash
-- Be careful about async-signal-safety in handlers
-- For regular malloc'd memory, the OS cleans up anyway
-- Signal handlers are useful for shared resources and external state
-
-The pattern I use in practice:
+## the pattern I use
 
 ```c
 volatile sig_atomic_t should_exit = 0;
@@ -208,3 +172,9 @@ int main(void) {
 ```
 
 For SIGSEGV/SIGABRT, I mostly just let it crash and let the OS clean up. Unless there's shared state that needs explicit cleanup, adding a handler for crash signals just complicates things without much benefit.
+
+## notes
+
+- The Summary section from the original was integrated into the prose above
+- `signal()` behavior varies by platform, `sigaction()` is more portable and predictable
+- You can use `SA_RESETHAND` flag with sigaction to restore default behavior after catching a crash signal once

@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="How RDMA bypasses the kernel on the data path." />
+<meta
+    name="keywords"
+    content="yazeed, blog, alharthi, yaz, yazeed1s"
+/>
+<link rel="canonical" href="https://yazeed1s.github.io/posts/rdma/" />
+
+<title>RDMA: Bypassing the Kernel for Network I&#x2F;O | Yazeed&#x27;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
+<meta property="og:title" content="RDMA: Bypassing the Kernel for Network I&#x2F;O | Yazeed&#x27;s Blog" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://yazeed1s.github.io/posts/rdma/" />
+<meta property="og:description" content="How RDMA bypasses the kernel on the data path." />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="RDMA: Bypassing the Kernel for Network I&#x2F;O" />
+<meta name="twitter:description" content="How RDMA bypasses the kernel on the data path." />
+
+    <link rel="icon" href="&#x2F;favicon.ico" />
+    
+    <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
+    <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+
+           
+    
+    
+    
+
+          
+    
+    
+    
+    <style>
+        :root {
+            --nav-basis: 25%;
+            --light-bg: #eae6deff;
+            --light-text: #1a1410;
+            --light-text-muted: #1a1410;
+            --light-accent: #9E4440;
+            --light-accent-hover: #7A3533;
+            --light-code-bg: #e1ded6ff;
+            --light-border: #abaaaaff;
+            --light-bold: #1a1410;
+            --light-italic: #1a1410;
+            --light-headers: #1a1410;
+            --dark-bg: #303132;
+            --dark-text: #bebbb9ff;
+            --dark-text-muted: #d5d2cf;
+            --dark-accent: #e57665;
+            --dark-accent-hover: #888885;
+            --dark-code-bg: #282829;
+            --dark-border: #524f4c;
+            --dark-bold: #d5d2cf;
+            --dark-italic: #d5d2cf;
+            --dark-headers: #d5d2cf;
+        }
+    </style>
+    <meta name="theme-color" id="tc" />
+    <script>
+        (function () {
+            var m = matchMedia("(prefers-color-scheme:dark)"),
+                t = localStorage.theme || (m.matches ? "dark" : "light"),
+                h = document.documentElement,
+                c = document.getElementById("tc");
+            h.className = t;
+            function u() {
+                c.content = getComputedStyle(h).getPropertyValue("--tc");
+            }
+            u();
+            window.T = function () {
+                t = t === "dark" ? "light" : "dark";
+                localStorage.theme = t;
+                h.className = t;
+                u();
+            };
+        })();
+    </script>
+    
+</head>
+
+<body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><symbol id="light" viewBox="0 0 32 32"><rect x="15" y="2" width="2" height="5"/><rect x="21.6675" y="6.8536" width="4.958" height="1.9998" transform="translate(1.5191 19.3744) rotate(-45)"/><rect x="25" y="15" width="5" height="2"/><rect x="23.1466" y="21.6675" width="1.9998" height="4.958" transform="translate(-10.0018 24.1465) rotate(-45)"/><rect x="15" y="25" width="2" height="5"/><rect x="5.3745" y="23.1466" width="4.958" height="1.9998" transform="translate(-14.7739 12.6256) rotate(-45)"/><rect x="2" y="15" width="5" height="2"/><rect x="6.8536" y="5.3745" width="1.9998" height="4.958" transform="translate(-3.253 7.8535) rotate(-45)"/><path d="M16,12a4,4,0,1,1-4,4,4.0045,4.0045,0,0,1,4-4m0-2a6,6,0,1,0,6,6,6,6,0,0,0-6-6Z"/></symbol>
+<symbol id="asleep" viewBox="0 0 32 32"><path d="M13.5025,5.4136A15.0755,15.0755,0,0,0,25.096,23.6082a11.1134,11.1134,0,0,1-7.9749,3.3893c-.1385,0-.2782.0051-.4178,0A11.0944,11.0944,0,0,1,13.5025,5.4136M14.98,3a1.0024,1.0024,0,0,0-.1746.0156A13.0959,13.0959,0,0,0,16.63,28.9973c.1641.006.3282,0,.4909,0a13.0724,13.0724,0,0,0,10.702-5.5556,1.0094,1.0094,0,0,0-.7833-1.5644A13.08,13.08,0,0,1,15.8892,4.38,1.0149,1.0149,0,0,0,14.98,3Z"/></symbol>
+<symbol id="rss" viewBox="0 0 32 32"><path d="M8,18c-3.3,0-6,2.7-6,6s2.7,6,6,6s6-2.7,6-6C14,20.7,11.3,18,8,18z M8,28c-2.2,0-4-1.8-4-4s1.8-4,4-4s4,1.8,4,4C12,26.2,10.2,28,8,28z"/><path d="M30,24h-2C28,13,19,4,8,4V2C20.1,2,30,11.9,30,24z"/><path d="M22,24h-2c0-6.6-5.4-12-12-12v-2C15.7,10,22,16.3,22,24z"/></symbol>
+</svg>
+
+    <header id="site-header">
+        <div>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <nav>
+                <a href="https://yazeed1s.github.io/" >Home</a>
+                <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
+                <a href="https://yazeed1s.github.io/projects/" >Projects</a>
+                <a href="https://yazeed1s.github.io/tags/" >Tags</a>
+                </nav>
+            <a href="#" onclick="
+                        T();
+                        return false;
+                    " class="theme" aria-label="Toggle theme" title="Toggle theme">
+<svg><use href="#light"/></svg>
+<svg><use href="#asleep"/></svg></a>
+        </div>
+    </header>
+    <hr class="site-sep" />
+    <main id="main">
+<article>
+    <header>
+        <h1>RDMA: Bypassing the Kernel for Network I&#x2F;O</h1>
+        <div class="post-meta">
+            <time datetime="2026-01-16">16 Jan 2026</time>
+            
+            <span>How RDMA bypasses the kernel on the data path.</span>
+             
+            <span class="post-tags">
+                <span class="post-tags-label">Tags: </span>
+                
+                <a href="https://yazeed1s.github.io/tags/rdma">RDMA</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/networking">Networking</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/kernel-bypass">Kernel Bypass</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/systems-programming">Systems Programming</a>
+            </span>
+            
+        </div>
+    </header>
+     <p>RDMA lets one machine read and write another machine's memory, the network card handles it, and the remote CPU doesn't even know it happened.</p>
+<p>That sounded wrong to me at first. I knew the slogan, "skip the kernel, go fast," but I didn't understand what it meant at the hardware level.</p>
+<h2 id="what-s-wrong-with-normal-networking">what's wrong with normal networking</h2>
+<p>When you use TCP, the kernel is always involved. The app calls <code>send()</code>, which is a syscall, so execution enters the kernel; your data gets copied from the app buffer to a kernel buffer, TCP runs its state machine (checksum, segmentation, queueing), and eventually the driver sends it to the NIC.</p>
+<p>Receive side is the same thing: NIC gets packet, interrupt, kernel wakes up, copies to socket buffer, and then the app calls <code>recv()</code> which triggers another copy into the app buffer. So you end up with two copies, multiple syscalls, and context switches every time, and the CPU stays busy with all of it.</p>
+<p>If you're moving big files, it's OK because the overhead doesn't matter much. But if you want millions of small operations per second (like key-value gets), this overhead is too much.</p>
+<h2 id="what-rdma-does-different">what rdma does different</h2>
+<p>With RDMA, the network card reads and writes directly to your app memory. When you send, the NIC reads from your buffer via DMA, and when you receive, it writes into your buffer via DMA, so the kernel is off the fast path and the extra copies disappear.</p>
+<p>There's also one-sided operations: RDMA_WRITE puts bytes into remote memory and RDMA_READ pulls bytes from it, while the remote CPU keeps running because nobody wakes it up. First time I saw this it looked strange, you're writing to memory on a different machine, through the network card, and that machine doesn't know it happened.</p>
+<blockquote>
+<p>"Doesn't know" means the remote CPU isn't interrupted and doesn't execute any code. But the NIC is still doing DMA over PCIe, which consumes memory bandwidth on the remote machine. At high throughput, one-sided RDMA operations can noticeably affect remote-side performance even though no software runs there.</p>
+</blockquote>
+<p><img src="/images/rdma.png" alt="TCP vs RDMA" /></p>
+<h2 id="setup-vs-data-path">setup vs data path</h2>
+<p>The kernel is still there, just not on the data path. Before you send anything, you have to set things up by opening the device, creating queues, registering memory, and connecting to the remote side, and all of this goes through syscalls and kernel checks.</p>
+<p>Only after setup does the fast path work, where you post work directly to hardware and poll completions without syscalls for that part. So the trade is expensive setup but cheap operations after, which is good if you do many operations and not good for connections that don't last.</p>
+<h2 id="queue-pairs">queue pairs</h2>
+<p>RDMA doesn't use sockets, it uses queues instead. A <strong>Queue Pair</strong> is your connection, and it has a send queue and a receive queue where you put work requests saying what to do (send this buffer, read from that address), and the NIC processes them when it can.</p>
+<p>A <strong>Completion Queue</strong> is how you know things finished: the NIC puts entries there and you poll or wait.</p>
+<p>The annoying thing is that queue pairs start in RESET state and must move through RESET → INIT → RTR → RTS, and if you miss one transition nothing works and you usually don't get a useful error, which took me a while to learn the first time.</p>
+<h2 id="memory-registration">memory registration</h2>
+<p>Before the NIC can touch your memory, you register it. What registration does is pin the pages so memory can't go to swap (physical addresses stay valid because the hardware will DMA there), build a translation in the NIC so it knows where virtual address X is in physical memory, and give you keys (lkey for your own ops, rkey to share with the remote side so they can access your memory).</p>
+<p>Registration is a syscall, and this is where the kernel checks permissions.</p>
+<h2 id="who-checks-if-not-kernel">who checks if not kernel</h2>
+<p>This part confused me for a while. With normal networking the kernel validates everything: bad pointer gives you SIGSEGV, wrong permission gives you an error, the kernel is the one checking. But with RDMA the kernel is not in the data path, so how do bad accesses get stopped?</p>
+<p>The answer is hardware. When you register memory, the kernel tells the NIC which addresses are valid and what permissions they have and which protection domain they belong to, and the NIC stores all this in its memory protection tables. Then during transfers the NIC checks every operation: is the address in a registered region, are the permissions OK, does the key match. If something is wrong, the operation fails and the error shows up in the completion queue (not SIGSEGV, because the NIC caught it, not the CPU). Hardware does what the kernel would do, just at wire speed.</p>
+<h2 id="protection-domains">protection domains</h2>
+<p>You can't access anyone's memory. A <strong>Protection Domain</strong> is a security boundary: when you make a queue pair and register memory, you put them in a PD, and operations only work on memory in the same PD. This is like kernel process isolation but for RDMA, where different apps get different PDs.</p>
+<h2 id="one-sided-and-two-sided">one-sided and two-sided</h2>
+<p>There are two kinds of operations. <strong>Two-sided</strong> means both sides do something: the receiver posts a buffer first, the sender posts a send, and both CPUs are involved. <strong>One-sided</strong> means only you do something: RDMA_WRITE pushes data to remote memory, RDMA_READ pulls data, and the remote CPU is not involved, not even aware.</p>
+<p>One-sided is where RDMA is really powerful, but it's also more work because if the remote app needs to know you wrote, you have to tell it somehow. Usually you write a flag that it polls, or use atomics, and synchronization becomes your problem to solve.</p>
+<h2 id="atomics">atomics</h2>
+<p>There are atomic operations (compare-and-swap and fetch-and-add) that run at remote memory, atomically, without involving the remote CPU. Good for locks and counters, but slower than regular read/write, and some NICs implement them in firmware so even slower. Depends on the card.</p>
+<h2 id="the-hardware">the hardware</h2>
+<p>You need a special NIC because normal ones don't do RDMA.</p>
+<p><strong>InfiniBand</strong> is the original, it needs its own switches and cables, has very low latency (under a microsecond), and HPC clusters use it. <strong>RoCE</strong> is RDMA over Ethernet, which works on regular switches, but Ethernet drops packets and RDMA really doesn't like that, so you configure switches for "lossless" mode with priority flow control and so on, and it gets complicated. <strong>iWARP</strong> is RDMA over TCP, which is the most compatible option, but TCP adds latency. I think most datacenters use RoCE v2 now.</p>
+<h2 id="some-numbers">some numbers</h2>
+<table><thead><tr><th>What</th><th>How long</th></tr></thead><tbody>
+<tr><td>TCP round trip</td><td>10-50 μs</td></tr>
+<tr><td>RDMA round trip</td><td>1-5 μs</td></tr>
+<tr><td>Local memory</td><td>~100 ns</td></tr>
+</tbody></table>
+<p>RDMA is maybe 10x faster than TCP, but still 10x slower than local RAM. This is important when you think about memory disaggregation because you're replacing local memory with remote, and microseconds add up.</p>
+<h2 id="what-s-hard-about-it">what's hard about it</h2>
+<p>Debugging is not fun because problems show up as completion queue errors with codes you have to look up, there's no tcpdump, and when something breaks you look at hardware counters and guess.</p>
+<p>Before RDMA works, both sides have to exchange info (queue pair numbers, memory keys, addresses), and usually you do this over TCP first, which is extra complexity. Registered memory is pinned, so big registrations hit ulimit. For two-sided operations, the receiver must post buffers before the sender sends, and if the receiver runs out of buffers the sender's operations fail.</p>
+<h2 id="notes">notes</h2>
+<ul>
+<li>Verbs API is standard interface. libibverbs on Linux.</li>
+<li>Watch <code>ulimit -l</code> for locked memory limit.</li>
+<li>One app can have many queue pairs and completion queues. Common pattern is one QP per thread.</li>
+<li>Atomic ops: compare-and-swap, fetch-and-add. Support varies by hardware.</li>
+<li>Paper: <a rel="external" href="https://www.usenix.org/system/files/nsdi22-paper-reda_1.pdf">RDMA is Turing complete</a> (yes really)</li>
+<li>Man pages: <a rel="external" href="https://github.com/linux-rdma/rdma-core/blob/master/libibverbs/man/ibv_create_qp.3">ibv_create_qp</a>, <a rel="external" href="https://github.com/linux-rdma/rdma-core/blob/master/libibverbs/man/ibv_reg_mr.3">ibv_reg_mr</a>, <a rel="external" href="https://github.com/linux-rdma/rdma-core/blob/master/libibverbs/man/ibv_post_send.3">ibv_post_send</a></li>
+<li>Nvidia docs: <a rel="external" href="https://docs.nvidia.com/networking/display/RDMAAwareProgrammingv17">RDMA Aware Networks Programming User Manual</a></li>
+</ul>
+  
+</article>
+</main>
+    <hr class="site-sep bottom-sep" />
+    <footer class="s">
+        
+    </footer>
+    
+
+    <script>
+        document.querySelectorAll("article img[srcset]").forEach((i) => {
+            if (i.closest("a")) return;
+            i.style.cursor = "pointer";
+            i.onclick = () => {
+                let d = document.createElement("div"),
+                    s = i.srcset.split(",").pop().trim().split(" ")[0];
+                d.className = "lb";
+                d.innerHTML = '<img src="' + s + '">';
+                document.body.style.overflow = "hidden";
+                d.onclick = () => {
+                    d.remove();
+                    document.body.style.overflow = "";
+                };
+                document.body.appendChild(d);
+            };
+        });
+    </script>
+    
+<button id="scroll-to-top" aria-label="Scroll to top" title="Scroll to top">↑</button>
+<script>
+    (function() {
+        var btn = document.getElementById("scroll-to-top");
+        if (btn) {
+            window.addEventListener("scroll", function() {
+                if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                    btn.classList.add("show");
+                } else {
+                    btn.classList.remove("show");
+                }
+            });
+            btn.addEventListener("click", function() {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        }
+    })();
+</script>
+</body>
+
+</html>

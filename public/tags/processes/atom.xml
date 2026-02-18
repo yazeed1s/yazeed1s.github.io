@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <title>Yazeed&#x27;s Blog - Processes</title>
+    <subtitle>Notes on systems and low-level software.</subtitle>
+    <link rel="self" type="application/atom+xml" href="https://yazeed1s.github.io/tags/processes/atom.xml"/>
+    <link rel="alternate" type="text/html" href="https://yazeed1s.github.io"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2025-10-19T00:00:00+00:00</updated>
+    <id>https://yazeed1s.github.io/tags/processes/atom.xml</id>
+    <entry xml:lang="en">
+        <title>What a Process Owns</title>
+        <published>2025-10-19T00:00:00+00:00</published>
+        <updated>2025-10-19T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/what-a-process-owns/"/>
+        <id>https://yazeed1s.github.io/posts/what-a-process-owns/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/what-a-process-owns/">&lt;p&gt;A process isn&#x27;t just &quot;running code.&quot; It&#x27;s a container that owns a set of resources the kernel manages on its behalf, and understanding what those resources are helps explain why certain operations behave the way they do.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;address-space&quot;&gt;address space&lt;&#x2F;h2&gt;
+&lt;p&gt;Each process gets its own virtual address space, which is a complete illusion of having memory all to itself. On 64-bit Linux a process gets a 128TB virtual space (48-bit addressing), split into user space (lower half) and kernel space (upper half, shared across all processes but inaccessible from user mode).&lt;&#x2F;p&gt;
+&lt;p&gt;Inside this space you have the text segment (your compiled code, read-only and executable), the data segment for initialized globals, BSS for uninitialized globals (zeroed by the kernel), the heap growing upward from the end of BSS (managed by malloc&#x2F;brk&#x2F;mmap), the stack growing downward from near the top of user space, and memory-mapped regions scattered in between for shared libraries, mmap&#x27;d files, and anonymous mappings.&lt;&#x2F;p&gt;
+&lt;p&gt;Two processes can have the same virtual address pointing to completely different physical memory because each process has its own page table. The kernel switches page tables on every context switch by writing a new value to CR3 on x86.&lt;&#x2F;p&gt;
+&lt;p&gt;You can look at a process&#x27;s memory map through &lt;code&gt;&#x2F;proc&#x2F;&amp;lt;pid&amp;gt;&#x2F;maps&lt;&#x2F;code&gt;, which shows each VMA (Virtual Memory Area) with its address range, permissions, offset, device, inode, and pathname.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;file-descriptors&quot;&gt;file descriptors&lt;&#x2F;h2&gt;
+&lt;p&gt;A file descriptor is an integer index into a per-process table of open files. When you call &lt;code&gt;open()&lt;&#x2F;code&gt;, the kernel creates an entry pointing to the underlying file object and returns the lowest available integer, which is why &lt;code&gt;stdin&lt;&#x2F;code&gt; is 0, &lt;code&gt;stdout&lt;&#x2F;code&gt; is 1, and &lt;code&gt;stderr&lt;&#x2F;code&gt; is 2 (they&#x27;re opened first).&lt;&#x2F;p&gt;
+&lt;p&gt;Each process has its own file descriptor table, so fd 5 in one process is completely unrelated to fd 5 in another. The file descriptor carries the current read&#x2F;write position, flags (like &lt;code&gt;O_NONBLOCK&lt;&#x2F;code&gt;), and a reference to the underlying inode.&lt;&#x2F;p&gt;
+&lt;p&gt;File descriptors aren&#x27;t just for files on disk: they represent pipes, sockets, eventfd, timerfd, signalfd, epoll instances, and even directories. The &quot;everything is a file&quot; philosophy means one interface for many types of I&#x2F;O.&lt;&#x2F;p&gt;
+&lt;p&gt;There&#x27;s a per-process limit on open file descriptors (check with &lt;code&gt;ulimit -n&lt;&#x2F;code&gt;, default often 1024) and a system-wide limit. Leaking file descriptors is a common bug, especially in long-running services that open connections and forget to close them.&lt;&#x2F;p&gt;
+&lt;p&gt;You can see all open file descriptors for a process in &lt;code&gt;&#x2F;proc&#x2F;&amp;lt;pid&amp;gt;&#x2F;fd&#x2F;&lt;&#x2F;code&gt;, where each entry is a symlink to the actual file, socket, or pipe.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;signals&quot;&gt;signals&lt;&#x2F;h2&gt;
+&lt;p&gt;Each process has a signal disposition table describing what happens for each signal. The default action depends on the signal: &lt;code&gt;SIGTERM&lt;&#x2F;code&gt; terminates, &lt;code&gt;SIGSTOP&lt;&#x2F;code&gt; suspends, &lt;code&gt;SIGCHLD&lt;&#x2F;code&gt; is ignored by default. You can override most defaults with signal handlers, except for &lt;code&gt;SIGKILL&lt;&#x2F;code&gt; and &lt;code&gt;SIGSTOP&lt;&#x2F;code&gt; which can&#x27;t be caught or ignored.&lt;&#x2F;p&gt;
+&lt;p&gt;A process also has a signal mask that blocks specific signals from being delivered (they queue up until unblocked), and a set of pending signals that have been sent but not yet handled.&lt;&#x2F;p&gt;
+&lt;p&gt;Signal handling is per-process (signal disposition) but delivery can target specific threads. &lt;code&gt;kill(pid, sig)&lt;&#x2F;code&gt; sends to the process, &lt;code&gt;pthread_kill(tid, sig)&lt;&#x2F;code&gt; targets a thread.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;credentials&quot;&gt;credentials&lt;&#x2F;h2&gt;
+&lt;p&gt;Every process has a set of UIDs and GIDs that determine what it can access. There are three sets: &lt;strong&gt;real&lt;&#x2F;strong&gt; (who actually started the process), &lt;strong&gt;effective&lt;&#x2F;strong&gt; (what&#x27;s checked for access), and &lt;strong&gt;saved&lt;&#x2F;strong&gt; (the previous effective, so you can drop and regain privileges).&lt;&#x2F;p&gt;
+&lt;p&gt;Usually real and effective are the same, but setuid programs differ. When you run &lt;code&gt;passwd&lt;&#x2F;code&gt;, the file has the setuid bit set, so the effective UID becomes root (owner of the file) while the real UID stays yours. The process can access &lt;code&gt;&#x2F;etc&#x2F;shadow&lt;&#x2F;code&gt; because effective UID is root, but the program knows who actually called it through the real UID.&lt;&#x2F;p&gt;
+&lt;p&gt;Groups work the same way, and there&#x27;s also a supplementary group list for all the groups you belong to. All of this is stored in the process&#x27;s credential structure in the kernel.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;scheduling-context&quot;&gt;scheduling context&lt;&#x2F;h2&gt;
+&lt;p&gt;The kernel tracks scheduling metadata for each process: its priority (nice value from -20 to 19, and real-time priority if applicable), which scheduling class it belongs to (CFS for normal processes, FIFO or round-robin for real-time), how much CPU time it has consumed, when it last ran, and which CPU it ran on.&lt;&#x2F;p&gt;
+&lt;p&gt;CFS (Completely Fair Scheduler) on Linux uses a virtual runtime to track how much CPU time a process has received relative to others, and it always picks the process with the lowest virtual runtime to run next. The nice value adjusts the weight: a lower nice value means more weight, which means the virtual runtime advances more slowly, which means more CPU time.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;namespaces-and-cgroups&quot;&gt;namespaces and cgroups&lt;&#x2F;h2&gt;
+&lt;p&gt;In containerized environments, processes also own namespace memberships and cgroup associations. Namespaces give a process an isolated view of system resources: PID namespace makes it think its PID is 1, network namespace gives it a separate network stack, mount namespace gives it a different filesystem view.&lt;&#x2F;p&gt;
+&lt;p&gt;Cgroups limit how much resource a process (or group of processes) can use: CPU quota, memory limit, I&#x2F;O bandwidth, and number of PIDs. These are the building blocks of containers.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-task-struct&quot;&gt;the task_struct&lt;&#x2F;h2&gt;
+&lt;p&gt;Internally, the kernel represents all of this in a single structure called &lt;code&gt;task_struct&lt;&#x2F;code&gt;, which on Linux is a large struct (several kilobytes) containing or pointing to everything described above: the memory descriptor for address space, the files struct for file descriptors, the signal handler table, credentials, scheduling state, namespace pointers, cgroup references, and many other fields.&lt;&#x2F;p&gt;
+&lt;p&gt;Every running thread has a &lt;code&gt;task_struct&lt;&#x2F;code&gt;. A single-threaded process has one. A multi-threaded process has one per thread, and they share the memory descriptor, file table, and signal handlers through pointers to the same structures.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;&#x2F;proc&#x2F;&amp;lt;pid&amp;gt;&#x2F;status&lt;&#x2F;code&gt; gives a summary of most of these: UIDs, GIDs, threads, memory usage, signal masks, context switch counts&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;&#x2F;proc&#x2F;&amp;lt;pid&amp;gt;&#x2F;maps&lt;&#x2F;code&gt; for address space layout&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;&#x2F;proc&#x2F;&amp;lt;pid&amp;gt;&#x2F;fd&#x2F;&lt;&#x2F;code&gt; for open file descriptors&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;&#x2F;proc&#x2F;&amp;lt;pid&amp;gt;&#x2F;cgroup&lt;&#x2F;code&gt; for cgroup membership&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;ls -la &#x2F;proc&#x2F;&amp;lt;pid&amp;gt;&#x2F;ns&#x2F;&lt;&#x2F;code&gt; shows namespace memberships&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;strace -p &amp;lt;pid&amp;gt;&lt;&#x2F;code&gt; lets you watch syscalls in real time&lt;&#x2F;li&gt;
+&lt;li&gt;A zombie process has exited but its parent hasn&#x27;t called &lt;code&gt;wait()&lt;&#x2F;code&gt;, so the task_struct stays around holding the exit status&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+</feed>
