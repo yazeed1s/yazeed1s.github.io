@@ -124,19 +124,19 @@
                 
                 <a href="https://yazeed1s.github.io/tags/c">C</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/bit-manipulation">Bit Manipulation</a><span
+                <a href="https://yazeed1s.github.io/tags/bit-manipulation">bit manipulation</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/systems-programming">Systems Programming</a>
+                <a href="https://yazeed1s.github.io/tags/systems-programming">systems programming</a>
             </span>
             
         </div>
     </header>
      <hr />
-<p>Sometimes you need to track multiple related conditions. A struct of booleans works, but it gets clunky once you start checking combinations or passing state around.</p>
-<p>Bit flags offer a simpler pattern: pack everything into a single integer. The real win isn't memory usage, it's composability. You get a single value representing your entire state that you can pass, store, and compare in one go.</p>
+<p>Sometimes you need to track multiple related conditions and a struct of booleans works, but it gets clunky once you start checking combinations or passing state around.</p>
+<p>Bit flags offer a simpler pattern: pack everything into a single integer. The real win isn't memory usage, it's composability because you get a single value representing your entire state that you can pass, store, and compare in one go.</p>
 <hr />
 <h2 id="the-pattern">the pattern</h2>
-<p>Each bit represents one condition. Powers of 2 so they don't overlap:</p>
+<p>Each bit represents one condition, and you use powers of 2 so they don't overlap:</p>
 <pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">typedef</span><span style="color: light-dark(#784367, #D4B399);"> enum</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
 <span class="giallo-l"><span>    FLAG_NONE </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
 <span class="giallo-l"><span>    FLAG_A    </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#784367, #CA9D7D);">1</span><span style="color: light-dark(#784367, #D4B399);">U</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> &lt;&lt;</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
@@ -209,7 +209,7 @@
 <span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>m_change </span><span style="color: light-dark(#4B4B48, #CB8B8B);">&amp;</span><span> MON_CHANGE_DISCONNECTED</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> /*</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> ... </span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">*/</span><span style="color: light-dark(#4B4B48, #7F7C77);"> }</span></span>
 <span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>m_change </span><span style="color: light-dark(#4B4B48, #CB8B8B);">&amp;</span><span> MON_CHANGE_LAYOUT</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">       {</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> /*</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> ... </span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">*/</span><span style="color: light-dark(#4B4B48, #7F7C77);"> }</span></span>
 <span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre>
-<p>With a single integer, I can track and respond to any combination of events.</p>
+<p>With a single integer I can track and respond to any combination of events.</p>
 <h2 id="another-example-red-black-tree">Another example: Red-Black Tree</h2>
 <p>A while back I implemented a red-black tree. To validate the tree invariants, I used bit flags to track which rules were violated:</p>
 <pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">/*</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> Red-black tree rules:</span></span>
@@ -250,7 +250,7 @@
 <span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>v </span><span style="color: light-dark(#4B4B48, #CB8B8B);">&amp;</span><span> RB_RED_CHILD_OF_RED</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span></span>
 <span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">        printf</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#4B4B48, #7F7C77);">&quot;</span><span style="color: light-dark(#4A6934, #CB8B8B);">violation: red node has red child</span><span style="color: light-dark(#784367, #CA9D7D);">\n</span><span style="color: light-dark(#4B4B48, #7F7C77);">&quot;</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
 <span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre>
-<p>One return value, multiple possible problems. Cleaner than an array of error codes or a struct with boolean fields.</p>
+<p>One return value, multiple possible problems, which is cleaner than an array of error codes or a struct with boolean fields.</p>
 <hr />
 <h2 id="why-uint32-t-not-uint8-t">why uint32_t, not uint8_t</h2>
 <p>You might think: "I only have 4 flags. Why not <code>uint8_t</code>?"</p>
@@ -259,11 +259,11 @@
 <span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#4B4B48, #CB8B8B);">~</span><span>flags </span><span style="color: light-dark(#4B4B48, #CB8B8B);">==</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span><span> ... </span><span style="color: light-dark(#4B4B48, #7F7C77);">}</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">  /*</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> false! ~flags is 0xFFFFFF00, not 0x00 </span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">*/</span></span></code></pre>
 <p>The comparison happens at <code>int</code> width before truncation. This is easy to write and hard to debug.</p>
 <p>Shifts have their own footguns too: the shift happens after integer promotions, and shifting by &gt;= the width of the promoted type is undefined behavior (e.g., <code>1U &lt;&lt; 32</code> on a system where <code>unsigned int</code> is 32-bit).</p>
-<p>If you really want <code>uint8_t</code>, you can store it as <code>uint8_t</code> and be explicit about casts in your bit-twiddling. But in most code, <code>uint32_t</code> is the boring option: it fits in a register, avoids promotion surprises, and gives you room for 32 flags.</p>
+<p>If you really want <code>uint8_t</code> you can store it as <code>uint8_t</code> and be explicit about casts in your bit-twiddling, but in most code <code>uint32_t</code> is the boring option: it fits in a register, avoids promotion surprises, and gives you room for 32 flags.</p>
 <hr />
 <h2 id="why-not-just-use-bools">why not just use bools</h2>
-<p>A <code>bool</code> in C is typically 1 byte, not 1 bit. Arrays and structs of bools don't pack bits either (each element takes a full byte). Memory savings only matter when you have many flags (5+).</p>
-<p>But memory isn't the point. The point is that bit flags compose. A single integer can represent "connected AND layout changed" or "disconnected OR error"—and you can pass that combined state to a function, store it, or compare it in one operation.</p>
+<p>A <code>bool</code> in C is typically 1 byte, not 1 bit, and arrays and structs of bools don't pack bits either since each element takes a full byte. Memory savings only matter when you have many flags (5+).</p>
+<p>But memory isn't the point, the point is that bit flags compose. A single integer can represent "connected AND layout changed" or "disconnected OR error" and you can pass that combined state to a function, store it, or compare it in one operation.</p>
 <hr />
 <h2 id="when-bit-flags-hurt">when bit flags hurt</h2>
 <p>Bit flags aren't always better:</p>
@@ -279,10 +279,6 @@
 </li>
 </ul>
 <p>The pattern shines when state composition matters (events, options, validation results, capability bits). It's worse when conditions are truly independent and never need to travel together.</p>
-<hr />
-<h2 id="where-i-use-this">where I use this</h2>
-<p>Bit flags are about composability, not memory. One integer can represent any combination of states. You can pass it, store it, compare it, mask it.</p>
-<p>Use bit flags when state comes from multiple sources and combinations matter. Use bools when conditions are simple and independent. The real choice is how state moves through your code, not how many bytes it takes.</p>
   
 </article>
 </main>

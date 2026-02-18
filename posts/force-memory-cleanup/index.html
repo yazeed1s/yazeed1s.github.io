@@ -124,18 +124,16 @@
                 
                 <a href="https://yazeed1s.github.io/tags/c">C</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/signals">Signals</a><span
+                <a href="https://yazeed1s.github.io/tags/signals">signals</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/linux">Linux</a>
+                <a href="https://yazeed1s.github.io/tags/linux">linux</a>
             </span>
             
         </div>
     </header>
-     <hr />
-<p>In C, you put cleanup code at the end of <code>main()</code> to free your allocations, close your files, etc. But what if your program crashes before reaching that code?</p>
-<hr />
-<h2 id="the-problem">The Problem</h2>
-<p>Standard cleanup at the end of main only works if your program exits normally. If it crashes (e.g., a null pointer dereference), the OS raises SIGSEGV and your program dies immediately. Your cleanup code never runs.</p>
+     <p>In C, you put cleanup code at the end of <code>main()</code> to free your allocations, close your files, and so on. But what if your program crashes before reaching that code?</p>
+<h2 id="the-problem">the problem</h2>
+<p>Standard cleanup at the end of main only works if your program exits normally. If it crashes (a null pointer dereference, for example), the OS raises SIGSEGV and your program dies immediately, so your cleanup code never runs.</p>
 <pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">#</span><span style="color: light-dark(#784367, #CA9D7D);">include</span><span style="color: light-dark(#4B4B48, #7F7C77);"> &lt;</span><span style="color: light-dark(#4A6934, #CB8B8B);">stdio.h</span><span style="color: light-dark(#4B4B48, #7F7C77);">&gt;</span></span>
 <span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">#</span><span style="color: light-dark(#784367, #CA9D7D);">include</span><span style="color: light-dark(#4B4B48, #7F7C77);"> &lt;</span><span style="color: light-dark(#4A6934, #CB8B8B);">stdlib.h</span><span style="color: light-dark(#4B4B48, #7F7C77);">&gt;</span></span>
 <span class="giallo-l"></span>
@@ -162,8 +160,8 @@
 <span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">Allocated</span><span style="color: light-dark(#784367, #CA9D7D);"> 500</span><span style="color: light-dark(#4A6934, #CB8B8B);"> MB</span></span>
 <span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">Segmentation</span><span style="color: light-dark(#4A6934, #CB8B8B);"> fault</span><span> (core</span><span style="color: light-dark(#4A6934, #CB8B8B);"> dumped</span><span>)</span></span></code></pre>
 <p>The <code>free(buffer)</code> never runs.</p>
-<h2 id="first-thought-atexit">First Thought: atexit()</h2>
-<p>You might think <code>atexit()</code> solves this:</p>
+<h2 id="first-thought-atexit">first thought: atexit()</h2>
+<p>You might think <code>atexit()</code> solves this, where you register a cleanup function and it gets called on exit:</p>
 <pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#3C6362, #A2BD90);"> cleanup</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
 <span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    free</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>buffer</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
 <span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span>
@@ -172,9 +170,9 @@
 <span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    atexit</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>cleanup</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
 <span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> ...</span></span>
 <span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre>
-<p>But <code>atexit()</code> handlers only run on <strong>normal</strong> exit, when main returns or when you call <code>exit()</code>. A signal like SIGSEGV bypasses atexit entirely.</p>
-<h2 id="the-solution-signal-handlers">The Solution: Signal Handlers</h2>
-<p>To run cleanup code on crash, you register a signal handler:</p>
+<p>But <code>atexit()</code> handlers only run on <strong>normal</strong> exit (when main returns or when you call <code>exit()</code>), and a signal like SIGSEGV bypasses atexit entirely.</p>
+<h2 id="the-solution-signal-handlers">the solution: signal handlers</h2>
+<p>To run cleanup code on crash, you register a signal handler that catches the signal before the process dies:</p>
 <pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">#</span><span style="color: light-dark(#784367, #CA9D7D);">include</span><span style="color: light-dark(#4B4B48, #7F7C77);"> &lt;</span><span style="color: light-dark(#4A6934, #CB8B8B);">signal.h</span><span style="color: light-dark(#4B4B48, #7F7C77);">&gt;</span></span>
 <span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">#</span><span style="color: light-dark(#784367, #CA9D7D);">include</span><span style="color: light-dark(#4B4B48, #7F7C77);"> &lt;</span><span style="color: light-dark(#4A6934, #CB8B8B);">stdio.h</span><span style="color: light-dark(#4B4B48, #7F7C77);">&gt;</span></span>
 <span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">#</span><span style="color: light-dark(#784367, #CA9D7D);">include</span><span style="color: light-dark(#4B4B48, #7F7C77);"> &lt;</span><span style="color: light-dark(#4A6934, #CB8B8B);">stdlib.h</span><span style="color: light-dark(#4B4B48, #7F7C77);">&gt;</span></span>
@@ -212,15 +210,9 @@
 <span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    return</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
 <span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre>
 <p>Now when the program crashes, the handler runs first.</p>
-<h2 id="important-async-signal-safety">Important: Async-Signal-Safety</h2>
-<p>There's a catch. Signal handlers can interrupt your program at any point, even in the middle of malloc or printf. If your handler then calls malloc or printf, you can deadlock or corrupt memory.</p>
-<p>Only certain functions are safe to call from signal handlers. These are called "async-signal-safe" functions. The POSIX standard defines the list. Key ones:</p>
-<ul>
-<li><code>write()</code> - safe (printf is NOT safe)</li>
-<li><code>_exit()</code> - safe (exit is NOT safe, it runs atexit handlers)</li>
-<li><code>close()</code>, <code>unlink()</code>, <code>fsync()</code> - safe</li>
-</ul>
-<p><code>free()</code> is <strong>not</strong> async-signal-safe. It might "work" in a toy program, and then deadlock in production because the signal interrupted malloc/free internals. Don't rely on it.</p>
+<h2 id="async-signal-safety">async-signal-safety</h2>
+<p>There's an important catch: signal handlers can interrupt your program at any point, even in the middle of malloc or printf. If your handler then calls malloc or printf, you can deadlock or corrupt memory because those functions aren't reentrant.</p>
+<p>Only certain functions are safe to call from signal handlers, and POSIX defines the list. The key safe ones are <code>write()</code> (printf is NOT safe), <code>_exit()</code> (exit is NOT safe because it runs atexit handlers), <code>close()</code>, <code>unlink()</code>, and <code>fsync()</code>. Notably, <code>free()</code> is <strong>not</strong> async-signal-safe; it might "work" in a toy program and then deadlock in production because the signal interrupted malloc/free internals.</p>
 <p>A safer pattern is to set a flag and let the main program handle cleanup:</p>
 <pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">volatile</span><span style="color: light-dark(#855959, #A6BCAD);"> sig_atomic_t</span><span> got_signal </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
 <span class="giallo-l"></span>
@@ -239,39 +231,12 @@
 <span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    cleanup</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
 <span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    return</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
 <span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre>
-<p>But for crash signals (SIGSEGV, SIGABRT), you can't return to normal execution, the program is already broken. So you do what cleanup you can in the handler and exit.</p>
-<h2 id="wait-doesn-t-the-os-clean-up-anyway">Wait, Doesn't the OS Clean Up Anyway?</h2>
-<p>Yes. On any modern OS (Linux, macOS, Windows), when your process terminates (normally or not), the kernel reclaims all its resources:</p>
-<ul>
-<li>Heap memory (malloc'd memory) - freed</li>
-<li>File descriptors - closed</li>
-<li>Memory mappings - unmapped</li>
-</ul>
-<p>So for plain <code>malloc()</code> and regular files, you don't actually need signal handlers for cleanup. The OS handles it.</p>
-<p><strong>Where signal handlers matter:</strong></p>
-<ol>
-<li><strong>Shared resources</strong> - shared memory segments (<code>shm_open</code>), semaphores, message queues. These persist beyond process lifetime.</li>
-<li><strong>Temp files</strong> - if you want to delete temp files on crash.</li>
-<li><strong>External state</strong> - network connections you want to close gracefully, database transactions to rollback.</li>
-<li><strong>Custom cleanup</strong> - resetting terminal modes, unlocking files, etc.</li>
-</ol>
-<p>For my window manager, I use signal handlers to:</p>
-<ul>
-<li>Unmap windows gracefully</li>
-<li>Restore X11 state</li>
-<li>Close the connection to the X server properly</li>
-</ul>
-<p>Regular heap memory? I just let the OS clean it up. It's going to do it anyway.</p>
-<h2 id="summary">Summary</h2>
-<ul>
-<li>Cleanup at end of main doesn't run if you crash</li>
-<li><code>atexit()</code> doesn't help - it's for normal exits only</li>
-<li>Signal handlers let you run code on crash</li>
-<li>Be careful about async-signal-safety in handlers</li>
-<li>For regular malloc'd memory, the OS cleans up anyway</li>
-<li>Signal handlers are useful for shared resources and external state</li>
-</ul>
-<p>The pattern I use in practice:</p>
+<p>But for crash signals (SIGSEGV, SIGABRT), you can't return to normal execution because the program is already broken, so you do what cleanup you can in the handler and exit.</p>
+<h2 id="wait-doesn-t-the-os-clean-up-anyway">wait, doesn't the OS clean up anyway?</h2>
+<p>Yes. On any modern OS (Linux, macOS, Windows), when your process terminates the kernel reclaims all its resources: heap memory gets freed, file descriptors get closed, and memory mappings get unmapped.</p>
+<p>So for plain <code>malloc()</code> and regular files, you don't actually need signal handlers for cleanup because the OS handles it. Where signal handlers really matter is shared resources (shared memory segments from <code>shm_open</code>, semaphores, message queues) that persist beyond process lifetime, temp files you want to delete on crash, external state like network connections or database transactions you want to close gracefully, and custom cleanup like resetting terminal modes or unlocking files.</p>
+<p>For my window manager, I use signal handlers to unmap windows gracefully, restore X11 state, and close the connection to the X server properly. Regular heap memory? I just let the OS clean it up because it's going to do it anyway.</p>
+<h2 id="the-pattern-i-use">the pattern I use</h2>
 <pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">volatile</span><span style="color: light-dark(#855959, #A6BCAD);"> sig_atomic_t</span><span> should_exit </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
 <span class="giallo-l"></span>
 <span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#3C6362, #A2BD90);"> signal_handler</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">int</span><span style="color: light-dark(#7D4242, #D4D4C0);"> sig</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
@@ -293,6 +258,11 @@
 <span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    return</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
 <span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre>
 <p>For SIGSEGV/SIGABRT, I mostly just let it crash and let the OS clean up. Unless there's shared state that needs explicit cleanup, adding a handler for crash signals just complicates things without much benefit.</p>
+<h2 id="notes">notes</h2>
+<ul>
+<li><code>signal()</code> behavior varies by platform, <code>sigaction()</code> is more portable and predictable</li>
+<li>You can use <code>SA_RESETHAND</code> flag with sigaction to restore default behavior after catching a crash signal once</li>
+</ul>
   
 </article>
 </main>

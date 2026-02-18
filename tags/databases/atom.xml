@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
-    <title>Yazeed&#x27;s Blog - Databases</title>
+    <title>Yazeed&#x27;s Blog - databases</title>
     <subtitle>Notes on systems and low-level software.</subtitle>
     <link rel="self" type="application/atom+xml" href="https://yazeed1s.github.io/tags/databases/atom.xml"/>
     <link rel="alternate" type="text/html" href="https://yazeed1s.github.io"/>
@@ -26,27 +26,27 @@
         <content type="html" xml:base="https://yazeed1s.github.io/posts/mmap-databases/">&lt;p&gt;mmap lets you map a file into your address space and access it like memory through pointer dereferences instead of &lt;code&gt;read()&lt;&#x2F;code&gt; calls and user-space buffers. The OS handles paging transparently.&lt;&#x2F;p&gt;
 &lt;p&gt;For a database, this looks perfect at first: map data files, access pages through pointers, let the kernel decide what stays in memory, and skip writing a buffer pool. Several databases tried it, and most backed away from it.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;why-it-s-tempting&quot;&gt;why it&#x27;s tempting&lt;&#x2F;h2&gt;
-&lt;p&gt;A traditional DBMS maintains its own buffer pool. It tracks which pages are in memory, decides what to evict, handles I&#x2F;O explicitly. That&#x27;s a lot of code. Thousands of lines just to manage what&#x27;s cached.&lt;&#x2F;p&gt;
+&lt;p&gt;A traditional DBMS maintains its own buffer pool where it tracks which pages are in memory, decides what to evict, and handles I&#x2F;O explicitly, which is a lot of code (thousands of lines just to manage what&#x27;s cached).&lt;&#x2F;p&gt;
 &lt;p&gt;With mmap you skip all that because the kernel already has a page cache, already tracks access patterns, and already evicts pages under memory pressure, so the question becomes: why duplicate it?&lt;&#x2F;p&gt;
 &lt;p&gt;LMDB does it, MongoDB used to do it, LevelDB did it, MonetDB did it, and SQLite has an mmap mode, so the idea is clearly attractive.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;the-transactional-safety-problem&quot;&gt;the transactional safety problem&lt;&#x2F;h2&gt;
 &lt;p&gt;The OS can flush dirty pages to disk whenever it wants. You don&#x27;t control when.&lt;&#x2F;p&gt;
 &lt;p&gt;If your DBMS modifies a page through the mmap&#x27;d region, that change can hit disk before the transaction commits. Crash at the wrong time and your database is inconsistent. You&#x27;ve violated durability, or atomicity, or both.&lt;&#x2F;p&gt;
-&lt;p&gt;A buffer pool doesn&#x27;t have this problem. Pages live in user-space memory. The DBMS decides when to write them to disk. It writes the WAL first, then the data pages. Control flow is explicit.&lt;&#x2F;p&gt;
+&lt;p&gt;A buffer pool doesn&#x27;t have this problem because pages live in user-space memory and the DBMS decides when to write them to disk, always writing the WAL first then the data pages, so control flow is explicit.&lt;&#x2F;p&gt;
 &lt;p&gt;With mmap, you need workarounds. MongoDB&#x27;s MMAPv1 engine used &lt;code&gt;MAP_PRIVATE&lt;&#x2F;code&gt; to create a copy-on-write workspace. Two copies of the database in memory. SQLite copies pages to user-space buffers before modifying them, which defeats the purpose of mmap. LMDB uses shadow paging, which forces single-writer concurrency.&lt;&#x2F;p&gt;
 &lt;p&gt;All of these are complex. And all of them give back the simplicity that mmap was supposed to provide.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;i-o-stalls-you-can-t-control&quot;&gt;I&#x2F;O stalls you can&#x27;t control&lt;&#x2F;h2&gt;
-&lt;p&gt;When you access an mmap&#x27;d page that&#x27;s been evicted, you get a page fault. The thread blocks until the OS reads the page from disk.&lt;&#x2F;p&gt;
-&lt;p&gt;You can&#x27;t do anything about this. There isn&#x27;t an async page-fault interface to say &quot;I&#x27;m going to need this page soon, start loading it.&quot; The thread just stops.&lt;&#x2F;p&gt;
+&lt;p&gt;When you access an mmap&#x27;d page that&#x27;s been evicted you get a page fault and the thread blocks until the OS reads the page from disk.&lt;&#x2F;p&gt;
+&lt;p&gt;You can&#x27;t do anything about this since there isn&#x27;t an async page-fault interface to say &quot;I&#x27;m going to need this page soon, start loading it,&quot; the thread just stops.&lt;&#x2F;p&gt;
 &lt;p&gt;With a buffer pool, you control I&#x2F;O explicitly. You can use &lt;code&gt;io_uring&lt;&#x2F;code&gt; or &lt;code&gt;libaio&lt;&#x2F;code&gt; for async reads. You can prefetch pages you know you&#x27;ll need. A B+tree range scan can issue reads for the next few leaf pages ahead of time.&lt;&#x2F;p&gt;
 &lt;p&gt;With mmap, a range scan hits a page fault on every cold page. Sequentially. Each one blocks. You can try &lt;code&gt;madvise(MADV_SEQUENTIAL)&lt;&#x2F;code&gt; but it&#x27;s a hint, not a guarantee, and it doesn&#x27;t help for non-sequential access patterns.&lt;&#x2F;p&gt;
 &lt;blockquote&gt;
 &lt;p&gt;&lt;code&gt;madvise&lt;&#x2F;code&gt; behavior varies between kernel versions and is not standardized across operating systems. On Linux, &lt;code&gt;MADV_SEQUENTIAL&lt;&#x2F;code&gt; triggers aggressive readahead and drops pages behind, but the readahead window size and eviction behavior are kernel implementation details that can change. Don&#x27;t rely on specific behavior across versions.&lt;&#x2F;p&gt;
 &lt;&#x2F;blockquote&gt;
 &lt;h2 id=&quot;error-handling-gets-weird&quot;&gt;error handling gets weird&lt;&#x2F;h2&gt;
-&lt;p&gt;With a buffer pool, error handling is centralized. You read a page, check the checksum, handle I&#x2F;O errors, all in one place.&lt;&#x2F;p&gt;
-&lt;p&gt;With mmap, pages can be evicted and reloaded transparently. So you&#x27;d need to verify checksums on every access, not just the first read. An I&#x2F;O error during transparent page-in doesn&#x27;t return an error code. It raises SIGBUS. Your error handling is now a signal handler scattered across the codebase.&lt;&#x2F;p&gt;
-&lt;p&gt;If a page in your buffer gets corrupted, you catch it before writing to disk. With mmap, the OS can flush a corrupted page without asking. Silent data corruption.&lt;&#x2F;p&gt;
+&lt;p&gt;With a buffer pool error handling is centralized: you read a page, check the checksum, handle I&#x2F;O errors, all in one place.&lt;&#x2F;p&gt;
+&lt;p&gt;With mmap pages can be evicted and reloaded transparently, so you&#x27;d need to verify checksums on every access not just the first read. An I&#x2F;O error during transparent page-in doesn&#x27;t return an error code either, it raises SIGBUS, which means your error handling is now a signal handler scattered across the codebase.&lt;&#x2F;p&gt;
+&lt;p&gt;If a page in your buffer gets corrupted you catch it before writing to disk, but with mmap the OS can flush a corrupted page without asking, which is silent data corruption.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;the-performance-collapse&quot;&gt;the performance collapse&lt;&#x2F;h2&gt;
 &lt;p&gt;This is the part that surprised me. A CIDR 2022 paper by Crotty, Leis, and Pavlo benchmarked mmap against traditional I&#x2F;O and the results are bad.&lt;&#x2F;p&gt;
 &lt;p&gt;Random reads on a 2TB dataset with 100GB of page cache (so ~95% of accesses are page faults):&lt;&#x2F;p&gt;
@@ -70,8 +70,8 @@
 &lt;p&gt;If your entire dataset fits in memory and you&#x27;re read-only, mmap works: eviction never kicks in, so you avoid TLB shootdowns, and transactional write hazards don&#x27;t apply. LMDB operates in this sweet spot for some workloads.&lt;&#x2F;p&gt;
 &lt;p&gt;But if your data exceeds memory, or you need writes with ACID guarantees, or you want to use fast storage at full bandwidth, mmap is the wrong tool.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;what-this-really-comes-down-to&quot;&gt;what this really comes down to&lt;&#x2F;h2&gt;
-&lt;p&gt;For me this comes down to one thing: the OS page cache is general-purpose, while databases need very specific control. General-purpose is fine for generic workloads, but databases have specific access patterns, durability rules, and error-handling paths that the OS cannot infer.&lt;&#x2F;p&gt;
-&lt;p&gt;It&#x27;s similar to the tiered memory problem. The OS tries to manage page placement transparently, but transparency breaks down when the application knows something the kernel doesn&#x27;t. Buffer pool vs mmap is the same tension. Do you trust the OS abstraction, or do you manage things yourself because you know your workload better?&lt;&#x2F;p&gt;
+&lt;p&gt;For me this comes down to one thing: the OS page cache is general-purpose while databases need very specific control. General-purpose is fine for generic workloads, but databases have specific access patterns, durability rules, and error-handling paths that the OS cannot infer.&lt;&#x2F;p&gt;
+&lt;p&gt;It&#x27;s similar to the tiered memory problem where the OS tries to manage page placement transparently, but transparency breaks down when the application knows something the kernel doesn&#x27;t. Buffer pool vs mmap is the same tension: do you trust the OS abstraction, or do you manage things yourself because you know your workload better?&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
 &lt;ul&gt;
 &lt;li&gt;Paper: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;db.cs.cmu.edu&#x2F;papers&#x2F;2022&#x2F;cidr2022-p13-crotty.pdf&quot;&gt;Crotty, Leis, Pavlo — &quot;Are You Sure You Want to Use MMAP in Your Database Management System?&quot;, CIDR 2022&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;

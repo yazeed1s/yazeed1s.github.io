@@ -124,9 +124,9 @@
                 
                 <a href="https://yazeed1s.github.io/tags/c">C</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/systems-programming">Systems Programming</a><span
+                <a href="https://yazeed1s.github.io/tags/systems-programming">systems programming</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/patterns">Patterns</a>
+                <a href="https://yazeed1s.github.io/tags/patterns">patterns</a>
             </span>
             
         </div>
@@ -226,7 +226,7 @@
 <p>Function signature mismatches are silent if you're not careful. If <code>ops-&gt;read</code> expects three arguments and you assign a function that takes two, some compilers will warn, some won't. Depends on how you typedef things.</p>
 <p>And the <code>self</code> pointer pattern is verbose. Every method takes a <code>self</code> parameter. Every call passes it. C++ hides this with <code>this</code>. C makes you type it every time.</p>
 <h2 id="it-s-still-worth-it">it's still worth it</h2>
-<p>Despite the rough edges, the pattern is useful. It gives you the main thing polymorphism provides: code that operates on behavior rather than concrete types. The VFS layer works because it dispatches through function pointers. Device drivers work the same way. My event loop works the same way.</p>
+<p>The pattern is still useful though. It gives you the main thing polymorphism provides: code that operates on behavior rather than concrete types. The VFS layer works because it dispatches through function pointers. Device drivers work the same way. My event loop works the same way.</p>
 <p>You don't get compile-time safety. But you get a clean separation between interface and implementation in a language that has no keyword for either.</p>
 <h2 id="notes">notes</h2>
 <ul>

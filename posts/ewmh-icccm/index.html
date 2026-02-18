@@ -122,19 +122,18 @@
             <span class="post-tags">
                 <span class="post-tags-label">Tags: </span>
                 
-                <a href="https://yazeed1s.github.io/tags/linux">Linux</a><span
+                <a href="https://yazeed1s.github.io/tags/linux">linux</a><span
                     class="tag-comma">,</span> 
                 <a href="https://yazeed1s.github.io/tags/x11">x11</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/window-manager">Window Manager</a>
+                <a href="https://yazeed1s.github.io/tags/window-manager">window manager</a>
             </span>
             
         </div>
     </header>
-     <p>EWMH and ICCCM are specs that define how window managers and clients communicate. Properties on windows, atoms, message formats. Without them, every app would need to know specifically how to talk to your WM. With them, apps can assume standard behavior.</p>
-<p>Every WM implements some subset. Here's what actually matters.</p>
+     <p>EWMH and ICCCM are the two specs that define how window managers and clients talk to each other through properties on windows, atoms, and message formats. Without them every app would need to know specifically how to talk to your particular WM, and with them apps can just assume standard behavior. Every WM implements some subset of these, and here's what actually matters.</p>
 <h2 id="icccm-the-old-one">ICCCM: the old one</h2>
-<p>ICCCM is the Inter-Client Communication Conventions Manual. It's from 1988. Defines the basics:</p>
+<p>ICCCM is the Inter-Client Communication Conventions Manual from 1988 and it defines the basics:</p>
 <ul>
 <li><code>WM_NAME</code> — window title</li>
 <li><code>WM_CLASS</code> — instance name and class name (used for matching windows to rules)</li>
@@ -143,17 +142,17 @@
 <li><code>WM_PROTOCOLS</code> — which protocols the client supports (like <code>WM_DELETE_WINDOW</code>)</li>
 <li><code>WM_STATE</code> — current state (normal, iconic, withdrawn)</li>
 </ul>
-<p>The important ones for a basic WM:</p>
+<p>The ones that actually matter for a basic WM:</p>
 <p><strong>WM_DELETE_WINDOW</strong> — if the client lists this in <code>WM_PROTOCOLS</code>, send a ClientMessage instead of killing the window. This lets the app save unsaved work before closing.</p>
 <p><strong>WM_TAKE_FOCUS</strong> — for apps that handle focus themselves. When you want to focus the window, send a ClientMessage and the app focuses its own input field.</p>
 <p><strong>WM_NORMAL_HINTS</strong> — size hints. Some apps set minimum size or fixed aspect ratio. If you're a tiling WM you might ignore this, but floating windows should respect it.</p>
 <p><strong>WM_STATE</strong> — you're supposed to set this on managed windows. Some apps check it. <code>NormalState</code> for visible, <code>IconicState</code> for minimized, <code>WithdrawnState</code> for not managed.</p>
 <p><strong>WM_CLASS</strong> — critical for window rules. The class name tells you what app this is. You want this to auto-float dialogs, send certain apps to specific desktops, etc.</p>
-<p>ICCCM is showing its age. It doesn't know about multiple desktops, fullscreen, maximized state, struts (docking bars), or window types. That's what EWMH adds.</p>
+<p>ICCCM is showing its age tho, it doesn't know about multiple desktops, fullscreen, maximized state, struts (docking bars), or window types, and that's what EWMH adds.</p>
 <h2 id="ewmh-the-modern-one">EWMH: the modern one</h2>
-<p>EWMH is the Extended Window Manager Hints. It's what most modern apps and WMs actually use.</p>
+<p>EWMH is the Extended Window Manager Hints and it's what most modern apps and WMs actually use.</p>
 <h3 id="root-window-properties">root window properties</h3>
-<p>These go on the root window and describe the WM and desktop state:</p>
+<p>These go on the root window and describe the overall WM and desktop state:</p>
 <p><strong><code>_NET_SUPPORTED</code></strong> — list of EWMH atoms you support. Apps check this to know what features work.</p>
 <p><strong><code>_NET_CLIENT_LIST</code></strong> — all managed windows. Pagers and taskbars use this.</p>
 <p><strong><code>_NET_CLIENT_LIST_STACKING</code></strong> — same but in stacking order (bottom to top).</p>
@@ -174,7 +173,7 @@
 <li><code>_NET_WM_WINDOW_TYPE_UTILITY</code> — toolbars, palettes</li>
 <li><code>_NET_WM_WINDOW_TYPE_NOTIFICATION</code> — notification popups</li>
 </ul>
-<p>This is how you know to auto-float dialogs or keep docks above other windows.</p>
+<p>This is how you know to auto-float dialogs or keep docks above other windows, and getting this right makes a huge difference in how the WM feels.</p>
 <p><strong><code>_NET_WM_STATE</code></strong> — current window state flags:</p>
 <ul>
 <li><code>_NET_WM_STATE_FULLSCREEN</code> — fullscreen</li>
@@ -188,14 +187,14 @@
 <p><strong><code>_NET_WM_STRUT_PARTIAL</code></strong> — reserved screen space. Docks set this to tell the WM "don't tile windows in my area."</p>
 <p><strong><code>_NET_WM_PID</code></strong> — process ID. Useful for "which process owns this window?"</p>
 <h3 id="client-messages">client messages</h3>
-<p>Apps send these to the WM to request things:</p>
+<p>Apps send these to the WM to request things, and the WM decides whether to honor them:</p>
 <p><strong><code>_NET_ACTIVE_WINDOW</code></strong> — request focus for a window. Pagers use this.</p>
 <p><strong><code>_NET_CLOSE_WINDOW</code></strong> — request to close a window. Taskbars use this.</p>
 <p><strong><code>_NET_WM_STATE</code></strong> — request state change (toggle fullscreen, etc). The message includes the action (add/remove/toggle) and which state atoms.</p>
 <p><strong><code>_NET_CURRENT_DESKTOP</code></strong> — request desktop switch.</p>
 <p><strong><code>_NET_WM_DESKTOP</code></strong> — request to move window to different desktop.</p>
 <h2 id="what-i-actually-implemented">what I actually implemented</h2>
-<p>For a tiling WM, here's the bare minimum that makes things work:</p>
+<p>For a tiling WM the spec is big but you don't need all of it, here's the bare minimum that makes things work:</p>
 <p><strong>Must have:</strong></p>
 <ul>
 <li><code>_NET_SUPPORTED</code> — advertise what you support</li>
@@ -221,7 +220,7 @@
 <li><code>_NET_WM_MOVERESIZE</code> — for interactive resize/move, not really relevant if everything tiles</li>
 </ul>
 <h2 id="handling-state-changes">handling state changes</h2>
-<p>When an app sends <code>_NET_WM_STATE</code> client message, it looks like:</p>
+<p>When an app sends a <code>_NET_WM_STATE</code> client message the format is:</p>
 <ul>
 <li><code>data.l[0]</code> = action (0=remove, 1=add, 2=toggle)</li>
 <li><code>data.l[1]</code> = first state atom</li>
@@ -235,12 +234,12 @@
 <span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">        fullscreen</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>win</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
 <span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    }</span></span>
 <span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre>
-<p>You also need to update the property on the window so other apps can see the current state.</p>
+<p>You also need to update the property on the window afterwards so other apps (like pagers and taskbars) can see the current state.</p>
 <h2 id="the-annoying-parts">the annoying parts</h2>
-<p><strong>Order matters.</strong> Some apps expect you to set properties in specific order during initial manage. Java is notorious for this.</p>
-<p><strong>UTF-8 everywhere.</strong> <code>_NET_WM_NAME</code> is UTF-8. <code>WM_NAME</code> might be latin1 or something else. You need to handle both.</p>
+<p><strong>Order matters.</strong> Some apps expect you to set properties in a specific order during initial manage, and Java is notorious for this.</p>
+<p><strong>UTF-8 everywhere.</strong> <code>_NET_WM_NAME</code> is UTF-8 but <code>WM_NAME</code> might be latin1 or something else entirely, so you need to handle both.</p>
 <p><strong>Struts are per-monitor.</strong> <code>_NET_WM_STRUT_PARTIAL</code> has 12 values: left, right, top, bottom, and start/end for each. A bar on the left side of monitor 2 has a specific left strut with start_y/end_y bounding its position.</p>
-<p><strong>Desktop indices.</strong> Apps expect 0-indexed desktops. <code>_NET_CURRENT_DESKTOP = 0</code> is the first desktop. Some early EWMH implementations got this wrong.</p>
+<p><strong>Desktop indices.</strong> Apps expect 0-indexed desktops where <code>_NET_CURRENT_DESKTOP = 0</code> is the first desktop, and some early EWMH implementations got this wrong.</p>
 <h2 id="notes">notes</h2>
 <ul>
 <li>ICCCM: https://tronche.com/gui/x/icccm/</li>

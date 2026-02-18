@@ -24,16 +24,13 @@
         <id>https://yazeed1s.github.io/posts/malloc-to-teired/</id>
         
         <content type="html" xml:base="https://yazeed1s.github.io/posts/malloc-to-teired/">&lt;p&gt;When you call &lt;code&gt;malloc()&lt;&#x2F;code&gt;, the allocator gives you a pointer. It doesn&#x27;t know or care whether the physical page behind it sits in fast local DRAM or slower CXL-attached memory. From user space, memory still looks flat. But it isn&#x27;t anymore. Machines now have 2–3x latency differences between memory tiers, and the allocator is completely blind to that.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;how-glibc-malloc-sees-the-world&quot;&gt;how glibc malloc sees the world&lt;&#x2F;h2&gt;
 &lt;p&gt;glibc&#x27;s allocator (ptmalloc2) was designed in a mostly uniform DRAM world. It manages arenas, splits and coalesces chunks, decides when to use &lt;code&gt;brk&lt;&#x2F;code&gt; and when to use &lt;code&gt;mmap&lt;&#x2F;code&gt;, and tries to reduce lock contention between threads. But it doesn&#x27;t care about which NUMA node backs an allocation unless the application explicitly asks for it. In the common case, it just requests virtual memory and leaves physical placement to the kernel.&lt;&#x2F;p&gt;
 &lt;p&gt;So from the allocator&#x27;s perspective, memory is virtual address space. It doesn&#x27;t know whether the physical pages will come from local DRAM, remote NUMA, CXL-attached memory, or something else. That blindness was perfectly reasonable when latency differences were small and mostly about bandwidth balancing. The allocator could afford to ignore placement because the hardware was close to uniform.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;what-tiered-memory-changes&quot;&gt;what tiered memory changes&lt;&#x2F;h2&gt;
 &lt;p&gt;In tiered memory systems, the kernel often treats slow memory as another NUMA node. It may demote cold pages to slow memory and promote hot pages back to fast DRAM. Research systems like TPP migrate pages based on observed access frequency, and Memtis tries to improve classification by looking at access distribution and even splitting huge pages when access inside them is skewed.&lt;&#x2F;p&gt;
 &lt;p&gt;But the pattern is always the same: allocate first, observe later, migrate if needed. The allocator places data somewhere, the kernel watches page faults or samples accesses, then corrects the placement. We&#x27;re always reacting.&lt;&#x2F;p&gt;
 &lt;p&gt;Migration isn&#x27;t free. It involves copying 4KB pages, updating page tables, invalidating TLB entries, and potentially disturbing caches. Work like M5 shows that misclassification and migration overhead can actually hurt performance if not handled carefully. So you&#x27;re paying a correction cost because the initial allocation was blind. I keep wondering how much of this cost could be avoided if the allocator had any information at all about what&#x27;s hot.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;the-allocator-knows-nothing-about-temperature&quot;&gt;the allocator knows nothing about temperature&lt;&#x2F;h2&gt;
 &lt;p&gt;Consider a simple program:&lt;&#x2F;p&gt;
 &lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;c&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt; *&lt;&#x2F;span&gt;&lt;span&gt;hot_table &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt; malloc&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt; &amp;lt;&amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 20&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;   &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; frequently accessed&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
@@ -42,7 +39,6 @@
 &lt;p&gt;From glibc&#x27;s perspective, these are identical calls. Same API, same path. But their temperature is completely different. The allocator has no way to express or detect that difference.&lt;&#x2F;p&gt;
 &lt;p&gt;The application often already knows which data is critical. A database knows its buffer pool is hot. A web server knows which structures sit in the request path. A compiler knows which tables are heavily reused. Yet we force the kernel to guess using access bits and heuristics.&lt;&#x2F;p&gt;
 &lt;p&gt;That naturally leads to the question: are we solving the problem too late?&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;should-malloc-become-tier-aware&quot;&gt;should malloc become tier-aware?&lt;&#x2F;h2&gt;
 &lt;p&gt;One idea, not that exotic: let the allocator express intent.&lt;&#x2F;p&gt;
 &lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;c&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt; *&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;malloc_hot&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;size_t&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7D4242, #D4D4C0);&quot;&gt; size&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
@@ -50,177 +46,19 @@
 &lt;p&gt;Internally, &lt;code&gt;malloc_hot()&lt;&#x2F;code&gt; could bind memory to the fast NUMA node using mechanisms that already exist, like &lt;code&gt;mbind()&lt;&#x2F;code&gt; or &lt;code&gt;set_mempolicy()&lt;&#x2F;code&gt;. &lt;code&gt;malloc_cold()&lt;&#x2F;code&gt; could allocate directly on the slow tier. Instead of allocate -&amp;gt; detect -&amp;gt; migrate, you&#x27;d allocate correctly from the start.&lt;&#x2F;p&gt;
 &lt;p&gt;This avoids some migration entirely. Fewer TLB shootdowns, less page copying. Placement becomes a proactive decision rather than a reactive correction.&lt;&#x2F;p&gt;
 &lt;p&gt;But now the deeper question comes up.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;is-os-transparency-still-sacred&quot;&gt;is OS transparency still sacred?&lt;&#x2F;h2&gt;
 &lt;p&gt;Virtual memory was designed to hide physical placement. That abstraction is powerful because developers don&#x27;t need to care where bytes live. They just allocate and use.&lt;&#x2F;p&gt;
 &lt;p&gt;Tiered memory challenges that. When latency differences become large enough, placement starts to matter again.&lt;&#x2F;p&gt;
 &lt;p&gt;You can keep full transparency. The kernel observes access patterns and tries to infer temperature. Developers stay insulated. The system grows more complex internally, with more sampling and migration.&lt;&#x2F;p&gt;
 &lt;p&gt;Or you can leak some abstraction. Let developers label allocations as hot or cold. Trust applications to express intent, and let the allocator participate in placement.&lt;&#x2F;p&gt;
 &lt;p&gt;I honestly don&#x27;t know which is better. The second approach sounds cleaner until you think about what happens when developers misclassify. What if everything gets labeled &quot;fast&quot;? Do you override their hints? Ignore them? Once you expose placement, you also expose responsibility, and most application developers probably don&#x27;t want that.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;huge-pages-make-it-worse&quot;&gt;huge pages make it worse&lt;&#x2F;h2&gt;
 &lt;p&gt;Memtis shows that access inside a 2MB huge page can be highly skewed. Promoting an entire huge page to fast memory because a small region is hot wastes precious capacity. The allocator doesn&#x27;t know how its allocations align with huge pages. The kernel may split or merge them later.&lt;&#x2F;p&gt;
 &lt;p&gt;So page size, allocation strategy, and tier placement are all interacting and I&#x27;m not sure anyone has a clean model for how they should interact. The original layering between allocator and kernel assumed these things were independent. They&#x27;re not anymore.&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;a-possible-middle-ground&quot;&gt;a possible middle ground&lt;&#x2F;h2&gt;
 &lt;p&gt;I don&#x27;t think we should abandon OS transparency completely. It&#x27;s still valuable, especially for most applications that don&#x27;t care about deep performance tuning. But maybe transparency should become adjustable.&lt;&#x2F;p&gt;
 &lt;p&gt;By default, memory stays abstract. The kernel handles tiering. But for performance-critical systems, the allocator could expose controlled hints, and the kernel could enforce limits so that misclassification doesn&#x27;t destabilize things.&lt;&#x2F;p&gt;
 &lt;p&gt;I don&#x27;t know if this would hold up in real systems. It depends on how well the kernel can override bad hints, and on whether developers will bother annotating allocations. My guess is most people ignore it and a small group gets real value out of it.&lt;&#x2F;p&gt;
-</content>
-        
-    </entry>
-    <entry xml:lang="en">
-        <title>What a Process Really Owns</title>
-        <published>2026-01-05T00:00:00+00:00</published>
-        <updated>2026-01-05T00:00:00+00:00</updated>
-        
-        <author>
-          <name>
-            
-              Unknown
-            
-          </name>
-        </author>
-        
-        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/what-a-process-owns/"/>
-        <id>https://yazeed1s.github.io/posts/what-a-process-owns/</id>
-        
-        <content type="html" xml:base="https://yazeed1s.github.io/posts/what-a-process-owns/">&lt;p&gt;I wanted to think through what a process actually &quot;owns&quot; because I realized I had a fuzzy picture of it. We throw around words like &quot;process&quot;, &quot;thread&quot;, &quot;address space&quot; but I wanted to be more concrete about what the kernel actually tracks.&lt;&#x2F;p&gt;
-&lt;h2 id=&quot;the-short-version&quot;&gt;the short version&lt;&#x2F;h2&gt;
-&lt;p&gt;A process owns:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;Its own virtual address space&lt;&#x2F;li&gt;
-&lt;li&gt;File descriptors&lt;&#x2F;li&gt;
-&lt;li&gt;Signal handlers&lt;&#x2F;li&gt;
-&lt;li&gt;Resource limits&lt;&#x2F;li&gt;
-&lt;li&gt;A process ID and various metadata&lt;&#x2F;li&gt;
-&lt;li&gt;One or more threads of execution&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;When you fork(), the child gets copies of most of these. When you exec(), most of it gets replaced with fresh stuff for the new program.&lt;&#x2F;p&gt;
-&lt;h2 id=&quot;address-space&quot;&gt;address space&lt;&#x2F;h2&gt;
-&lt;p&gt;This is the big one. Every process gets its own virtual address space. On a 64-bit system that&#x27;s a huge range of addresses (48 bits usable on x86-64, so 256 TB of virtual space).&lt;&#x2F;p&gt;
-&lt;p&gt;The address space contains:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Text segment&lt;&#x2F;strong&gt;: the executable code, usually read-only&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;Data segment&lt;&#x2F;strong&gt;: initialized global&#x2F;static variables&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;BSS&lt;&#x2F;strong&gt;: uninitialized globals (zeroed on startup)&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;Heap&lt;&#x2F;strong&gt;: dynamic allocations (malloc, new)&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;Stack&lt;&#x2F;strong&gt;: function call frames, local variables&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;Memory-mapped regions&lt;&#x2F;strong&gt;: shared libraries, mmap&#x27;d files, anonymous mappings&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;The kernel tracks all this in data structures (on Linux, the &lt;code&gt;mm_struct&lt;&#x2F;code&gt; and a tree of &lt;code&gt;vm_area_struct&lt;&#x2F;code&gt;). Each region has permissions (read&#x2F;write&#x2F;execute) and backing (file, anonymous, shared, private).&lt;&#x2F;p&gt;
-&lt;p&gt;You can see your process&#x27;s memory map in &lt;code&gt;&#x2F;proc&#x2F;self&#x2F;maps&lt;&#x2F;code&gt;:&lt;&#x2F;p&gt;
-&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; cat&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; &#x2F;proc&#x2F;self&#x2F;maps&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;55a4c8a00000-55a4c8a02000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; r--p&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 00000000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 08:01&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1234567&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;  &#x2F;usr&#x2F;bin&#x2F;cat&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;55a4c8a02000-55a4c8a06000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; r-xp&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 00002000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 08:01&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1234567&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;  &#x2F;usr&#x2F;bin&#x2F;cat&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;55a4c8a06000-55a4c8a09000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; r--p&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 00006000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 08:01&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1234567&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;  &#x2F;usr&#x2F;bin&#x2F;cat&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;.&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;7f8c12000000-7f8c12021000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; rw-p&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 00000000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 00:00&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;7ffd5c9e0000-7ffd5ca01000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; rw-p&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 00000000&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 00:00&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;span&gt;        [stack&lt;&#x2F;span&gt;&lt;span&gt;]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;Each line is a region with its address range, permissions, offset, device, inode, and path.&lt;&#x2F;p&gt;
-&lt;h2 id=&quot;file-descriptors&quot;&gt;file descriptors&lt;&#x2F;h2&gt;
-&lt;p&gt;A process has a table of open file descriptors. These are just small integers (0, 1, 2, 3, ...) that refer to open files, pipes, sockets, devices, whatever.&lt;&#x2F;p&gt;
-&lt;p&gt;By convention:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;0 = stdin&lt;&#x2F;li&gt;
-&lt;li&gt;1 = stdout&lt;&#x2F;li&gt;
-&lt;li&gt;2 = stderr&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;When you open() a file, you get the lowest available fd number. When you fork(), the child inherits copies of the parent&#x27;s fd table (pointing to the same underlying file objects, so they share the file offset).&lt;&#x2F;p&gt;
-&lt;p&gt;The kernel tracks this in a &lt;code&gt;files_struct&lt;&#x2F;code&gt;. Each fd points to a &lt;code&gt;file&lt;&#x2F;code&gt; object which points to an inode.&lt;&#x2F;p&gt;
-&lt;p&gt;You can see a process&#x27;s fds in &lt;code&gt;&#x2F;proc&#x2F;[pid]&#x2F;fd&#x2F;&lt;&#x2F;code&gt;:&lt;&#x2F;p&gt;
-&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; ls&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;la&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; &#x2F;proc&#x2F;self&#x2F;fd&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;lrwx------&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; user&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; user&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 64&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; Jan&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;  1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 00:00&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;span&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; &#x2F;dev&#x2F;pts&#x2F;0&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;lrwx------&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; user&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; user&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 64&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; Jan&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;  1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 00:00&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1&lt;&#x2F;span&gt;&lt;span&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; &#x2F;dev&#x2F;pts&#x2F;0&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;lrwx------&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; user&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; user&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 64&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; Jan&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;  1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 00:00&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 2&lt;&#x2F;span&gt;&lt;span&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; &#x2F;dev&#x2F;pts&#x2F;0&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
-&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;lr-x------&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; user&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; user&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 64&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; Jan&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;  1&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; 00:00&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 3&lt;&#x2F;span&gt;&lt;span&gt; -&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; &#x2F;proc&#x2F;12345&#x2F;fd&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;&lt;h2 id=&quot;credentials-and-ids&quot;&gt;credentials and IDs&lt;&#x2F;h2&gt;
-&lt;p&gt;A process has:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;PID&lt;&#x2F;strong&gt;: unique process ID&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;PPID&lt;&#x2F;strong&gt;: parent process ID&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;UID&#x2F;GID&lt;&#x2F;strong&gt;: user and group IDs (real, effective, saved)&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;Process group and session IDs&lt;&#x2F;strong&gt;: for job control&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;The UID&#x2F;GID stuff is more complicated than I expected. There&#x27;s the real UID (who you actually are), effective UID (what permissions you&#x27;re currently using), and saved UID (so you can drop and regain privileges). This is how setuid programs work.&lt;&#x2F;p&gt;
-&lt;h2 id=&quot;signal-handling&quot;&gt;signal handling&lt;&#x2F;h2&gt;
-&lt;p&gt;A process has a table of signal handlers. Each signal (SIGINT, SIGTERM, SIGSEGV, etc.) can have:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;Default action (terminate, ignore, stop, etc.)&lt;&#x2F;li&gt;
-&lt;li&gt;A custom handler function&lt;&#x2F;li&gt;
-&lt;li&gt;Ignored&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;Plus there&#x27;s a signal mask (which signals are currently blocked) and pending signals (delivered but not yet handled).&lt;&#x2F;p&gt;
-&lt;h2 id=&quot;resource-limits&quot;&gt;resource limits&lt;&#x2F;h2&gt;
-&lt;p&gt;Every process has limits on things like:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;Maximum file size it can create&lt;&#x2F;li&gt;
-&lt;li&gt;Number of open files&lt;&#x2F;li&gt;
-&lt;li&gt;Stack size&lt;&#x2F;li&gt;
-&lt;li&gt;CPU time&lt;&#x2F;li&gt;
-&lt;li&gt;Memory&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;You can see these with &lt;code&gt;ulimit -a&lt;&#x2F;code&gt; in bash. The kernel enforces these.&lt;&#x2F;p&gt;
-&lt;h2 id=&quot;threads&quot;&gt;threads&lt;&#x2F;h2&gt;
-&lt;p&gt;Here&#x27;s where it gets a bit confusing. On Linux, threads are really just processes that share stuff. When you create a thread (via clone() with the right flags), the new &quot;thread&quot; shares the address space, file descriptors, signal handlers, etc. with the parent.&lt;&#x2F;p&gt;
-&lt;p&gt;So a &quot;process&quot; might have multiple threads, and they all share most of the resources I listed above. But each thread has its own:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;Thread ID&lt;&#x2F;li&gt;
-&lt;li&gt;Stack&lt;&#x2F;li&gt;
-&lt;li&gt;Register state&lt;&#x2F;li&gt;
-&lt;li&gt;Signal mask&lt;&#x2F;li&gt;
-&lt;li&gt;errno&lt;&#x2F;li&gt;
-&lt;li&gt;Thread-local storage&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;The kernel calls these &quot;tasks&quot; internally. A process is really a group of tasks that share an address space.&lt;&#x2F;p&gt;
-&lt;h2 id=&quot;pcb-and-tcb&quot;&gt;PCB and TCB&lt;&#x2F;h2&gt;
-&lt;p&gt;So all this stuff I&#x27;ve been talking about, the kernel has to store it somewhere. That&#x27;s where the Process Control Block (PCB) and Thread Control Block (TCB) come in.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Process Control Block (PCB)&lt;&#x2F;strong&gt; is a kernel data structure that holds everything about a process. On Linux this is the &lt;code&gt;task_struct&lt;&#x2F;code&gt; (confusingly named since it&#x27;s used for both processes and threads). It contains:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;Process state (running, sleeping, stopped, zombie)&lt;&#x2F;li&gt;
-&lt;li&gt;PID, PPID, credentials&lt;&#x2F;li&gt;
-&lt;li&gt;Pointers to the memory management structures (&lt;code&gt;mm_struct&lt;&#x2F;code&gt;)&lt;&#x2F;li&gt;
-&lt;li&gt;Pointer to the file descriptor table (&lt;code&gt;files_struct&lt;&#x2F;code&gt;)&lt;&#x2F;li&gt;
-&lt;li&gt;Signal handling info&lt;&#x2F;li&gt;
-&lt;li&gt;Scheduling info (priority, time slice, CPU affinity)&lt;&#x2F;li&gt;
-&lt;li&gt;Accounting info (CPU time used, etc.)&lt;&#x2F;li&gt;
-&lt;li&gt;Pointers to parent, children, siblings in the process tree&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;When the scheduler picks a process to run, it reads from the PCB to restore the process&#x27;s context. When the kernel needs to check permissions or deliver a signal, it looks at the PCB.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Thread Control Block (TCB)&lt;&#x2F;strong&gt; stores the execution context for a specific thread. On Linux this is also in &lt;code&gt;task_struct&lt;&#x2F;code&gt; since threads and processes use the same structure. But the thread-specific stuff includes:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;Register state (saved during context switch)&lt;&#x2F;li&gt;
-&lt;li&gt;Stack pointer&lt;&#x2F;li&gt;
-&lt;li&gt;Thread ID&lt;&#x2F;li&gt;
-&lt;li&gt;Signal mask (which signals this thread blocks)&lt;&#x2F;li&gt;
-&lt;li&gt;Thread-local storage pointer&lt;&#x2F;li&gt;
-&lt;li&gt;errno location&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;The key difference is that multiple TCBs (threads) can point to the same memory management structures and file descriptor tables, while separate PCBs (processes) have their own.&lt;&#x2F;p&gt;
-&lt;p&gt;When you do a context switch, the kernel saves the current thread&#x27;s register state into its TCB, then loads the next thread&#x27;s state from its TCB. If the threads belong to different processes, it also has to switch page tables (which is the expensive part).&lt;&#x2F;p&gt;
-&lt;p&gt;You can think of it like this: the PCB holds &quot;what resources does this process own&quot; while the TCB holds &quot;where is this thread in its execution&quot;. A single-threaded process has one PCB and effectively one TCB. A multi-threaded process has one PCB (shared resources) and multiple TCBs (one per thread).&lt;&#x2F;p&gt;
-&lt;h2 id=&quot;what-happens-on-fork&quot;&gt;what happens on fork()&lt;&#x2F;h2&gt;
-&lt;p&gt;When you fork():&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;Address space is copied (or copy-on-write, so it&#x27;s cheap until you modify things)&lt;&#x2F;li&gt;
-&lt;li&gt;File descriptors are copied (but point to the same file objects)&lt;&#x2F;li&gt;
-&lt;li&gt;Signal handlers are copied&lt;&#x2F;li&gt;
-&lt;li&gt;The child gets a new PID&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;The child is almost identical to the parent at the moment of fork. This is why fork+exec is the traditional Unix way to spawn programs: fork copies everything, then exec replaces it all with a new program.&lt;&#x2F;p&gt;
-&lt;h2 id=&quot;what-i-find-interesting&quot;&gt;what I find interesting&lt;&#x2F;h2&gt;
-&lt;p&gt;The address space isolation is the core thing. That&#x27;s what makes a process a process. Everything else (fds, credentials, signals) is just bookkeeping.&lt;&#x2F;p&gt;
-&lt;p&gt;Threads share the address space but are otherwise separate schedulable entities. This is why data races are possible with threads but not between processes (unless you explicitly share memory).&lt;&#x2F;p&gt;
-&lt;p&gt;The &#x2F;proc filesystem is amazing for introspection. You can see almost everything about a running process without any special tools. Just cat files.&lt;&#x2F;p&gt;
-&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;On Linux, look at &lt;code&gt;task_struct&lt;&#x2F;code&gt; in the kernel source to see what the kernel tracks per task&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;code&gt;mm_struct&lt;&#x2F;code&gt; holds the memory management info&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;code&gt;files_struct&lt;&#x2F;code&gt; holds the fd table&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;code&gt;signal_struct&lt;&#x2F;code&gt; and &lt;code&gt;sighand_struct&lt;&#x2F;code&gt; handle signals&lt;&#x2F;li&gt;
-&lt;li&gt;The clone() syscall lets you pick exactly what to share between parent and child, which is how threads are implemented&lt;&#x2F;li&gt;
-&lt;li&gt;cgroups and namespaces add more layers of isolation on top of this (for containers)&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;If you want to poke around a running process, check &lt;code&gt;&#x2F;proc&#x2F;[pid]&#x2F;status&lt;&#x2F;code&gt; (state, memory, threads), &lt;code&gt;&#x2F;proc&#x2F;[pid]&#x2F;maps&lt;&#x2F;code&gt; (memory map), &lt;code&gt;&#x2F;proc&#x2F;[pid]&#x2F;fd&lt;&#x2F;code&gt; (open file descriptors), &lt;code&gt;&#x2F;proc&#x2F;[pid]&#x2F;limits&lt;&#x2F;code&gt; (resource limits), &lt;code&gt;&#x2F;proc&#x2F;[pid]&#x2F;task&#x2F;&lt;&#x2F;code&gt; (threads). Also &lt;code&gt;ulimit -a&lt;&#x2F;code&gt; for your shell&#x27;s limits and &lt;code&gt;grep ctxt &#x2F;proc&#x2F;self&#x2F;status&lt;&#x2F;code&gt; for context switch counts.&lt;&#x2F;p&gt;
 </content>
         
     </entry>
@@ -312,9 +150,9 @@
         
     </entry>
     <entry xml:lang="en">
-        <title>Context Switches</title>
-        <published>2025-04-03T00:00:00+00:00</published>
-        <updated>2025-04-03T00:00:00+00:00</updated>
+        <title>Swap and Paging: What Actually Happens When Memory Fills Up</title>
+        <published>2025-10-30T00:00:00+00:00</published>
+        <updated>2025-10-30T00:00:00+00:00</updated>
         
         <author>
           <name>
@@ -324,58 +162,150 @@
           </name>
         </author>
         
-        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/context-switches/"/>
-        <id>https://yazeed1s.github.io/posts/context-switches/</id>
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/swap-paging/"/>
+        <id>https://yazeed1s.github.io/posts/swap-paging/</id>
         
-        <content type="html" xml:base="https://yazeed1s.github.io/posts/context-switches/">&lt;p&gt;A CPU can only run one thing at a time. When the OS needs to switch from one process to another, it saves everything about the current one and loads everything about the next. That&#x27;s a context switch.&lt;&#x2F;p&gt;
-&lt;h2 id=&quot;what-gets-saved&quot;&gt;what gets saved&lt;&#x2F;h2&gt;
-&lt;p&gt;&quot;Everything&quot; means the program counter (where the process was in its code), the register values, the stack pointer, and some other CPU state. This is called the process context.&lt;&#x2F;p&gt;
-&lt;p&gt;The reason we need this is simple: we have more processes than CPUs. On my laptop I might have hundreds of processes but only 8 cores. They all need to run somehow, so they take turns. The OS gives each process a slice of time on a CPU, and when the slice is up (or something else happens), it switches to another process.&lt;&#x2F;p&gt;
-&lt;h2 id=&quot;when-do-context-switches-happen&quot;&gt;when do context switches happen&lt;&#x2F;h2&gt;
-&lt;p&gt;A few situations:&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Timer interrupt.&lt;&#x2F;strong&gt; The scheduler sets a timer (maybe 1-10ms depending on the OS and config). When it fires, the kernel gets control and can decide to switch to another process. This is called preemption.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Process blocks.&lt;&#x2F;strong&gt; If a process does something that has to wait (reading from disk, waiting for network, waiting for a lock), it makes no sense to keep it on the CPU. The kernel switches to something that can actually run.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Explicit yield.&lt;&#x2F;strong&gt; A process can voluntarily give up the CPU. This is rare in practice, most of the time the kernel just preempts.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Higher priority process wakes up.&lt;&#x2F;strong&gt; If something more important becomes runnable (like a real-time task or an interactive process that was waiting for input), the kernel might preempt the current process immediately.&lt;&#x2F;p&gt;
-&lt;h2 id=&quot;what-actually-happens-during-a-switch&quot;&gt;what actually happens during a switch&lt;&#x2F;h2&gt;
-&lt;p&gt;When the kernel decides to switch from process A to process B:&lt;&#x2F;p&gt;
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/swap-paging/">&lt;p&gt;I kept hitting concepts like &quot;page fault&quot; and &quot;swap&quot; while reading memory disaggregation papers, so I figured I should actually understand what these mean at a low level before going further.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-swap-is&quot;&gt;what swap is&lt;&#x2F;h2&gt;
+&lt;p&gt;Swap is disk space that acts as overflow for RAM: when physical memory fills up, the kernel moves some data to swap, and later, if that data is needed again, it gets loaded back. That&#x27;s basically it, but the messy part is in the details.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;pages&quot;&gt;pages&lt;&#x2F;h2&gt;
+&lt;p&gt;The kernel doesn&#x27;t manage memory byte by byte because the bookkeeping would be too expensive, so instead it works in fixed-size chunks called &lt;strong&gt;pages&lt;&#x2F;strong&gt;, usually 4KB.&lt;&#x2F;p&gt;
+&lt;p&gt;When you allocate memory you get pages, and when data moves to disk it moves as pages. The physical counterpart is called a &lt;strong&gt;frame&lt;&#x2F;strong&gt;, same size, different name: pages are virtual, frames are physical.&lt;&#x2F;p&gt;
+&lt;p&gt;8GB of RAM gives you roughly 2 million frames, and a process might think it has way more pages than that, but most aren&#x27;t backed by physical memory until they&#x27;re actually used.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;page-tables-and-the-mmu&quot;&gt;page tables and the mmu&lt;&#x2F;h2&gt;
+&lt;p&gt;The CPU doesn&#x27;t know about virtual addresses on its own, there&#x27;s a &lt;strong&gt;Memory Management Unit (MMU)&lt;&#x2F;strong&gt; that translates virtual addresses to physical ones using &lt;strong&gt;page tables&lt;&#x2F;strong&gt;, which are data structures the kernel maintains that the MMU walks to find where a virtual page actually lives (which physical frame, or if it&#x27;s not in RAM at all).&lt;&#x2F;p&gt;
+&lt;p&gt;Walking page tables on every memory access would be slow, so the MMU keeps a cache called the &lt;strong&gt;TLB (Translation Lookaside Buffer)&lt;&#x2F;strong&gt; where recent translations are stored: a hit is fast, and a miss pays for the full page table walk. Most accesses hit the TLB, and that&#x27;s what makes virtual memory practical.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;page-faults&quot;&gt;page faults&lt;&#x2F;h2&gt;
+&lt;p&gt;When a program accesses a virtual address, the MMU checks whether that page is in RAM, and if it&#x27;s not, you get a &lt;strong&gt;page fault&lt;&#x2F;strong&gt;. This isn&#x27;t an error, it&#x27;s just the kernel saying &quot;hold on, I need to go get that.&quot; The program accesses memory, the MMU finds the page isn&#x27;t resident, the CPU traps to the kernel, the kernel figures out where the page lives (swap, file, or nowhere), loads it into a frame, updates the page table, and then the program resumes.&lt;&#x2F;p&gt;
+&lt;p&gt;There are two kinds: a &lt;strong&gt;minor fault&lt;&#x2F;strong&gt; is when the page is already somewhere in memory (page cache, shared mapping) and the kernel just fixes the page table, which is fast. A &lt;strong&gt;major fault&lt;&#x2F;strong&gt; means the page has to be read from disk, which is really slow.&lt;&#x2F;p&gt;
+&lt;p&gt;Some faults are expected. &lt;strong&gt;Lazy allocation&lt;&#x2F;strong&gt; means the kernel doesn&#x27;t back memory until you touch it, so the first access causes a minor fault. &lt;strong&gt;Copy-on-write&lt;&#x2F;strong&gt; means shared pages aren&#x27;t copied until someone writes. &lt;strong&gt;Swapping&lt;&#x2F;strong&gt; means a page was evicted earlier and now needs to come back. Other faults mean bugs, like accessing a garbage address gives you SIGSEGV.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;paging-in-and-out&quot;&gt;paging in and out&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;strong&gt;Page in&lt;&#x2F;strong&gt; means loading a page from disk into RAM, and &lt;strong&gt;page out&lt;&#x2F;strong&gt; means moving a page from RAM to disk to free space.&lt;&#x2F;p&gt;
+&lt;p&gt;When RAM is full and a new page is needed, the kernel picks a &lt;strong&gt;victim&lt;&#x2F;strong&gt; (some page not accessed recently). If the victim is dirty (modified since it was loaded), the kernel writes it to swap first, and if it&#x27;s clean, the kernel just drops it and reloads later if needed.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Before:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;RAM:  [A][B][C][D] ← full&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Swap: [empty]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Need page E. Pick B as victim.&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;After:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;RAM:  [A][E][C][D]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Swap: [B]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;If B is accessed again, you take a major fault, load B, and evict something else; this happens constantly under memory pressure.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-dirty-bit&quot;&gt;the dirty bit&lt;&#x2F;h2&gt;
+&lt;p&gt;Each page has a &lt;strong&gt;dirty bit&lt;&#x2F;strong&gt; that gets set if the page has been modified since it was loaded.&lt;&#x2F;p&gt;
+&lt;p&gt;Why it matters: clean pages can be dropped because the kernel can reload them from the file or wherever they came from, but dirty pages can&#x27;t be dropped without writing them somewhere first. Anonymous memory (heap, stack) that&#x27;s dirty goes to swap, and file-backed memory that&#x27;s been modified goes back to the file (or swap, depends).&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;why-disk-access-hurts&quot;&gt;why disk access hurts&lt;&#x2F;h2&gt;
+&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Access&lt;&#x2F;th&gt;&lt;th&gt;Latency&lt;&#x2F;th&gt;&lt;&#x2F;tr&gt;&lt;&#x2F;thead&gt;&lt;tbody&gt;
+&lt;tr&gt;&lt;td&gt;RAM&lt;&#x2F;td&gt;&lt;td&gt;~100 nanoseconds&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;SSD&lt;&#x2F;td&gt;&lt;td&gt;~100 microseconds&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;HDD&lt;&#x2F;td&gt;&lt;td&gt;~10 milliseconds&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;&#x2F;tbody&gt;&lt;&#x2F;table&gt;
+&lt;p&gt;SSD is 1,000× slower than RAM, and HDD is 100,000× slower.&lt;&#x2F;p&gt;
+&lt;p&gt;A major fault means a disk access, which means the program stalls for an eternity in CPU time. One major fault, who cares. Hundred per second and the app feels sluggish. Thousand and the system is unusable.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;thrashing&quot;&gt;thrashing&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;strong&gt;Thrashing&lt;&#x2F;strong&gt; is what happens when the working set doesn&#x27;t fit in RAM.&lt;&#x2F;p&gt;
+&lt;p&gt;Working set is the memory you&#x27;re actively using right now, and if it&#x27;s bigger than RAM, the kernel constantly swaps pages in and out because every page you load evicts something you need again soon.&lt;&#x2F;p&gt;
 &lt;ol&gt;
-&lt;li&gt;Save A&#x27;s registers to memory (usually in some kernel data structure associated with A, like the task_struct in Linux)&lt;&#x2F;li&gt;
-&lt;li&gt;Save A&#x27;s stack pointer&lt;&#x2F;li&gt;
-&lt;li&gt;Update page tables or TLB if the processes have different address spaces (this is where it gets expensive)&lt;&#x2F;li&gt;
-&lt;li&gt;Load B&#x27;s registers from memory&lt;&#x2F;li&gt;
-&lt;li&gt;Load B&#x27;s stack pointer&lt;&#x2F;li&gt;
-&lt;li&gt;Jump to wherever B left off&lt;&#x2F;li&gt;
+&lt;li&gt;Need page A -&amp;gt; fault, load A, evict B&lt;&#x2F;li&gt;
+&lt;li&gt;Need page B -&amp;gt; fault, load B, evict A&lt;&#x2F;li&gt;
+&lt;li&gt;Need page A -&amp;gt; fault, load A, evict B&lt;&#x2F;li&gt;
+&lt;li&gt;Forever&lt;&#x2F;li&gt;
 &lt;&#x2F;ol&gt;
-&lt;p&gt;If A and B are threads in the same process, step 3 is simpler because they share the same address space. This is one reason thread switches are cheaper than process switches.&lt;&#x2F;p&gt;
+&lt;p&gt;The system spends 99% of its time moving data and 1% doing work, and this is where you get the &quot;stuck mouse&quot; feeling.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;lru-picking-victims&quot;&gt;lru: picking victims&lt;&#x2F;h2&gt;
+&lt;p&gt;How does the kernel decide which page to evict? The ideal strategy would be to evict the one that won&#x27;t be needed soonest, but you can&#x27;t predict the future, so the kernel approximates with &lt;strong&gt;LRU (Least Recently Used)&lt;&#x2F;strong&gt; where pages not accessed in a while are good candidates.&lt;&#x2F;p&gt;
+&lt;p&gt;Linux maintains active&#x2F;inactive lists where pages accessed recently go to active and cold pages drift to inactive, and reclaim takes from inactive first. True LRU would track exact access times for every page, which is too expensive, so Linux settles for &quot;recently used&quot; vs &quot;not recently used.&quot;&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;swappiness&quot;&gt;swappiness&lt;&#x2F;h2&gt;
+&lt;p&gt;Linux doesn&#x27;t wait until RAM is completely full to start swapping, there&#x27;s a knob called &lt;strong&gt;swappiness&lt;&#x2F;strong&gt;.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; cat&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; &#x2F;proc&#x2F;sys&#x2F;vm&#x2F;swappiness&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;60&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Range is 0-200 and it affects how willing the kernel is to swap anonymous memory vs reclaim file cache. At &lt;strong&gt;0&lt;&#x2F;strong&gt; it avoids swapping and holds app memory while sacrificing cache, &lt;strong&gt;60&lt;&#x2F;strong&gt; is the default and balanced, and &lt;strong&gt;100+&lt;&#x2F;strong&gt; means swap more aggressively and keep the file cache warm. No universal right answer, depends on workload.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-can-t-be-swapped&quot;&gt;what can&#x27;t be swapped&lt;&#x2F;h2&gt;
+&lt;p&gt;Not everything can go to disk. &lt;strong&gt;Kernel memory&lt;&#x2F;strong&gt; like page tables, process descriptors, and driver state must stay in RAM because if the kernel got paged out, who pages it back in? &lt;strong&gt;Pinned memory&lt;&#x2F;strong&gt; is memory explicitly locked by the application using mlock, and it&#x27;s used by RDMA, databases, and similar systems. Kernel memory leaks are dangerous because that memory is gone until reboot.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;overcommit&quot;&gt;overcommit&lt;&#x2F;h2&gt;
+&lt;p&gt;Linux lets you allocate more memory than exists, so &lt;code&gt;malloc(1GB)&lt;&#x2F;code&gt; succeeds even with 512MB free. This is intentional, called &lt;strong&gt;overcommit&lt;&#x2F;strong&gt;, and it makes sense because most programs allocate more than they use (sparse arrays, forked processes before exec), and refusing would break software.&lt;&#x2F;p&gt;
+&lt;p&gt;The downside: actually use all that memory and the OOM killer fires. Allocation succeeded, using it didn&#x27;t.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; cat&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; &#x2F;proc&#x2F;sys&#x2F;vm&#x2F;overcommit_memory&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;  #&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; heuristic (default)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; 0 = guess what&amp;#39;s safe&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; 1 = always allow (yolo)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; 2 = strict (refuse if exceeds limit)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Mode 2 is safer but breaks things, and mode 1 is living dangerously.&lt;&#x2F;p&gt;
 &lt;blockquote&gt;
-&lt;p&gt;This is the common case, but not always true. With Spectre mitigations like KPTI enabled, the kernel uses separate page tables for user and kernel space. Even a thread switch within the same process pays for the kernel page table switch on entry and exit.&lt;&#x2F;p&gt;
+&lt;p&gt;Mode 0 isn&#x27;t blind. The kernel uses heuristics that account for total RAM, swap space, and current usage. It will still refuse obviously absurd allocations. Mode 2 enforces a strict limit based on &lt;code&gt;overcommit_ratio&lt;&#x2F;code&gt; (default 50%) of physical RAM plus swap. So &quot;always allow&quot; vs &quot;strict&quot; is more nuanced than it looks.&lt;&#x2F;p&gt;
 &lt;&#x2F;blockquote&gt;
-&lt;h2 id=&quot;why-context-switches-are-expensive&quot;&gt;why context switches are expensive&lt;&#x2F;h2&gt;
-&lt;p&gt;The direct cost isn&#x27;t that bad. Saving and restoring registers takes maybe hundreds of nanoseconds to a few microseconds. The bigger costs are indirect:&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;TLB flush.&lt;&#x2F;strong&gt; The TLB caches virtual-to-physical address translations. If you switch to a process with a different address space, those cached translations are useless (or worse, wrong). The TLB gets flushed and the new process starts cold. Every memory access causes a TLB miss until the cache warms up again.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Cache pollution.&lt;&#x2F;strong&gt; The new process touches different memory. The L1&#x2F;L2&#x2F;L3 caches fill up with its data, evicting the old process&#x27;s data. When you switch back, you start with cold caches again.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Pipeline flush.&lt;&#x2F;strong&gt; Modern CPUs have deep pipelines with speculative execution. A context switch might flush all of that.&lt;&#x2F;p&gt;
-&lt;p&gt;So the direct cost is maybe 1-10 microseconds depending on the hardware. But the indirect costs from cache&#x2F;TLB warming can add hundreds of microseconds or more to the next stretch of execution.&lt;&#x2F;p&gt;
-&lt;h2 id=&quot;why-this-matters&quot;&gt;why this matters&lt;&#x2F;h2&gt;
-&lt;p&gt;If you&#x27;re doing I&#x2F;O-bound work, context switches are probably fine. You&#x27;re waiting on disk or network anyway, the overhead is noise compared to the wait time.&lt;&#x2F;p&gt;
-&lt;p&gt;If you&#x27;re doing CPU-bound work and switching a lot, you&#x27;re wasting cycles. This is why things like busy-waiting or spinning on a lock can sometimes outperform blocking (at least for short waits). You avoid the context switch overhead.&lt;&#x2F;p&gt;
-&lt;p&gt;It&#x27;s also why async I&#x2F;O and event loops (like epoll, io_uring, kqueue) are popular. Instead of blocking and switching, you check if something is ready and move on. You stay on the CPU. Fewer switches, warmer caches.&lt;&#x2F;p&gt;
-&lt;h2 id=&quot;some-numbers&quot;&gt;some numbers&lt;&#x2F;h2&gt;
-&lt;p&gt;These are rough and depend heavily on hardware and workload:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;Direct context switch cost: ~1-5 μs on modern hardware&lt;&#x2F;li&gt;
-&lt;li&gt;TLB flush + warmup: can add 10-100+ μs depending on working set size&lt;&#x2F;li&gt;
-&lt;li&gt;Thread switch (same process): cheaper, maybe 0.5-2 μs since no page table switch&lt;&#x2F;li&gt;
-&lt;li&gt;Typical scheduler timeslice: 1-10 ms&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;The kernel tries to be smart about this. Linux&#x27;s CFS scheduler considers cache locality when picking where to run a task. It tries to keep tasks on the same CPU they ran on last time (CPU affinity) to preserve cache warmth.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;why-this-matters-for-remote-memory&quot;&gt;why this matters for remote memory&lt;&#x2F;h2&gt;
+&lt;p&gt;The main problem is that disk is slow, 1,000-100,000× slower than RAM.&lt;&#x2F;p&gt;
+&lt;p&gt;Systems like Infiniswap replace swap with network access to remote memory; RDMA gives single-digit microsecond latency, which is still slower than local RAM but 10-1000× faster than disk. Keep the paging model, replace the slow part, and the performance cliff becomes a slope.&lt;&#x2F;p&gt;
+&lt;p&gt;The interesting thing is that Linux has a &lt;strong&gt;frontswap&lt;&#x2F;strong&gt; interface, which is a hook that lets you intercept pages before they go to disk. Implement a few callbacks and your module becomes an alternative swap backend, and that&#x27;s how Infiniswap plugs into the kernel: pages that would go to disk get redirected over the network instead.&lt;&#x2F;p&gt;
+&lt;p&gt;I want to look at this interface in more detail later, how frontswap works, what the callbacks look like, and what&#x27;s involved in building something like Infiniswap. Different post.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
 &lt;ul&gt;
-&lt;li&gt;You can measure context switches on Linux with &lt;code&gt;perf stat -e context-switches .&#x2F;your_program&lt;&#x2F;code&gt; or by reading &lt;code&gt;&#x2F;proc&#x2F;[pid]&#x2F;status&lt;&#x2F;code&gt;&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;code&gt;vmstat 1&lt;&#x2F;code&gt; shows system-wide context switches per second&lt;&#x2F;li&gt;
-&lt;li&gt;Voluntary vs involuntary: voluntary means the process blocked or yielded, involuntary means the scheduler preempted it&lt;&#x2F;li&gt;
-&lt;li&gt;In user-space threading (green threads, goroutines), &quot;context switches&quot; are much cheaper because you&#x27;re not going through the kernel and not touching page tables&lt;&#x2F;li&gt;
+&lt;li&gt;Page size usually 4KB. Huge pages exist (2MB, 1GB) to reduce TLB pressure.&lt;&#x2F;li&gt;
+&lt;li&gt;&quot;Anonymous memory&quot; = heap, stack (no backing file). &quot;File-backed&quot; = mmap&#x27;d files, page cache.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;vmstat&lt;&#x2F;code&gt;, &lt;code&gt;sar&lt;&#x2F;code&gt;, &lt;code&gt;&#x2F;proc&#x2F;meminfo&lt;&#x2F;code&gt; for monitoring paging activity.&lt;&#x2F;li&gt;
+&lt;li&gt;Swap on SSD helps. Swap on HDD is pain.&lt;&#x2F;li&gt;
+&lt;li&gt;zswap = compressed swap cache in RAM. Buys time before hitting disk.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>What a Process Owns</title>
+        <published>2025-10-19T00:00:00+00:00</published>
+        <updated>2025-10-19T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/what-a-process-owns/"/>
+        <id>https://yazeed1s.github.io/posts/what-a-process-owns/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/what-a-process-owns/">&lt;p&gt;A process isn&#x27;t just &quot;running code.&quot; It&#x27;s a container that owns a set of resources the kernel manages on its behalf, and understanding what those resources are helps explain why certain operations behave the way they do.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;address-space&quot;&gt;address space&lt;&#x2F;h2&gt;
+&lt;p&gt;Each process gets its own virtual address space, which is a complete illusion of having memory all to itself. On 64-bit Linux a process gets a 128TB virtual space (48-bit addressing), split into user space (lower half) and kernel space (upper half, shared across all processes but inaccessible from user mode).&lt;&#x2F;p&gt;
+&lt;p&gt;Inside this space you have the text segment (your compiled code, read-only and executable), the data segment for initialized globals, BSS for uninitialized globals (zeroed by the kernel), the heap growing upward from the end of BSS (managed by malloc&#x2F;brk&#x2F;mmap), the stack growing downward from near the top of user space, and memory-mapped regions scattered in between for shared libraries, mmap&#x27;d files, and anonymous mappings.&lt;&#x2F;p&gt;
+&lt;p&gt;Two processes can have the same virtual address pointing to completely different physical memory because each process has its own page table. The kernel switches page tables on every context switch by writing a new value to CR3 on x86.&lt;&#x2F;p&gt;
+&lt;p&gt;You can look at a process&#x27;s memory map through &lt;code&gt;&#x2F;proc&#x2F;&amp;lt;pid&amp;gt;&#x2F;maps&lt;&#x2F;code&gt;, which shows each VMA (Virtual Memory Area) with its address range, permissions, offset, device, inode, and pathname.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;file-descriptors&quot;&gt;file descriptors&lt;&#x2F;h2&gt;
+&lt;p&gt;A file descriptor is an integer index into a per-process table of open files. When you call &lt;code&gt;open()&lt;&#x2F;code&gt;, the kernel creates an entry pointing to the underlying file object and returns the lowest available integer, which is why &lt;code&gt;stdin&lt;&#x2F;code&gt; is 0, &lt;code&gt;stdout&lt;&#x2F;code&gt; is 1, and &lt;code&gt;stderr&lt;&#x2F;code&gt; is 2 (they&#x27;re opened first).&lt;&#x2F;p&gt;
+&lt;p&gt;Each process has its own file descriptor table, so fd 5 in one process is completely unrelated to fd 5 in another. The file descriptor carries the current read&#x2F;write position, flags (like &lt;code&gt;O_NONBLOCK&lt;&#x2F;code&gt;), and a reference to the underlying inode.&lt;&#x2F;p&gt;
+&lt;p&gt;File descriptors aren&#x27;t just for files on disk: they represent pipes, sockets, eventfd, timerfd, signalfd, epoll instances, and even directories. The &quot;everything is a file&quot; philosophy means one interface for many types of I&#x2F;O.&lt;&#x2F;p&gt;
+&lt;p&gt;There&#x27;s a per-process limit on open file descriptors (check with &lt;code&gt;ulimit -n&lt;&#x2F;code&gt;, default often 1024) and a system-wide limit. Leaking file descriptors is a common bug, especially in long-running services that open connections and forget to close them.&lt;&#x2F;p&gt;
+&lt;p&gt;You can see all open file descriptors for a process in &lt;code&gt;&#x2F;proc&#x2F;&amp;lt;pid&amp;gt;&#x2F;fd&#x2F;&lt;&#x2F;code&gt;, where each entry is a symlink to the actual file, socket, or pipe.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;signals&quot;&gt;signals&lt;&#x2F;h2&gt;
+&lt;p&gt;Each process has a signal disposition table describing what happens for each signal. The default action depends on the signal: &lt;code&gt;SIGTERM&lt;&#x2F;code&gt; terminates, &lt;code&gt;SIGSTOP&lt;&#x2F;code&gt; suspends, &lt;code&gt;SIGCHLD&lt;&#x2F;code&gt; is ignored by default. You can override most defaults with signal handlers, except for &lt;code&gt;SIGKILL&lt;&#x2F;code&gt; and &lt;code&gt;SIGSTOP&lt;&#x2F;code&gt; which can&#x27;t be caught or ignored.&lt;&#x2F;p&gt;
+&lt;p&gt;A process also has a signal mask that blocks specific signals from being delivered (they queue up until unblocked), and a set of pending signals that have been sent but not yet handled.&lt;&#x2F;p&gt;
+&lt;p&gt;Signal handling is per-process (signal disposition) but delivery can target specific threads. &lt;code&gt;kill(pid, sig)&lt;&#x2F;code&gt; sends to the process, &lt;code&gt;pthread_kill(tid, sig)&lt;&#x2F;code&gt; targets a thread.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;credentials&quot;&gt;credentials&lt;&#x2F;h2&gt;
+&lt;p&gt;Every process has a set of UIDs and GIDs that determine what it can access. There are three sets: &lt;strong&gt;real&lt;&#x2F;strong&gt; (who actually started the process), &lt;strong&gt;effective&lt;&#x2F;strong&gt; (what&#x27;s checked for access), and &lt;strong&gt;saved&lt;&#x2F;strong&gt; (the previous effective, so you can drop and regain privileges).&lt;&#x2F;p&gt;
+&lt;p&gt;Usually real and effective are the same, but setuid programs differ. When you run &lt;code&gt;passwd&lt;&#x2F;code&gt;, the file has the setuid bit set, so the effective UID becomes root (owner of the file) while the real UID stays yours. The process can access &lt;code&gt;&#x2F;etc&#x2F;shadow&lt;&#x2F;code&gt; because effective UID is root, but the program knows who actually called it through the real UID.&lt;&#x2F;p&gt;
+&lt;p&gt;Groups work the same way, and there&#x27;s also a supplementary group list for all the groups you belong to. All of this is stored in the process&#x27;s credential structure in the kernel.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;scheduling-context&quot;&gt;scheduling context&lt;&#x2F;h2&gt;
+&lt;p&gt;The kernel tracks scheduling metadata for each process: its priority (nice value from -20 to 19, and real-time priority if applicable), which scheduling class it belongs to (CFS for normal processes, FIFO or round-robin for real-time), how much CPU time it has consumed, when it last ran, and which CPU it ran on.&lt;&#x2F;p&gt;
+&lt;p&gt;CFS (Completely Fair Scheduler) on Linux uses a virtual runtime to track how much CPU time a process has received relative to others, and it always picks the process with the lowest virtual runtime to run next. The nice value adjusts the weight: a lower nice value means more weight, which means the virtual runtime advances more slowly, which means more CPU time.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;namespaces-and-cgroups&quot;&gt;namespaces and cgroups&lt;&#x2F;h2&gt;
+&lt;p&gt;In containerized environments, processes also own namespace memberships and cgroup associations. Namespaces give a process an isolated view of system resources: PID namespace makes it think its PID is 1, network namespace gives it a separate network stack, mount namespace gives it a different filesystem view.&lt;&#x2F;p&gt;
+&lt;p&gt;Cgroups limit how much resource a process (or group of processes) can use: CPU quota, memory limit, I&#x2F;O bandwidth, and number of PIDs. These are the building blocks of containers.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-task-struct&quot;&gt;the task_struct&lt;&#x2F;h2&gt;
+&lt;p&gt;Internally, the kernel represents all of this in a single structure called &lt;code&gt;task_struct&lt;&#x2F;code&gt;, which on Linux is a large struct (several kilobytes) containing or pointing to everything described above: the memory descriptor for address space, the files struct for file descriptors, the signal handler table, credentials, scheduling state, namespace pointers, cgroup references, and many other fields.&lt;&#x2F;p&gt;
+&lt;p&gt;Every running thread has a &lt;code&gt;task_struct&lt;&#x2F;code&gt;. A single-threaded process has one. A multi-threaded process has one per thread, and they share the memory descriptor, file table, and signal handlers through pointers to the same structures.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;&#x2F;proc&#x2F;&amp;lt;pid&amp;gt;&#x2F;status&lt;&#x2F;code&gt; gives a summary of most of these: UIDs, GIDs, threads, memory usage, signal masks, context switch counts&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;&#x2F;proc&#x2F;&amp;lt;pid&amp;gt;&#x2F;maps&lt;&#x2F;code&gt; for address space layout&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;&#x2F;proc&#x2F;&amp;lt;pid&amp;gt;&#x2F;fd&#x2F;&lt;&#x2F;code&gt; for open file descriptors&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;&#x2F;proc&#x2F;&amp;lt;pid&amp;gt;&#x2F;cgroup&lt;&#x2F;code&gt; for cgroup membership&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;ls -la &#x2F;proc&#x2F;&amp;lt;pid&amp;gt;&#x2F;ns&#x2F;&lt;&#x2F;code&gt; shows namespace memberships&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;strace -p &amp;lt;pid&amp;gt;&lt;&#x2F;code&gt; lets you watch syscalls in real time&lt;&#x2F;li&gt;
+&lt;li&gt;A zombie process has exited but its parent hasn&#x27;t called &lt;code&gt;wait()&lt;&#x2F;code&gt;, so the task_struct stays around holding the exit status&lt;&#x2F;li&gt;
 &lt;&#x2F;ul&gt;
 </content>
         
@@ -399,114 +329,34 @@
         <content type="html" xml:base="https://yazeed1s.github.io/posts/interrupts-traps/">&lt;p&gt;Your app might call a syscall, a packet might arrive on the network card, or the timer might fire; all of these interrupt normal execution, but they&#x27;re not the same thing. The terminology gets confusing because people use interrupt, trap, and exception loosely.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;user-space-vs-kernel-space&quot;&gt;user space vs kernel space&lt;&#x2F;h2&gt;
 &lt;p&gt;First the basics: modern CPUs have privilege levels called rings on x86, where ring 0 is the most privileged (kernel) and ring 3 is least privileged (user applications).&lt;&#x2F;p&gt;
-&lt;p&gt;Your application runs in ring 3. It can execute normal instructions, access its own memory, do math. But it cannot:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;Access hardware directly&lt;&#x2F;li&gt;
-&lt;li&gt;Read&#x2F;write arbitrary memory addresses&lt;&#x2F;li&gt;
-&lt;li&gt;Execute privileged instructions (like changing page tables or disabling interrupts)&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;The kernel runs in ring 0. It can do all of those things.&lt;&#x2F;p&gt;
-&lt;p&gt;When you call &lt;code&gt;read()&lt;&#x2F;code&gt; to read from a file, your code can&#x27;t just talk to the disk controller. It has to ask the kernel. The CPU has to switch from ring 3 to ring 0, do the privileged work, then switch back.&lt;&#x2F;p&gt;
+&lt;p&gt;Your application runs in ring 3 and can execute normal instructions, access its own memory, and do math, but it cannot access hardware directly, read&#x2F;write arbitrary memory addresses, or execute privileged instructions (like changing page tables or disabling interrupts). The kernel runs in ring 0 and can do all of those things.&lt;&#x2F;p&gt;
+&lt;p&gt;When you call &lt;code&gt;read()&lt;&#x2F;code&gt; to read from a file, your code can&#x27;t just talk to the disk controller, it has to ask the kernel. The CPU has to switch from ring 3 to ring 0, do the privileged work, then switch back.&lt;&#x2F;p&gt;
 &lt;p&gt;This switch is the kernel boundary, and crossing it costs you: register save&#x2F;restore, privilege change, and sometimes cache disruption. That&#x27;s why syscalls aren&#x27;t free.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;interrupts&quot;&gt;interrupts&lt;&#x2F;h2&gt;
-&lt;p&gt;An interrupt is a signal from hardware that says &quot;stop what you&#x27;re doing, I need attention.&quot;&lt;&#x2F;p&gt;
-&lt;p&gt;Examples:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;Keyboard: &quot;a key was pressed&quot;&lt;&#x2F;li&gt;
-&lt;li&gt;Network card: &quot;a packet arrived&quot;&lt;&#x2F;li&gt;
-&lt;li&gt;Timer: &quot;your time slice is up&quot;&lt;&#x2F;li&gt;
-&lt;li&gt;Disk controller: &quot;that read you asked for is done&quot;&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;Interrupts are asynchronous. They happen whenever the hardware needs attention, regardless of what the CPU is currently doing. You could be in the middle of a for loop and suddenly an interrupt fires.&lt;&#x2F;p&gt;
-&lt;p&gt;When an interrupt happens:&lt;&#x2F;p&gt;
-&lt;ol&gt;
-&lt;li&gt;CPU stops executing current instruction stream&lt;&#x2F;li&gt;
-&lt;li&gt;Saves current state (registers, instruction pointer, flags)&lt;&#x2F;li&gt;
-&lt;li&gt;Looks up the interrupt handler in the Interrupt Descriptor Table (IDT)&lt;&#x2F;li&gt;
-&lt;li&gt;Jumps to that handler (now in ring 0)&lt;&#x2F;li&gt;
-&lt;li&gt;Handler does its work&lt;&#x2F;li&gt;
-&lt;li&gt;Handler returns, CPU restores state, continues where it left off&lt;&#x2F;li&gt;
-&lt;&#x2F;ol&gt;
-&lt;p&gt;The key thing: the currently running process doesn&#x27;t trigger this. It just happens to it.&lt;&#x2F;p&gt;
+&lt;p&gt;An interrupt is a signal from hardware that says &quot;stop what you&#x27;re doing, I need attention.&quot; Examples are a keyboard telling you a key was pressed, a network card saying a packet arrived, a timer saying your time slice is up, or a disk controller saying that read you asked for is done.&lt;&#x2F;p&gt;
+&lt;p&gt;Interrupts are asynchronous, they happen whenever the hardware needs attention regardless of what the CPU is currently doing. You could be in the middle of a for loop and suddenly an interrupt fires.&lt;&#x2F;p&gt;
+&lt;p&gt;When an interrupt happens, the CPU stops executing the current instruction stream, saves the current state (registers, instruction pointer, flags), looks up the interrupt handler in the Interrupt Descriptor Table (IDT), jumps to that handler (now in ring 0), the handler does its work, and then the handler returns and the CPU restores state and continues where it left off. The key thing is that the currently running process doesn&#x27;t trigger this, it just happens to it.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;traps&quot;&gt;traps&lt;&#x2F;h2&gt;
-&lt;p&gt;A trap is a synchronous exception triggered by the currently running code. It&#x27;s intentional.&lt;&#x2F;p&gt;
-&lt;p&gt;The main example: syscalls. When you call &lt;code&gt;read()&lt;&#x2F;code&gt;, the C library eventually executes a special instruction (&lt;code&gt;syscall&lt;&#x2F;code&gt; on x86-64, &lt;code&gt;int 0x80&lt;&#x2F;code&gt; on older x86) that deliberately triggers a trap.&lt;&#x2F;p&gt;
+&lt;p&gt;A trap is a synchronous exception triggered by the currently running code, and it&#x27;s intentional. The main example is syscalls: when you call &lt;code&gt;read()&lt;&#x2F;code&gt;, the C library eventually executes a special instruction (&lt;code&gt;syscall&lt;&#x2F;code&gt; on x86-64, &lt;code&gt;int 0x80&lt;&#x2F;code&gt; on older x86) that deliberately triggers a trap.&lt;&#x2F;p&gt;
 &lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;User code calls read()&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;  -&amp;gt; libc wrapper&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    -&amp;gt; syscall instruction (trap into kernel)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;      -&amp;gt; kernel syscall handler&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;        -&amp;gt; returns to user space&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;The difference from interrupts: you asked for this. The code executing triggered it. It happens at a specific point in your instruction stream, not randomly.&lt;&#x2F;p&gt;
-&lt;p&gt;Other traps&#x2F;exceptions:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;Page fault — you accessed memory that isn&#x27;t mapped. Could be a bug, or could be demand paging doing its job.&lt;&#x2F;li&gt;
-&lt;li&gt;Division by zero — arithmetic error&lt;&#x2F;li&gt;
-&lt;li&gt;Invalid opcode — tried to execute garbage&lt;&#x2F;li&gt;
-&lt;li&gt;Breakpoint — debugger trap (int 3)&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;Some of these are errors (division by zero kills your process). Some are handled and execution continues (page fault loads the page, then your load instruction retries).&lt;&#x2F;p&gt;
+&lt;p&gt;The difference from interrupts is that you asked for this, the code executing triggered it, and it happens at a specific point in your instruction stream, not randomly.&lt;&#x2F;p&gt;
+&lt;p&gt;Other traps and exceptions include page faults (you accessed memory that isn&#x27;t mapped, which could be a bug or could be demand paging doing its job), division by zero (arithmetic error), invalid opcode (tried to execute garbage), and breakpoint traps (int 3 for debuggers). Some of these are errors that kill your process (division by zero), and some are handled so execution continues (page fault loads the page and then your load instruction retries).&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;the-naming-confusion&quot;&gt;the naming confusion&lt;&#x2F;h2&gt;
-&lt;p&gt;Different sources use these terms differently. Here&#x27;s how I think about it:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Interrupt&lt;&#x2F;strong&gt; — external, async, from hardware&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;Trap&lt;&#x2F;strong&gt; — internal, sync, intentional (syscalls)&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;Exception&lt;&#x2F;strong&gt; — internal, sync, usually an error (page fault, div by zero)&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;Fault&lt;&#x2F;strong&gt; — exception that can be corrected (page fault) — instruction retries&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;Abort&lt;&#x2F;strong&gt; — unrecoverable error&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;Some people use &quot;exception&quot; as the umbrella term for everything. Some use &quot;interrupt&quot; for everything. The Intel manual has its own definitions. It&#x27;s messy.&lt;&#x2F;p&gt;
-&lt;p&gt;What matters: understand whether the trigger is external (hardware) or internal (executing code), and whether it&#x27;s expected (syscall) or unexpected (error).&lt;&#x2F;p&gt;
+&lt;p&gt;Different sources use these terms differently. Here&#x27;s how I think about it: &lt;strong&gt;interrupt&lt;&#x2F;strong&gt; means external, async, from hardware. &lt;strong&gt;Trap&lt;&#x2F;strong&gt; means internal, sync, intentional (syscalls). &lt;strong&gt;Exception&lt;&#x2F;strong&gt; means internal, sync, usually an error (page fault, div by zero). &lt;strong&gt;Fault&lt;&#x2F;strong&gt; is an exception that can be corrected (page fault) where the instruction retries. &lt;strong&gt;Abort&lt;&#x2F;strong&gt; is an unrecoverable error.&lt;&#x2F;p&gt;
+&lt;p&gt;Some people use &quot;exception&quot; as the umbrella term for everything, some use &quot;interrupt&quot; for everything, and the Intel manual has its own definitions. It&#x27;s messy. What matters is understanding whether the trigger is external (hardware) or internal (executing code), and whether it&#x27;s expected (syscall) or unexpected (error).&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;the-interrupt-descriptor-table&quot;&gt;the interrupt descriptor table&lt;&#x2F;h2&gt;
-&lt;p&gt;The CPU needs to know where to jump for each interrupt&#x2F;exception. This is stored in the IDT, a table in memory. The kernel sets this up at boot.&lt;&#x2F;p&gt;
-&lt;p&gt;Each entry has:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;Handler address&lt;&#x2F;li&gt;
-&lt;li&gt;What privilege level can trigger it&lt;&#x2F;li&gt;
-&lt;li&gt;Gate type (interrupt gate, trap gate)&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;For hardware interrupts, the entries point to kernel interrupt handlers. For the syscall trap, it points to the syscall entry point.&lt;&#x2F;p&gt;
-&lt;p&gt;When an interrupt fires, the CPU:&lt;&#x2F;p&gt;
-&lt;ol&gt;
-&lt;li&gt;Uses the interrupt number as an index into IDT&lt;&#x2F;li&gt;
-&lt;li&gt;Checks privilege&lt;&#x2F;li&gt;
-&lt;li&gt;Switches to ring 0 if needed&lt;&#x2F;li&gt;
-&lt;li&gt;Jumps to the handler address&lt;&#x2F;li&gt;
-&lt;&#x2F;ol&gt;
+&lt;p&gt;The CPU needs to know where to jump for each interrupt or exception, and this is stored in the IDT, a table in memory that the kernel sets up at boot. Each entry has a handler address, what privilege level can trigger it, and a gate type (interrupt gate, trap gate).&lt;&#x2F;p&gt;
+&lt;p&gt;For hardware interrupts, the entries point to kernel interrupt handlers, and for the syscall trap, it points to the syscall entry point. When an interrupt fires, the CPU uses the interrupt number as an index into the IDT, checks privilege, switches to ring 0 if needed, and jumps to the handler address.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;hardware-interrupts-in-more-detail&quot;&gt;hardware interrupts in more detail&lt;&#x2F;h2&gt;
-&lt;p&gt;When a device needs attention, it signals an interrupt request (IRQ). On modern systems this goes through an interrupt controller (APIC).&lt;&#x2F;p&gt;
-&lt;p&gt;The kernel has to:&lt;&#x2F;p&gt;
-&lt;ol&gt;
-&lt;li&gt;Acknowledge the interrupt&lt;&#x2F;li&gt;
-&lt;li&gt;Figure out which device caused it&lt;&#x2F;li&gt;
-&lt;li&gt;Call the right driver&#x27;s handler&lt;&#x2F;li&gt;
-&lt;li&gt;Tell the interrupt controller we&#x27;re done&lt;&#x2F;li&gt;
-&lt;&#x2F;ol&gt;
-&lt;p&gt;Handling needs to be fast because interrupts are disabled (or that IRQ is masked) while you&#x27;re in the handler. If you take too long, you miss other interrupts.&lt;&#x2F;p&gt;
-&lt;p&gt;Linux splits this into top half and bottom half:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Top half&lt;&#x2F;strong&gt;: runs in interrupt context, does minimum work, schedules bottom half&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;Bottom half&lt;&#x2F;strong&gt;: runs later with interrupts enabled, does the real work (softirqs, tasklets, workqueues)&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;For example, network card interrupt:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;Top half: grab the packet from hardware, queue it, schedule bottom half&lt;&#x2F;li&gt;
-&lt;li&gt;Bottom half: process the packet up the network stack&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
+&lt;p&gt;When a device needs attention, it signals an interrupt request (IRQ), and on modern systems this goes through an interrupt controller (APIC). The kernel has to acknowledge the interrupt, figure out which device caused it, call the right driver&#x27;s handler, and tell the interrupt controller we&#x27;re done. Handling needs to be fast because interrupts are disabled (or that IRQ is masked) while you&#x27;re in the handler, and if you take too long you miss other interrupts.&lt;&#x2F;p&gt;
+&lt;p&gt;Linux splits this into top half and bottom half: the &lt;strong&gt;top half&lt;&#x2F;strong&gt; runs in interrupt context, does the minimum work, and schedules the bottom half. The &lt;strong&gt;bottom half&lt;&#x2F;strong&gt; runs later with interrupts enabled and does the real work (softirqs, tasklets, workqueues). For example, a network card interrupt&#x27;s top half grabs the packet from hardware, queues it, and schedules the bottom half, which then processes the packet up the network stack.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;syscall-cost&quot;&gt;syscall cost&lt;&#x2F;h2&gt;
-&lt;p&gt;Crossing the kernel boundary isn&#x27;t free. You pay for:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;Saving&#x2F;restoring registers&lt;&#x2F;li&gt;
-&lt;li&gt;Switching stacks (user stack -&amp;gt; kernel stack)&lt;&#x2F;li&gt;
-&lt;li&gt;TLB and cache effects&lt;&#x2F;li&gt;
-&lt;li&gt;Spectre mitigations on modern kernels (KPTI, retpolines)&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;On a modern system, a syscall might take a few hundred nanoseconds. Doesn&#x27;t sound like much, but if you&#x27;re doing thousands per second, it adds up.&lt;&#x2F;p&gt;
-&lt;p&gt;That cost is why people use:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;Batching (fewer syscalls, more work per call)&lt;&#x2F;li&gt;
-&lt;li&gt;io_uring (submit many I&#x2F;O requests with one syscall)&lt;&#x2F;li&gt;
-&lt;li&gt;mmap (access files without read() syscalls)&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
+&lt;p&gt;Crossing the kernel boundary isn&#x27;t free. You pay for saving and restoring registers, switching stacks (user stack to kernel stack), TLB and cache effects, and Spectre mitigations on modern kernels (KPTI, retpolines).&lt;&#x2F;p&gt;
+&lt;p&gt;On a modern system, a syscall might take a few hundred nanoseconds, which doesn&#x27;t sound like much, but if you&#x27;re doing thousands per second it adds up. That cost is why people use batching (fewer syscalls, more work per call), io_uring (submit many I&#x2F;O requests with one syscall), and mmap (access files without read() syscalls).&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
 &lt;ul&gt;
 &lt;li&gt;On x86-64, &lt;code&gt;syscall&lt;&#x2F;code&gt;&#x2F;&lt;code&gt;sysret&lt;&#x2F;code&gt; are faster than the old &lt;code&gt;int 0x80&lt;&#x2F;code&gt; method&lt;&#x2F;li&gt;
@@ -514,6 +364,62 @@
 &lt;li&gt;&lt;code&gt;perf stat&lt;&#x2F;code&gt; can count context switches and syscalls&lt;&#x2F;li&gt;
 &lt;li&gt;NMI (Non-Maskable Interrupt) can&#x27;t be disabled, used for profiling and panic&lt;&#x2F;li&gt;
 &lt;li&gt;The timer interrupt is what makes preemptive multitasking work&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>Context Switches: What Actually Happens</title>
+        <published>2024-11-18T00:00:00+00:00</published>
+        <updated>2024-11-18T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/context-switches/"/>
+        <id>https://yazeed1s.github.io/posts/context-switches/</id>
+        
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/context-switches/">&lt;p&gt;A context switch is what happens when the OS takes one process off the CPU and puts another one on. It happens constantly, thousands of times per second, and your programs never notice because the whole point is that it looks seamless.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;why-context-switches-exist&quot;&gt;why context switches exist&lt;&#x2F;h2&gt;
+&lt;p&gt;CPUs don&#x27;t multitask on their own, they execute one instruction stream at a time (per core). The OS creates the illusion of parallelism by rapidly switching between processes, giving each one a time slice of maybe 1-10 milliseconds, executing its instructions, then saving its state and loading the next process&#x27;s state. Do this fast enough and it looks like everything runs at the same time.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-gets-saved&quot;&gt;what gets saved&lt;&#x2F;h2&gt;
+&lt;p&gt;A process&#x27;s execution state lives in CPU registers, and when the OS switches away from a process it needs to save all of them: general purpose registers (rax, rbx, rcx on x86-64), the instruction pointer (rip, which says where execution was), the stack pointer (rsp), flags register, floating point and SIMD registers (SSE, AVX), and the memory mappings reference (CR3 on x86, which points to the page tables).&lt;&#x2F;p&gt;
+&lt;p&gt;All of this gets saved to the process&#x27;s kernel data structure (the task_struct on Linux), and the incoming process&#x27;s saved state gets loaded into the CPU registers. The CPU then continues executing from wherever the new process left off.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-actually-happens-step-by-step&quot;&gt;what actually happens step by step&lt;&#x2F;h2&gt;
+&lt;p&gt;The timer interrupt fires (or the process yields, or it blocks on I&#x2F;O), the CPU traps to the kernel, the scheduler picks the next process, the kernel saves current registers to the outgoing task_struct, loads registers from the incoming task_struct, switches the page tables by writing CR3 (which changes the entire virtual memory mapping), flushes TLB entries that are no longer valid, and returns to user space where the new process resumes as if nothing happened.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Process A running&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;  -&amp;gt; timer interrupt fires&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;  -&amp;gt; save A&amp;#39;s registers to A&amp;#39;s task_struct&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;  -&amp;gt; scheduler picks Process B&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;  -&amp;gt; load B&amp;#39;s registers from B&amp;#39;s task_struct&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;  -&amp;gt; switch page tables (CR3)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;  -&amp;gt; flush TLB&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;  -&amp;gt; Process B is now running&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;The key thing is that the process doesn&#x27;t know. It saved no state, it called no function. The kernel did everything while the process wasn&#x27;t looking.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-cost&quot;&gt;the cost&lt;&#x2F;h2&gt;
+&lt;p&gt;Context switches aren&#x27;t free. The direct cost is saving and restoring register state, which is maybe a few hundred nanoseconds. But the indirect cost is worse: the TLB gets flushed (partially or fully) because the new process has different page tables, so the first memory accesses after the switch take page table walks instead of TLB hits. The CPU caches (L1, L2) are now full of the old process&#x27;s data, and the new process suffers cache misses until it warms them up. Branch predictors trained on the old process&#x27;s code are useless for the new process.&lt;&#x2F;p&gt;
+&lt;p&gt;These indirect costs can add up to several microseconds of effective penalty, and on workloads with many short-lived operations it can matter a lot.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;thread-switches-vs-process-switches&quot;&gt;thread switches vs process switches&lt;&#x2F;h2&gt;
+&lt;p&gt;Threads within the same process share address space, so switching between them doesn&#x27;t require changing CR3 or flushing the TLB. That makes thread switches cheaper: you still save&#x2F;restore registers, but you skip the expensive page table swap and TLB invalidation.&lt;&#x2F;p&gt;
+&lt;p&gt;This is one reason why multi-threaded servers outperform multi-process ones for high-concurrency workloads, fewer and cheaper context switches.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;voluntary-vs-involuntary&quot;&gt;voluntary vs involuntary&lt;&#x2F;h2&gt;
+&lt;p&gt;A &lt;strong&gt;voluntary&lt;&#x2F;strong&gt; context switch happens when a process can&#x27;t continue: it calls &lt;code&gt;read()&lt;&#x2F;code&gt; and waits for disk, calls &lt;code&gt;sleep()&lt;&#x2F;code&gt;, waits on a mutex, or does any blocking operation. The process is saying &quot;I have nothing to do, give the CPU to someone else.&quot;&lt;&#x2F;p&gt;
+&lt;p&gt;An &lt;strong&gt;involuntary&lt;&#x2F;strong&gt; context switch happens when the scheduler preempts the process because its time slice expired (the timer interrupt fires and the scheduler decides it&#x27;s someone else&#x27;s turn), a higher-priority process becomes runnable, or load balancing moves the process to another core. You can see both types in &lt;code&gt;&#x2F;proc&#x2F;&amp;lt;pid&amp;gt;&#x2F;status&lt;&#x2F;code&gt; under &lt;code&gt;voluntary_ctxt_switches&lt;&#x2F;code&gt; and &lt;code&gt;nonvoluntary_ctxt_switches&lt;&#x2F;code&gt;.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-triggers-a-switch&quot;&gt;what triggers a switch&lt;&#x2F;h2&gt;
+&lt;p&gt;Most context switches come from I&#x2F;O waits (process blocks, voluntary), timer expiry (time slice used up, involuntary), synchronization (mutex, semaphore, condition variable), and inter-process communication (pipe, signal). A busy process that never blocks still gets switched out involuntarily when its time slice expires.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;perf stat&lt;&#x2F;code&gt; shows context switch counts for a command&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;&#x2F;proc&#x2F;&amp;lt;pid&amp;gt;&#x2F;status&lt;&#x2F;code&gt; shows voluntary and involuntary counts per process&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;vmstat&lt;&#x2F;code&gt; shows system-wide context switches per second (cs column)&lt;&#x2F;li&gt;
+&lt;li&gt;On a typical desktop system you might see 10,000-50,000 context switches per second&lt;&#x2F;li&gt;
+&lt;li&gt;PCID (Process Context ID) on modern x86 lets the TLB keep entries from multiple processes, reducing the flush cost&lt;&#x2F;li&gt;
+&lt;li&gt;Kernel preemption means the kernel itself can be context-switched mid-operation (when configured with &lt;code&gt;PREEMPT&lt;&#x2F;code&gt;)&lt;&#x2F;li&gt;
 &lt;&#x2F;ul&gt;
 </content>
         

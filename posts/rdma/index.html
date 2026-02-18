@@ -124,114 +124,59 @@
                 
                 <a href="https://yazeed1s.github.io/tags/rdma">RDMA</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/networking">Networking</a><span
+                <a href="https://yazeed1s.github.io/tags/networking">networking</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/kernel-bypass">Kernel Bypass</a><span
-                    class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/systems-programming">Systems Programming</a>
+                <a href="https://yazeed1s.github.io/tags/systems-programming">systems programming</a>
             </span>
             
         </div>
     </header>
-     <hr />
-<p>RDMA lets one machine read and write another machine's memory. The network card handles it. The remote CPU doesn't even know it happened.</p>
+     <p>RDMA lets one machine read and write another machine's memory, the network card handles it, and the remote CPU doesn't even know it happened.</p>
 <p>That sounded wrong to me at first. I knew the slogan, "skip the kernel, go fast," but I didn't understand what it meant at the hardware level.</p>
-<hr />
 <h2 id="what-s-wrong-with-normal-networking">what's wrong with normal networking</h2>
-<p>When you use TCP, kernel is always involved.</p>
-<p>The app calls <code>send()</code>, which is a syscall, so execution enters the kernel; your data gets copied from the app buffer to a kernel buffer, TCP runs its state machine (checksum, segmentation, queueing), and eventually the driver sends it to the NIC.</p>
-<p>Receive side same thing. NIC gets packet, interrupt, kernel wakes up, copies to socket buffer. App calls <code>recv()</code>, another copy into app buffer.</p>
-<p>So you end up with two copies, multiple syscalls, and context switches every time, and the CPU stays busy with all of it.</p>
-<p>If you're moving big files, it's OK. Overhead doesn't matter much. But if you want millions of small operations per second, like key-value gets, this overhead is too much.</p>
-<hr />
+<p>When you use TCP, the kernel is always involved. The app calls <code>send()</code>, which is a syscall, so execution enters the kernel; your data gets copied from the app buffer to a kernel buffer, TCP runs its state machine (checksum, segmentation, queueing), and eventually the driver sends it to the NIC.</p>
+<p>Receive side is the same thing: NIC gets packet, interrupt, kernel wakes up, copies to socket buffer, and then the app calls <code>recv()</code> which triggers another copy into the app buffer. So you end up with two copies, multiple syscalls, and context switches every time, and the CPU stays busy with all of it.</p>
+<p>If you're moving big files, it's OK because the overhead doesn't matter much. But if you want millions of small operations per second (like key-value gets), this overhead is too much.</p>
 <h2 id="what-rdma-does-different">what rdma does different</h2>
-<p>With RDMA, the network card reads and writes directly to your app memory.</p>
-<p>When you send, the NIC reads from your buffer via DMA, and when you receive, it writes into your buffer via DMA, so the kernel is off the fast path and extra copies disappear.</p>
-<p>There's also one-sided operations: RDMA_WRITE puts bytes into remote memory and RDMA_READ pulls bytes from it, while the remote CPU keeps running because nobody wakes it up.</p>
-<p>First time I saw this it looked strange. You're writing to memory on different machine, through network card, and that machine doesn't know it happened.</p>
+<p>With RDMA, the network card reads and writes directly to your app memory. When you send, the NIC reads from your buffer via DMA, and when you receive, it writes into your buffer via DMA, so the kernel is off the fast path and the extra copies disappear.</p>
+<p>There's also one-sided operations: RDMA_WRITE puts bytes into remote memory and RDMA_READ pulls bytes from it, while the remote CPU keeps running because nobody wakes it up. First time I saw this it looked strange, you're writing to memory on a different machine, through the network card, and that machine doesn't know it happened.</p>
 <blockquote>
 <p>"Doesn't know" means the remote CPU isn't interrupted and doesn't execute any code. But the NIC is still doing DMA over PCIe, which consumes memory bandwidth on the remote machine. At high throughput, one-sided RDMA operations can noticeably affect remote-side performance even though no software runs there.</p>
 </blockquote>
 <p><img src="/images/rdma.png" alt="TCP vs RDMA" /></p>
-<hr />
 <h2 id="setup-vs-data-path">setup vs data path</h2>
-<p>OK but the kernel is still there. Just not on data path.</p>
-<p>Before you send anything, you have to set things up by opening the device, creating queues, registering memory, and connecting to the remote side; all of this goes through syscalls and kernel checks.</p>
-<p>Only after setup does the fast path work, where you post work directly to hardware and poll completions without syscalls for that part.</p>
-<p>So the trade is: expensive setup, cheap operations after. Good if you do many operations. Not good for connections that don't last.</p>
-<hr />
+<p>The kernel is still there, just not on the data path. Before you send anything, you have to set things up by opening the device, creating queues, registering memory, and connecting to the remote side, and all of this goes through syscalls and kernel checks.</p>
+<p>Only after setup does the fast path work, where you post work directly to hardware and poll completions without syscalls for that part. So the trade is expensive setup but cheap operations after, which is good if you do many operations and not good for connections that don't last.</p>
 <h2 id="queue-pairs">queue pairs</h2>
-<p>RDMA doesn't use sockets. Uses queues instead.</p>
-<p><strong>Queue Pair</strong> is your connection. Has send queue and receive queue. You put work requests there, saying what to do (send this buffer, read from that address). NIC processes them when it can.</p>
-<p><strong>Completion Queue</strong> is how you know things finished. NIC puts entries. You poll or wait.</p>
-<p>The annoying thing is that queue pairs start in RESET state and must move through RESET → INIT → RTR → RTS; if you miss one transition, nothing works and you usually don't get a useful error, which took me a while to learn the first time.</p>
-<hr />
+<p>RDMA doesn't use sockets, it uses queues instead. A <strong>Queue Pair</strong> is your connection, and it has a send queue and a receive queue where you put work requests saying what to do (send this buffer, read from that address), and the NIC processes them when it can.</p>
+<p>A <strong>Completion Queue</strong> is how you know things finished: the NIC puts entries there and you poll or wait.</p>
+<p>The annoying thing is that queue pairs start in RESET state and must move through RESET → INIT → RTR → RTS, and if you miss one transition nothing works and you usually don't get a useful error, which took me a while to learn the first time.</p>
 <h2 id="memory-registration">memory registration</h2>
-<p>Before NIC can touch your memory, you register it.</p>
-<p>What registration does:</p>
-<ul>
-<li>Pins the pages. Memory can't go to swap. Physical addresses stay valid because hardware will DMA there.</li>
-<li>Builds translation in NIC. Hardware needs to know where virtual address X is in physical memory.</li>
-<li>Gives you keys. lkey for your own ops, rkey to share with remote. They need your rkey to access your memory.</li>
-</ul>
-<p>Registration is a syscall. This is where kernel checks permissions.</p>
-<hr />
+<p>Before the NIC can touch your memory, you register it. What registration does is pin the pages so memory can't go to swap (physical addresses stay valid because the hardware will DMA there), build a translation in the NIC so it knows where virtual address X is in physical memory, and give you keys (lkey for your own ops, rkey to share with the remote side so they can access your memory).</p>
+<p>Registration is a syscall, and this is where the kernel checks permissions.</p>
 <h2 id="who-checks-if-not-kernel">who checks if not kernel</h2>
-<p>This part confused me for a while.</p>
-<p>With normal networking kernel validates everything. Bad pointer? SIGSEGV. Wrong permission? Error. Kernel is the one checking.</p>
-<p>But RDMA kernel is not in data path. So how bad accesses get stopped?</p>
-<p>Answer is hardware.</p>
-<p>When you register memory, kernel tells the NIC: these addresses valid, these permissions, this protection domain. NIC stores all this in its memory protection tables.</p>
-<p>Then during transfers NIC checks every operation:</p>
-<ul>
-<li>Is address in registered region?</li>
-<li>Permissions OK?</li>
-<li>Key matches?</li>
-</ul>
-<p>If something wrong, operation fails. Error shows in completion queue. Not SIGSEGV because NIC caught it, not CPU.</p>
-<p>Hardware does what kernel would do, just at wire speed.</p>
-<hr />
+<p>This part confused me for a while. With normal networking the kernel validates everything: bad pointer gives you SIGSEGV, wrong permission gives you an error, the kernel is the one checking. But with RDMA the kernel is not in the data path, so how do bad accesses get stopped?</p>
+<p>The answer is hardware. When you register memory, the kernel tells the NIC which addresses are valid and what permissions they have and which protection domain they belong to, and the NIC stores all this in its memory protection tables. Then during transfers the NIC checks every operation: is the address in a registered region, are the permissions OK, does the key match. If something is wrong, the operation fails and the error shows up in the completion queue (not SIGSEGV, because the NIC caught it, not the CPU). Hardware does what the kernel would do, just at wire speed.</p>
 <h2 id="protection-domains">protection domains</h2>
-<p>You can't access anyone's memory.</p>
-<p><strong>Protection Domain</strong> is security boundary. When you make queue pair and register memory, you put them in a PD. Operations only work on memory in same PD.</p>
-<p>This is like kernel process isolation but for RDMA. Different apps get different PDs.</p>
-<hr />
+<p>You can't access anyone's memory. A <strong>Protection Domain</strong> is a security boundary: when you make a queue pair and register memory, you put them in a PD, and operations only work on memory in the same PD. This is like kernel process isolation but for RDMA, where different apps get different PDs.</p>
 <h2 id="one-sided-and-two-sided">one-sided and two-sided</h2>
-<p>Two kinds of operations.</p>
-<p><strong>Two-sided.</strong> Both sides do something. Receiver posts buffer first. Sender posts send. Both CPUs involved.</p>
-<p><strong>One-sided.</strong> Only you do something. RDMA_WRITE pushes data to remote memory. RDMA_READ pulls data. Remote CPU not involved. Not even aware.</p>
-<p>One-sided is where RDMA is powerful. But also more work. If remote app needs to know you wrote, you have to tell it. Usually you write a flag that it polls. Or use atomics. Synchronization is your problem to solve.</p>
-<hr />
+<p>There are two kinds of operations. <strong>Two-sided</strong> means both sides do something: the receiver posts a buffer first, the sender posts a send, and both CPUs are involved. <strong>One-sided</strong> means only you do something: RDMA_WRITE pushes data to remote memory, RDMA_READ pulls data, and the remote CPU is not involved, not even aware.</p>
+<p>One-sided is where RDMA is really powerful, but it's also more work because if the remote app needs to know you wrote, you have to tell it somehow. Usually you write a flag that it polls, or use atomics, and synchronization becomes your problem to solve.</p>
 <h2 id="atomics">atomics</h2>
-<p>There are atomic operations:</p>
-<ul>
-<li>Compare-and-swap</li>
-<li>Fetch-and-add</li>
-</ul>
-<p>They run at remote memory, atomically. Remote CPU not involved.</p>
-<p>Good for locks, counters. But slower than regular read/write. And some NICs implement in firmware so even slower. Depends on card.</p>
-<hr />
+<p>There are atomic operations (compare-and-swap and fetch-and-add) that run at remote memory, atomically, without involving the remote CPU. Good for locks and counters, but slower than regular read/write, and some NICs implement them in firmware so even slower. Depends on the card.</p>
 <h2 id="the-hardware">the hardware</h2>
-<p>You need special NIC. Normal ones don't do RDMA.</p>
-<p><strong>InfiniBand.</strong> The original. Needs its own switches and cables. Very low latency, under microsecond. HPC clusters use this.</p>
-<p><strong>RoCE.</strong> RDMA over Ethernet. Works on regular switches. But Ethernet drops packets and RDMA really doesn't like that. So you configure switches for "lossless" mode. Priority flow control and so on. It gets complicated.</p>
-<p><strong>iWARP.</strong> RDMA over TCP, which is the most compatible option, but TCP adds latency.</p>
-<p>I think most datacenters use RoCE v2 now.</p>
-<hr />
+<p>You need a special NIC because normal ones don't do RDMA.</p>
+<p><strong>InfiniBand</strong> is the original, it needs its own switches and cables, has very low latency (under a microsecond), and HPC clusters use it. <strong>RoCE</strong> is RDMA over Ethernet, which works on regular switches, but Ethernet drops packets and RDMA really doesn't like that, so you configure switches for "lossless" mode with priority flow control and so on, and it gets complicated. <strong>iWARP</strong> is RDMA over TCP, which is the most compatible option, but TCP adds latency. I think most datacenters use RoCE v2 now.</p>
 <h2 id="some-numbers">some numbers</h2>
 <table><thead><tr><th>What</th><th>How long</th></tr></thead><tbody>
 <tr><td>TCP round trip</td><td>10-50 μs</td></tr>
 <tr><td>RDMA round trip</td><td>1-5 μs</td></tr>
 <tr><td>Local memory</td><td>~100 ns</td></tr>
 </tbody></table>
-<p>RDMA is maybe 10x faster than TCP. But still 10x slower than local RAM. This is important when you think about memory disaggregation. You're replacing local memory with remote. Microseconds add up.</p>
-<hr />
+<p>RDMA is maybe 10x faster than TCP, but still 10x slower than local RAM. This is important when you think about memory disaggregation because you're replacing local memory with remote, and microseconds add up.</p>
 <h2 id="what-s-hard-about-it">what's hard about it</h2>
-<p>Debugging is not fun. Problems are completion queue errors with codes you have to look up. No tcpdump. When something breaks you look at hardware counters and guess.</p>
-<p>Before RDMA works, both sides exchange info. Queue pair numbers, memory keys, addresses. Usually you do this over TCP first. Extra complexity.</p>
-<p>Registered memory is pinned. Big registrations hit ulimit.</p>
-<p>For two-sided, receiver must post buffers before sender sends. If receiver runs out of buffers, sender operations fail.</p>
-<hr />
+<p>Debugging is not fun because problems show up as completion queue errors with codes you have to look up, there's no tcpdump, and when something breaks you look at hardware counters and guess.</p>
+<p>Before RDMA works, both sides have to exchange info (queue pair numbers, memory keys, addresses), and usually you do this over TCP first, which is extra complexity. Registered memory is pinned, so big registrations hit ulimit. For two-sided operations, the receiver must post buffers before the sender sends, and if the receiver runs out of buffers the sender's operations fail.</p>
 <h2 id="notes">notes</h2>
 <ul>
 <li>Verbs API is standard interface. libibverbs on Linux.</li>

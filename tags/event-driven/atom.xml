@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
-    <title>Yazeed&#x27;s Blog - Event Driven</title>
+    <title>Yazeed&#x27;s Blog - event driven</title>
     <subtitle>Notes on systems and low-level software.</subtitle>
     <link rel="self" type="application/atom+xml" href="https://yazeed1s.github.io/tags/event-driven/atom.xml"/>
     <link rel="alternate" type="text/html" href="https://yazeed1s.github.io"/>
@@ -23,49 +23,36 @@
         <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/exactly-once/"/>
         <id>https://yazeed1s.github.io/posts/exactly-once/</id>
         
-        <content type="html" xml:base="https://yazeed1s.github.io/posts/exactly-once/">&lt;p&gt;Every message broker eventually puts &quot;exactly-once&quot; somewhere in its docs. Kafka has it. Pulsar claims it. NATS JetStream has a version of it. It sounds like the thing you want. Send a message, it arrives once, nobody worries.&lt;&#x2F;p&gt;
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/exactly-once/">&lt;p&gt;Every message broker eventually puts &quot;exactly-once&quot; somewhere in its docs. Kafka has it, Pulsar claims it, NATS JetStream has a version of it, and it sounds like the thing you want: send a message, it arrives once, nobody worries.&lt;&#x2F;p&gt;
 &lt;p&gt;But exactly-once delivery doesn&#x27;t exist. What exists is engineering around the fact that it doesn&#x27;t.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;what-can-actually-happen&quot;&gt;what can actually happen&lt;&#x2F;h2&gt;
-&lt;p&gt;A producer sends a message to a broker. Three outcomes:&lt;&#x2F;p&gt;
-&lt;ol&gt;
-&lt;li&gt;Broker receives it, acknowledges, producer gets the ack. Success.&lt;&#x2F;li&gt;
-&lt;li&gt;Broker receives it, acknowledges, but the ack is lost. Producer doesn&#x27;t know it worked. It retries. Now there are two copies.&lt;&#x2F;li&gt;
-&lt;li&gt;Broker never receives it. Message is gone.&lt;&#x2F;li&gt;
-&lt;&#x2F;ol&gt;
-&lt;p&gt;That&#x27;s it. Those are the options on an unreliable network. You can avoid case 3 by retrying. But retrying introduces case 2. You cannot eliminate both.&lt;&#x2F;p&gt;
-&lt;p&gt;This is the fundamental issue. At the network level, you get at-most-once (don&#x27;t retry, accept losses) or at-least-once (retry, accept duplicates). There&#x27;s no third option that the network gives you for free.&lt;&#x2F;p&gt;
+&lt;p&gt;A producer sends a message to a broker, and there are three outcomes: the broker receives it, acknowledges, and the producer gets the ack (success); the broker receives it, acknowledges, but the ack is lost so the producer doesn&#x27;t know it worked and retries, creating two copies; or the broker never receives it and the message is gone.&lt;&#x2F;p&gt;
+&lt;p&gt;That&#x27;s it, those are the options on an unreliable network. You can avoid case 3 by retrying, but retrying introduces case 2, and you cannot eliminate both. At the network level you get at-most-once (don&#x27;t retry, accept losses) or at-least-once (retry, accept duplicates), and there&#x27;s no third option that the network gives you for free.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;what-kafka-actually-does&quot;&gt;what Kafka actually does&lt;&#x2F;h2&gt;
-&lt;p&gt;Kafka advertises exactly-once semantics. What it actually implements is two things working together.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Idempotent producer.&lt;&#x2F;strong&gt; Each producer gets an ID. Each message gets a sequence number. If the broker sees the same producer ID + sequence number twice, it drops the duplicate. This handles the lost-ack problem. The producer retries, the broker deduplicates.&lt;&#x2F;p&gt;
-&lt;p&gt;This only works within a single producer session. If the producer crashes and restarts with a new ID, the deduplication state is gone.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Transactions.&lt;&#x2F;strong&gt; Kafka lets you wrap a consume-process-produce cycle in a transaction. Read from input topic, do work, write to output topic, commit offsets. All atomically. If anything fails, everything rolls back.&lt;&#x2F;p&gt;
-&lt;p&gt;So Kafka doesn&#x27;t deliver messages exactly once. It uses at-least-once delivery with deduplication and atomic commits to make the &lt;em&gt;processing&lt;&#x2F;em&gt; behave as if messages were delivered once. The duplicates still happen at the transport layer. The broker just hides them.&lt;&#x2F;p&gt;
+&lt;p&gt;Kafka advertises exactly-once semantics, but what it actually implements is two things working together.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Idempotent producer.&lt;&#x2F;strong&gt; Each producer gets an ID, and each message gets a sequence number. If the broker sees the same producer ID + sequence number twice, it drops the duplicate, which handles the lost-ack problem: the producer retries, the broker deduplicates. This only works within a single producer session though; if the producer crashes and restarts with a new ID, the deduplication state is gone.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Transactions.&lt;&#x2F;strong&gt; Kafka lets you wrap a consume-process-produce cycle in a transaction: read from input topic, do work, write to output topic, commit offsets, all atomically. If anything fails, everything rolls back.&lt;&#x2F;p&gt;
+&lt;p&gt;So Kafka doesn&#x27;t deliver messages exactly once. It uses at-least-once delivery with deduplication and atomic commits to make the &lt;em&gt;processing&lt;&#x2F;em&gt; behave as if messages were delivered once, but the duplicates still happen at the transport layer and the broker just hides them.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;delivery-vs-processing&quot;&gt;delivery vs processing&lt;&#x2F;h2&gt;
-&lt;p&gt;This distinction matters.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Exactly-once delivery&lt;&#x2F;strong&gt; would mean the network guarantees each message arrives once. No system does this. The network is unreliable. Acks get lost. Connections drop. Machines crash between receiving and acknowledging.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Exactly-once processing&lt;&#x2F;strong&gt; means the side effects of handling a message happen once, even if the message itself arrives more than once. That&#x27;s achievable. But it requires work. Deduplication, idempotency, transactions. It&#x27;s not a delivery guarantee, it&#x27;s an application-level property.&lt;&#x2F;p&gt;
-&lt;p&gt;When brokers say &quot;exactly-once&quot; they mean the second thing. They don&#x27;t say that clearly.&lt;&#x2F;p&gt;
+&lt;p&gt;These are different things. &lt;strong&gt;Exactly-once delivery&lt;&#x2F;strong&gt; would mean the network guarantees each message arrives once, and no system does this because the network is unreliable: acks get lost, connections drop, machines crash between receiving and acknowledging.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Exactly-once processing&lt;&#x2F;strong&gt; means the side effects of handling a message happen once, even if the message itself arrives more than once. That&#x27;s achievable, but it requires work: deduplication, idempotency, transactions. It&#x27;s not a delivery guarantee, it&#x27;s an application-level property.&lt;&#x2F;p&gt;
+&lt;p&gt;When brokers say &quot;exactly-once&quot; they mean the second thing, and they don&#x27;t say that clearly.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;the-broker-can-t-save-you-everywhere&quot;&gt;the broker can&#x27;t save you everywhere&lt;&#x2F;h2&gt;
-&lt;p&gt;Even with Kafka transactions, exactly-once only works within Kafka. Read from Kafka, write to Kafka, commit. That&#x27;s a closed system. Kafka controls both sides.&lt;&#x2F;p&gt;
-&lt;p&gt;The moment your consumer does something outside Kafka, the guarantee breaks. Write to a database? Send an HTTP request? Call an external API? Kafka doesn&#x27;t know about those. If your consumer processes a message, writes to Postgres, then crashes before committing the Kafka offset, it&#x27;ll reprocess on restart. Postgres gets the write twice.&lt;&#x2F;p&gt;
-&lt;p&gt;This is where the inbox pattern from my &lt;a href=&quot;https:&#x2F;&#x2F;yazeed1s.github.io&#x2F;posts&#x2F;outbox-inbox-patterns&#x2F;&quot;&gt;outbox&#x2F;inbox post&lt;&#x2F;a&gt; comes in. You need idempotency at your handler level. Record that you processed this message before doing the work. If you see it again, skip it.&lt;&#x2F;p&gt;
-&lt;p&gt;The broker gives you tools. It doesn&#x27;t give you a complete solution.&lt;&#x2F;p&gt;
+&lt;p&gt;Even with Kafka transactions, exactly-once only works within Kafka: read from Kafka, write to Kafka, commit. That&#x27;s a closed system where Kafka controls both sides.&lt;&#x2F;p&gt;
+&lt;p&gt;The moment your consumer does something outside Kafka, the guarantee breaks. Write to a database? Send an HTTP request? Call an external API? Kafka doesn&#x27;t know about those. If your consumer processes a message, writes to Postgres, then crashes before committing the Kafka offset, it&#x27;ll reprocess on restart and Postgres gets the write twice.&lt;&#x2F;p&gt;
+&lt;p&gt;This is where the inbox pattern from my &lt;a href=&quot;https:&#x2F;&#x2F;yazeed1s.github.io&#x2F;posts&#x2F;outbox-inbox-patterns&#x2F;&quot;&gt;outbox&#x2F;inbox post&lt;&#x2F;a&gt; comes in: you need idempotency at your handler level, recording that you processed this message before doing the work, so if you see it again you skip it.&lt;&#x2F;p&gt;
+&lt;p&gt;The broker gives you tools, it doesn&#x27;t give you a complete solution.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;idempotency-is-always-your-problem&quot;&gt;idempotency is always your problem&lt;&#x2F;h2&gt;
-&lt;p&gt;Regardless of what your broker promises, if your consumer has side effects, you need to handle duplicates. Either:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;Make the operation naturally idempotent (SET is idempotent, INCREMENT is not)&lt;&#x2F;li&gt;
-&lt;li&gt;Track processed message IDs and skip duplicates&lt;&#x2F;li&gt;
-&lt;li&gt;Use transactions that span both the broker offset and your external state (hard, often impractical)&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;At-least-once delivery + idempotent handling gives you the effect of exactly-once. That&#x27;s what production systems actually do. The &quot;exactly-once&quot; label is marketing over a real but narrower mechanism.&lt;&#x2F;p&gt;
+&lt;p&gt;Regardless of what your broker promises, if your consumer has side effects you need to handle duplicates. Either make the operation naturally idempotent (SET is idempotent, INCREMENT is not), track processed message IDs and skip duplicates, or use transactions that span both the broker offset and your external state (hard, often impractical).&lt;&#x2F;p&gt;
+&lt;p&gt;At-least-once delivery + idempotent handling gives you the effect of exactly-once, and that&#x27;s what production systems actually do. The &quot;exactly-once&quot; label is marketing over a real but narrower mechanism.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
 &lt;ul&gt;
-&lt;li&gt;Two Generals Problem: you can&#x27;t get agreement over an unreliable channel with finite messages. This is why ack-loss is unavoidable.&lt;&#x2F;li&gt;
-&lt;li&gt;Kafka&#x27;s exactly-once (KIP-98) was controversial when introduced. The original blog post title was literally &quot;Exactly-once Semantics are Possible&quot; which tells you something.&lt;&#x2F;li&gt;
-&lt;li&gt;NATS JetStream does deduplication by message ID with a configurable window. Similar idea, simpler scope.&lt;&#x2F;li&gt;
-&lt;li&gt;Pulsar transactions work similarly to Kafka. Read-process-write atomically within Pulsar.&lt;&#x2F;li&gt;
-&lt;li&gt;If you&#x27;re using a broker without deduplication, you&#x27;re getting at-least-once at best. Plan for it.&lt;&#x2F;li&gt;
-&lt;li&gt;&quot;Effectively exactly-once&quot; is the more honest term some people use. I prefer it.&lt;&#x2F;li&gt;
+&lt;li&gt;Two Generals Problem: you can&#x27;t get agreement over an unreliable channel with finite messages, which is why ack-loss is unavoidable&lt;&#x2F;li&gt;
+&lt;li&gt;Kafka&#x27;s exactly-once (KIP-98) was controversial when introduced, and the original blog post title was literally &quot;Exactly-once Semantics are Possible&quot; which tells you something&lt;&#x2F;li&gt;
+&lt;li&gt;NATS JetStream does deduplication by message ID with a configurable window, similar idea but simpler scope&lt;&#x2F;li&gt;
+&lt;li&gt;Pulsar transactions work similarly to Kafka: read-process-write atomically within Pulsar&lt;&#x2F;li&gt;
+&lt;li&gt;If you&#x27;re using a broker without deduplication, you&#x27;re getting at-least-once at best, plan for it&lt;&#x2F;li&gt;
+&lt;li&gt;&quot;Effectively exactly-once&quot; is the more honest term some people use, and I prefer it&lt;&#x2F;li&gt;
 &lt;&#x2F;ul&gt;
 </content>
         
@@ -86,24 +73,23 @@
         <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/outbox-inbox-patterns/"/>
         <id>https://yazeed1s.github.io/posts/outbox-inbox-patterns/</id>
         
-        <content type="html" xml:base="https://yazeed1s.github.io/posts/outbox-inbox-patterns/">&lt;p&gt;I was working on an event-driven system and hit a classic problem: when I save to the database, how do I make sure the event actually gets published to the broker. And on the consumer side, how do I avoid processing the same event twice when the broker redelivers.&lt;&#x2F;p&gt;
-&lt;p&gt;These are the Outbox and Inbox patterns. Not new ideas, but I only really understood them after implementing them.&lt;&#x2F;p&gt;
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/outbox-inbox-patterns/">&lt;p&gt;I was working on an event-driven system and hit a classic problem: when I save to the database, how do I make sure the event actually gets published to the broker, and on the consumer side, how do I avoid processing the same event twice when the broker redelivers.&lt;&#x2F;p&gt;
+&lt;p&gt;These are the Outbox and Inbox patterns, not new ideas, but I only really understood them after implementing them.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;the-fundamental-problem&quot;&gt;the fundamental problem&lt;&#x2F;h2&gt;
-&lt;p&gt;Say you save a user to the database and then publish a &lt;code&gt;UserCreated&lt;&#x2F;code&gt; event.&lt;&#x2F;p&gt;
+&lt;p&gt;Say you save a user to the database and then publish a &lt;code&gt;UserCreated&lt;&#x2F;code&gt; event:&lt;&#x2F;p&gt;
 &lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;1. save user to DB&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;2. publish event to broker&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;3. done&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;What if you crash between step 1 and step 2? User is saved, but the event is never published. And the system is now inconsistent. Some service was waiting for that event to do something and it will never hear about this user.&lt;&#x2F;p&gt;
-&lt;p&gt;The obvious thought is &quot;just do both in a transaction.&quot; But you can&#x27;t. The database and the message broker are two separate systems. You can&#x27;t wrap them in the same ACID transaction. Distributed transactions (2PC) exist but they&#x27;re slow and fragile and most message brokers don&#x27;t even support them.&lt;&#x2F;p&gt;
+&lt;p&gt;What if you crash between step 1 and step 2? The user is saved, but the event is never published, and the system is now inconsistent because some service was waiting for that event to do something and it will never hear about this user.&lt;&#x2F;p&gt;
+&lt;p&gt;The obvious thought is &quot;just do both in a transaction,&quot; but you can&#x27;t because the database and the message broker are two separate systems. You can&#x27;t wrap them in the same ACID transaction, and distributed transactions (2PC) exist but they&#x27;re slow and fragile and most message brokers don&#x27;t even support them.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;the-outbox-pattern&quot;&gt;the outbox pattern&lt;&#x2F;h2&gt;
-&lt;p&gt;The outbox pattern helps with one part of the problem; making sure the event gets published. The idea is surprisingly simple, you don&#x27;t publish directly to the broker. Instead, write the event to a table in the same database, in the same transaction as your domain data.&lt;&#x2F;p&gt;
+&lt;p&gt;The outbox pattern helps with the publishing side: instead of publishing directly to the broker, you write the event to a table in the same database, in the same transaction as your domain data.&lt;&#x2F;p&gt;
 &lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;1. BEGIN transaction&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;2. save user to DB&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;3. save &amp;quot;UserCreated&amp;quot; event to outbox_events table&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;4. COMMIT&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;If step 2 and 3 succeed, they succeed together. If anything fails, both roll back. This makes it an atomic operation. Now the database is the source of truth for &quot;what events need to be published.&quot;&lt;&#x2F;p&gt;
-&lt;p&gt;A separate background worker polls the outbox table, picks up pending events, and publishes them to the broker. When it gets confirmation, it marks the row as sent.&lt;&#x2F;p&gt;
-&lt;p&gt;The table looks something like:&lt;&#x2F;p&gt;
+&lt;p&gt;If step 2 and 3 succeed, they succeed together, and if anything fails, both roll back. Now the database is the source of truth for &quot;what events need to be published.&quot;&lt;&#x2F;p&gt;
+&lt;p&gt;A separate background worker polls the outbox table, picks up pending events, publishes them to the broker, and when it gets confirmation it marks the row as sent. The table looks something like:&lt;&#x2F;p&gt;
 &lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;sql&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;CREATE&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt; TABLE&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt; outbox_events&lt;&#x2F;span&gt;&lt;span&gt; (&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    id UUID &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;PRIMARY KEY&lt;&#x2F;span&gt;&lt;span&gt;,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    aggregate_id UUID &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;NOT NULL&lt;&#x2F;span&gt;&lt;span&gt;,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
@@ -115,15 +101,15 @@
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    sent_at &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;TIMESTAMP&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;TZ&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;);&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;The worker reads rows where &lt;code&gt;status = &#x27;PENDING&#x27;&lt;&#x2F;code&gt;, publishes to the broker, and updates to &lt;code&gt;SENT&lt;&#x2F;code&gt;. If publish fails, it leaves it pending or marks it failed after some retry threshold.&lt;&#x2F;p&gt;
+&lt;p&gt;The worker reads rows where &lt;code&gt;status = &#x27;PENDING&#x27;&lt;&#x2F;code&gt;, publishes to the broker, and updates to &lt;code&gt;SENT&lt;&#x2F;code&gt;, and if publish fails it leaves it pending or marks it failed after some retry threshold.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;what-can-go-wrong-with-outbox&quot;&gt;what can go wrong with outbox&lt;&#x2F;h2&gt;
-&lt;p&gt;&lt;strong&gt;Ordering.&lt;&#x2F;strong&gt; If you run multiple worker instances for throughput, they might publish events out of order. Event B commits after event A, but worker 2 publishes B before worker 1 publishes A. If your consumers care about ordering, you need to partition by aggregate or use a single worker.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Dual write illusion.&lt;&#x2F;strong&gt; The outbox doesn&#x27;t magically solve the dual write problem, it just moves it. Now the dual write is between &quot;mark row as SENT&quot; and &quot;broker actually received it.&quot; If you mark SENT before the broker confirms, and the broker was down, you lose the event. If you mark SENT after the broker confirms, and you crash before marking, you&#x27;ll republish on restart. The second is safer because inbox handles duplicates.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Broker down.&lt;&#x2F;strong&gt; If the broker is unreachable for a long time, your outbox table grows unbounded. Depending on your write rate this can become a real problem. You need monitoring and maybe backpressure if the table gets too large.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Ordering.&lt;&#x2F;strong&gt; If you run multiple worker instances for throughput, they might publish events out of order: event B commits after event A, but worker 2 publishes B before worker 1 publishes A. If your consumers care about ordering, you need to partition by aggregate or use a single worker.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Dual write illusion.&lt;&#x2F;strong&gt; The outbox doesn&#x27;t magically solve the dual write problem, it just moves it. Now the dual write is between &quot;mark row as SENT&quot; and &quot;broker actually received it.&quot; If you mark SENT before the broker confirms and the broker was down, you lose the event, and if you mark SENT after the broker confirms and you crash before marking, you&#x27;ll republish on restart. The second is safer because inbox handles duplicates.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Broker down.&lt;&#x2F;strong&gt; If the broker is unreachable for a long time, your outbox table grows unbounded, and depending on your write rate this can become a real problem. You need monitoring and maybe backpressure if the table gets too large.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;the-inbox-pattern&quot;&gt;the inbox pattern&lt;&#x2F;h2&gt;
-&lt;p&gt;Publishing is one half. Consuming is the other.&lt;&#x2F;p&gt;
-&lt;p&gt;Delivery guarantees depend on your broker. Some offer exactly-once (Kafka with transactions, for example), some offer at-least-once (most durable brokers with acknowledgment), some offer at-most-once (fire and forget). If you&#x27;re using something like core NATS with no persistence, you get at-most-once: message is gone the moment it&#x27;s published if no one is listening. With a durable broker that retries on no-ack, you get at-least-once, which means your handler might receive the same event multiple times. Process it every time and you double-create things, double-charge customers, whatever your handler does happens twice.&lt;&#x2F;p&gt;
-&lt;p&gt;The inbox is the mirror of the outbox. Before processing, you record that you received this event. If you see it again, you skip it.&lt;&#x2F;p&gt;
+&lt;p&gt;Publishing is one half, consuming is the other.&lt;&#x2F;p&gt;
+&lt;p&gt;Delivery guarantees depend on your broker: some offer exactly-once (Kafka with transactions), some offer at-least-once (most durable brokers with acknowledgment), and some offer at-most-once (fire and forget). If you&#x27;re using something like core NATS with no persistence, you get at-most-once where the message is gone the moment it&#x27;s published if no one is listening. With a durable broker that retries on no-ack, you get at-least-once, which means your handler might receive the same event multiple times, and processing it every time means you double-create things, double-charge customers, or whatever your handler does happens twice.&lt;&#x2F;p&gt;
+&lt;p&gt;The inbox is the mirror of the outbox: before processing, you record that you received this event, and if you see it again, you skip it.&lt;&#x2F;p&gt;
 &lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;sql&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;CREATE&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt; TABLE&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt; inbox_events&lt;&#x2F;span&gt;&lt;span&gt; (&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    id UUID &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;PRIMARY KEY&lt;&#x2F;span&gt;&lt;span&gt;,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    event_id UUID &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;NOT NULL&lt;&#x2F;span&gt;&lt;span&gt;,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
@@ -133,48 +119,26 @@
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    processed_at &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;TIMESTAMP&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;TZ&lt;&#x2F;span&gt;&lt;span&gt;,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;    UNIQUE&lt;&#x2F;span&gt;&lt;span&gt;(event_id, handler_name)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;);&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;The unique constraint on &lt;code&gt;(event_id, handler_name)&lt;&#x2F;code&gt; is the key. When a message arrives:&lt;&#x2F;p&gt;
-&lt;ol&gt;
-&lt;li&gt;Try to insert into inbox with that event_id and handler_name&lt;&#x2F;li&gt;
-&lt;li&gt;If insert fails (constraint violation), you already handled this event. ACK and return.&lt;&#x2F;li&gt;
-&lt;li&gt;If insert succeeds, process the event.&lt;&#x2F;li&gt;
-&lt;li&gt;Update status to &lt;code&gt;PROCESSED&lt;&#x2F;code&gt;.&lt;&#x2F;li&gt;
-&lt;&#x2F;ol&gt;
-&lt;p&gt;This gives you idempotency at the handler level. Same handler won&#x27;t process the same event twice.&lt;&#x2F;p&gt;
+&lt;p&gt;The unique constraint on &lt;code&gt;(event_id, handler_name)&lt;&#x2F;code&gt; is the key. When a message arrives, you try to insert into inbox with that event_id and handler_name; if insert fails (constraint violation) you already handled this event so you ACK and return; if insert succeeds you process the event and update status to &lt;code&gt;PROCESSED&lt;&#x2F;code&gt;. This gives you idempotency at the handler level, where the same handler won&#x27;t process the same event twice.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;what-can-go-wrong-with-inbox&quot;&gt;what can go wrong with inbox&lt;&#x2F;h2&gt;
-&lt;p&gt;&lt;strong&gt;Ghosting.&lt;&#x2F;strong&gt; You insert the inbox row, then crash before doing the actual work. The event is now &quot;locked&quot; because the row exists, but the work never happened. Next delivery will see the row and skip it.&lt;&#x2F;p&gt;
-&lt;p&gt;This is a real problem. One mitigation is to only insert the inbox row after successful processing, but then you&#x27;re back to the crash-between-work-and-record problem, just in a different order. Another is to have a timeout or &quot;last touched&quot; timestamp and treat old pending rows as abandoned.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Pruning.&lt;&#x2F;strong&gt; Same as outbox. &lt;code&gt;PROCESSED&lt;&#x2F;code&gt; rows accumulate. Need cleanup.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Ghosting.&lt;&#x2F;strong&gt; You insert the inbox row, then crash before doing the actual work, and now the event is &quot;locked&quot; because the row exists but the work never happened. Next delivery will see the row and skip it.&lt;&#x2F;p&gt;
+&lt;p&gt;This is a real problem. One mitigation is to only insert the inbox row after successful processing, but then you&#x27;re back to the crash-between-work-and-record problem just in a different order. Another is to have a timeout or &quot;last touched&quot; timestamp and treat old pending rows as abandoned.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Pruning.&lt;&#x2F;strong&gt; Same as outbox, &lt;code&gt;PROCESSED&lt;&#x2F;code&gt; rows accumulate and need cleanup.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;some-brokers-handle-parts-of-this&quot;&gt;some brokers handle parts of this&lt;&#x2F;h2&gt;
-&lt;p&gt;Before implementing all of this, check what your broker does.&lt;&#x2F;p&gt;
-&lt;p&gt;Some brokers (like Kafka or NATS JetStream) persist messages to disk and support exactly-once semantics with proper configuration. They track what has been delivered and acknowledged. If a subscriber is down, the message waits. If you publish with a deduplication ID, the broker won&#x27;t double-publish.&lt;&#x2F;p&gt;
-&lt;p&gt;This doesn&#x27;t eliminate the need for these patterns entirely, but it might simplify things. With a proper durable broker:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;Outbox still useful if you need the DB write and event publish to be atomic. Broker acknowledgment happens after publish, not as part of the same transaction.&lt;&#x2F;li&gt;
-&lt;li&gt;Inbox might be less critical if the broker guarantees exactly-once delivery. But &quot;exactly-once&quot; is tricky and often has caveats. I would still keep inbox for safety.&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;If you&#x27;re using a fire-and-forget broker with no persistence (like core NATS), you absolutely need both patterns. Message gone the moment it&#x27;s published if no one is listening.&lt;&#x2F;p&gt;
+&lt;p&gt;Before implementing all of this, check what your broker does. Some brokers (like Kafka or NATS JetStream) persist messages to disk and support exactly-once semantics with proper configuration, tracking what has been delivered and acknowledged, and if a subscriber is down, the message waits. If you publish with a deduplication ID, the broker won&#x27;t double-publish.&lt;&#x2F;p&gt;
+&lt;p&gt;This doesn&#x27;t eliminate the need for these patterns entirely, but it might simplify things. With a proper durable broker, the outbox is still useful if you need the DB write and event publish to be atomic (broker acknowledgment happens after publish, not as part of the same transaction), and the inbox might be less critical if the broker guarantees exactly-once delivery, but &quot;exactly-once&quot; is tricky and often has caveats so I would still keep inbox for safety.&lt;&#x2F;p&gt;
+&lt;p&gt;If you&#x27;re using a fire-and-forget broker with no persistence (like core NATS), you absolutely need both patterns because the message is gone the moment it&#x27;s published if no one is listening.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;the-at-least-once-guarantee&quot;&gt;the at-least-once guarantee&lt;&#x2F;h2&gt;
-&lt;p&gt;This whole setup gives you at-least-once delivery from end to end. You&#x27;re guaranteed the event will eventually reach the handler (outbox retries until success). The handler is guaranteed to not double-process (inbox deduplicates).&lt;&#x2F;p&gt;
-&lt;p&gt;You don&#x27;t get exactly-once. The outbox worker might publish, then crash before marking &lt;code&gt;SENT&lt;&#x2F;code&gt;, then on restart publish again. That&#x27;s fine because the inbox catches the duplicate.&lt;&#x2F;p&gt;
+&lt;p&gt;This whole setup gives you at-least-once delivery from end to end: you&#x27;re guaranteed the event will eventually reach the handler (outbox retries until success), and the handler is guaranteed to not double-process (inbox deduplicates).&lt;&#x2F;p&gt;
+&lt;p&gt;You don&#x27;t get exactly-once because the outbox worker might publish, then crash before marking &lt;code&gt;SENT&lt;&#x2F;code&gt;, then on restart publish again. That&#x27;s fine because the inbox catches the duplicate.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;operational-stuff&quot;&gt;operational stuff&lt;&#x2F;h2&gt;
-&lt;p&gt;Both tables need maintenance:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Batch reads.&lt;&#x2F;strong&gt; Don&#x27;t poll one row at a time. Read 100 or whatever.&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;Polling interval.&lt;&#x2F;strong&gt; If it&#x27;s too fast it wastes CPU, and if it&#x27;s too slow it adds latency, so we use 500ms.&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;Cleanup job.&lt;&#x2F;strong&gt; Delete &lt;code&gt;SENT&lt;&#x2F;code&gt;&#x2F;&lt;code&gt;PROCESSED&lt;&#x2F;code&gt; rows older than X days.&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;Monitoring.&lt;&#x2F;strong&gt; Track how many &lt;code&gt;PENDING&lt;&#x2F;code&gt; rows are piling up. Alert if growing.&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;Failure handling.&lt;&#x2F;strong&gt; After N retries, mark &lt;code&gt;FAILED&lt;&#x2F;code&gt;. Maybe route to a dead letter table for manual inspection.&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;h2 id=&quot;when-you-actually-need-this&quot;&gt;when you actually need this&lt;&#x2F;h2&gt;
-&lt;p&gt;If you&#x27;re building anything where &lt;code&gt;&quot;database saved but event not published&quot;&lt;&#x2F;code&gt; would cause real problems, you probably need outbox. If your handlers have side effects that shouldn&#x27;t happen twice, you need inbox.&lt;&#x2F;p&gt;
-&lt;p&gt;If you&#x27;re doing toy projects or your consistency requirements are loose, maybe you can skip it. But in production systems with money or important state involved, I wouldn&#x27;t trust the happy path.&lt;&#x2F;p&gt;
+&lt;p&gt;Both tables need maintenance: batch reads instead of one row at a time (read 100 or whatever), a polling interval that balances CPU waste vs latency (we use 500ms), a cleanup job that deletes &lt;code&gt;SENT&lt;&#x2F;code&gt;&#x2F;&lt;code&gt;PROCESSED&lt;&#x2F;code&gt; rows older than X days, monitoring to track how many &lt;code&gt;PENDING&lt;&#x2F;code&gt; rows are piling up and alert if growing, and failure handling that marks events &lt;code&gt;FAILED&lt;&#x2F;code&gt; after N retries and maybe routes them to a dead letter table for manual inspection.&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
 &lt;ul&gt;
-&lt;li&gt;Polling isn&#x27;t the only way. Some DBs support change data capture (CDC) which can trigger on outbox inserts. Debezium does this with Postgres.&lt;&#x2F;li&gt;
-&lt;li&gt;Some people use the inbox pattern even for HTTP requests, not just events. Same idea: deduplicate by request ID.&lt;&#x2F;li&gt;
-&lt;li&gt;The outbox pattern is sometimes called &quot;transactional outbox&quot; or &quot;outbox polling.&quot;&lt;&#x2F;li&gt;
-&lt;li&gt;Kafka has built-in exactly-once if you use transactions correctly. Still worth understanding what&#x27;s happening underneath.&lt;&#x2F;li&gt;
+&lt;li&gt;Polling isn&#x27;t the only way, some DBs support change data capture (CDC) which can trigger on outbox inserts, and Debezium does this with Postgres&lt;&#x2F;li&gt;
+&lt;li&gt;Some people use the inbox pattern even for HTTP requests, not just events, same idea: deduplicate by request ID&lt;&#x2F;li&gt;
+&lt;li&gt;The outbox pattern is sometimes called &quot;transactional outbox&quot; or &quot;outbox polling&quot;&lt;&#x2F;li&gt;
+&lt;li&gt;Kafka has built-in exactly-once if you use transactions correctly, still worth understanding what&#x27;s happening underneath&lt;&#x2F;li&gt;
 &lt;&#x2F;ul&gt;
 </content>
         

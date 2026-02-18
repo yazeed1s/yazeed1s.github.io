@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
-    <title>Yazeed&#x27;s Blog - Streaming</title>
+    <title>Yazeed&#x27;s Blog - streaming</title>
     <subtitle>Notes on systems and low-level software.</subtitle>
     <link rel="self" type="application/atom+xml" href="https://yazeed1s.github.io/tags/streaming/atom.xml"/>
     <link rel="alternate" type="text/html" href="https://yazeed1s.github.io"/>

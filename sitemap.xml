@@ -23,7 +23,7 @@
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/context-switches/</loc>
-        <lastmod>2025-04-03</lastmod>
+        <lastmod>2024-11-18</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/cxl/</loc>
@@ -75,7 +75,7 @@
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/mmap/</loc>
-        <lastmod>2025-11-21</lastmod>
+        <lastmod>2024-11-08</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/multimonitor-wm/</loc>
@@ -103,7 +103,7 @@
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/what-a-process-owns/</loc>
-        <lastmod>2026-01-05</lastmod>
+        <lastmod>2025-10-19</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/x11-wm-basics/</loc>
@@ -143,16 +143,7 @@
         <loc>https://yazeed1s.github.io/tags/event-driven/</loc>
     </url>
     <url>
-        <loc>https://yazeed1s.github.io/tags/glibc/</loc>
-    </url>
-    <url>
         <loc>https://yazeed1s.github.io/tags/hardware/</loc>
-    </url>
-    <url>
-        <loc>https://yazeed1s.github.io/tags/infrastructure/</loc>
-    </url>
-    <url>
-        <loc>https://yazeed1s.github.io/tags/kernel-bypass/</loc>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/linux/</loc>
@@ -167,9 +158,6 @@
         <loc>https://yazeed1s.github.io/tags/networking/</loc>
     </url>
     <url>
-        <loc>https://yazeed1s.github.io/tags/operating-systems/</loc>
-    </url>
-    <url>
         <loc>https://yazeed1s.github.io/tags/os/</loc>
     </url>
     <url>
@@ -182,16 +170,10 @@
         <loc>https://yazeed1s.github.io/tags/performance/</loc>
     </url>
     <url>
-        <loc>https://yazeed1s.github.io/tags/picom/</loc>
-    </url>
-    <url>
         <loc>https://yazeed1s.github.io/tags/processes/</loc>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/rdma/</loc>
-    </url>
-    <url>
-        <loc>https://yazeed1s.github.io/tags/scheduling/</loc>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/signals/</loc>

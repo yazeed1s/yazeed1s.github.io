@@ -124,9 +124,9 @@
                 
                 <a href="https://yazeed1s.github.io/tags/c">C</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/spatial-data-structures">Spatial Data Structures</a><span
+                <a href="https://yazeed1s.github.io/tags/spatial-data-structures">spatial data structures</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/tiling-window-manager">Tiling Window Manager</a>
+                <a href="https://yazeed1s.github.io/tags/tiling-window-manager">tiling window manager</a>
             </span>
             
         </div>
@@ -151,14 +151,12 @@
 <p>The shape of the data matters too. Window layouts are inherently hierarchical and spatial. The screen splits into halves, those halves split again. It's not a flat sequence at all.</p>
 <p>Whatever structure we pick, it should make the common operations cheap and match this hierarchical shape. Otherwise we're fighting the data.</p>
 <h2 id="why-a-linear-structure-falls-apart">Why a Linear Structure Falls Apart</h2>
-<p>Given those constraints, the obvious first thought is a linked list. Simple, well understood. But there's a mismatch: linked lists are linear, window layouts are 2D.</p>
-<p>When windows tile, they form a hierarchy; this half of the screen, that quarter, and so on. A list doesn't capture this naturally. Every time you add or remove a window, you'd have to recalculate all the rectangles from scratch. It works, but it's more math than I want to deal with.</p>
+<p>Given those constraints, the obvious first thought is a linked list since it's simple and well understood, but there's a fundamental mismatch: linked lists are linear and window layouts are 2D.</p>
+<p>When windows tile they form a hierarchy (this half of the screen, that quarter, and so on), and a list doesn't capture this naturally. Every time you add or remove a window you'd have to recalculate all the rectangles from scratch, which works but it's more math than I want to deal with.</p>
 <h2 id="trees-handle-it-better">Trees Handle It Better</h2>
-<p>So if the problem is hierarchical, the structure should be too.</p>
-<p>Trees fit naturally. The screen is the root, each split creates two children. Windows live in the leaves. The structure maps directly to what you see on screen</p>
-<p>That's where BSP trees come in.</p>
+<p>If the problem is hierarchical, the structure should be too. Trees fit naturally: the screen is the root, each split creates two children, windows live in the leaves, and the structure maps directly to what you see on screen. That's where BSP trees come in.</p>
 <h2 id="binary-space-partitioning">Binary Space Partitioning</h2>
-<p>BSP trees are a specific kind of tree designed for recursive spatial division. The idea is simple: start with the full screen, split it in half (horizontal or vertical), keep splitting as needed. Each split point becomes an internal node, each final region becomes a leaf.</p>
+<p>BSP trees are a specific kind of tree designed for recursive spatial division: start with the full screen, split it in half (horizontal or vertical), and keep splitting as needed. Each split point becomes an internal node and each final region becomes a leaf.</p>
 <p>In my implementation:</p>
 <ul>
 <li><strong>Root node</strong> = the entire screen/monitor rectangle</li>
@@ -193,8 +191,7 @@
 <span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    bool</span><span>        is_focused</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
 <span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    bool</span><span>        is_master</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
 <span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span></code></pre>
-<p>I include a parent pointer. Some implementations skip it to save memory, but having it makes traversal and sibling access trivial. Worth the extra 8 bytes per node.</p>
-<p>With the structure in place, the next parts are insertion and deletion.</p>
+<p>I include a parent pointer because some implementations skip it to save memory, but having it makes traversal and sibling access trivial and worth the extra 8 bytes per node. With the structure in place, the next parts are insertion and deletion.</p>
 <h2 id="insertion">Insertion</h2>
 <p>When you open a new window, here's what happens:</p>
 <ol>
@@ -316,9 +313,7 @@
 <span class="giallo-l"><span>                                   r6)     r7)    r4)      r5)</span></span></code></pre>
 <p>Each internal node's rectangle contains its children. The tree structure directly mirrors the screen layout.</p>
 <h2 id="deletion">Deletion</h2>
-<p>Insertion is the easy part. Deletion is where tree operations get interesting.</p>
-<p>When you close a window, the node gets removed. But you can't just delete it as the tree needs to stay valid.</p>
-<p>The key insight: when you remove a leaf, its parent (an internal node) now has only one child. That's not valid. So the sibling "takes over" the parent's position.</p>
+<p>Insertion is the easy part, deletion is where tree operations get interesting. When you close a window the node gets removed, but you can't just delete it because the tree needs to stay valid. The thing is, when you remove a leaf, its parent (an internal node) now has only one child, and that's not valid, so the sibling "takes over" the parent's position.</p>
 <h3 id="case-1-simple-deletion-sibling-is-external-parent-is-root">Case 1: Simple deletion (sibling is external, parent is root)</h3>
 <pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="plain"><span class="giallo-l"><span>    Before:                             After:</span></span>
 <span class="giallo-l"><span>    +-----------------------+           +-----------------------+</span></span>
@@ -468,7 +463,7 @@
 <span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    free_queue</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>q</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
 <span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    return</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
 <span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre><h2 id="wrap-up">wrap-up</h2>
-<p>BSP trees aren't complicated once you see them as just recursive space division. The tree structure matches the visual layout, which makes most operations straightforward. Insertion splits a rectangle, deletion merges back up. Add/remove windows, the tree adjusts.</p>
+<p>BSP trees aren't complicated once you see them as just recursive space division, where the tree structure matches the visual layout and makes most operations straightforward. Insertion splits a rectangle, deletion merges back up, and the tree adjusts as windows come and go.</p>
 <p>The full implementation handles more edge cases (floating windows, fullscreen, gaps, borders, multiple monitors), but the core idea is what I described here. Code is here: <a rel="external" href="https://github.com/yazeed1s/zwm">github.com/yazeed1s/zwm</a>.</p>
   
 </article>

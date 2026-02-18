@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
-    <title>Yazeed&#x27;s Blog - Signals</title>
+    <title>Yazeed&#x27;s Blog - signals</title>
     <subtitle>Notes on systems and low-level software.</subtitle>
     <link rel="self" type="application/atom+xml" href="https://yazeed1s.github.io/tags/signals/atom.xml"/>
     <link rel="alternate" type="text/html" href="https://yazeed1s.github.io"/>
@@ -23,11 +23,9 @@
         <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/force-memory-cleanup/"/>
         <id>https://yazeed1s.github.io/posts/force-memory-cleanup/</id>
         
-        <content type="html" xml:base="https://yazeed1s.github.io/posts/force-memory-cleanup/">&lt;hr &#x2F;&gt;
-&lt;p&gt;In C, you put cleanup code at the end of &lt;code&gt;main()&lt;&#x2F;code&gt; to free your allocations, close your files, etc. But what if your program crashes before reaching that code?&lt;&#x2F;p&gt;
-&lt;hr &#x2F;&gt;
-&lt;h2 id=&quot;the-problem&quot;&gt;The Problem&lt;&#x2F;h2&gt;
-&lt;p&gt;Standard cleanup at the end of main only works if your program exits normally. If it crashes (e.g., a null pointer dereference), the OS raises SIGSEGV and your program dies immediately. Your cleanup code never runs.&lt;&#x2F;p&gt;
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/force-memory-cleanup/">&lt;p&gt;In C, you put cleanup code at the end of &lt;code&gt;main()&lt;&#x2F;code&gt; to free your allocations, close your files, and so on. But what if your program crashes before reaching that code?&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-problem&quot;&gt;the problem&lt;&#x2F;h2&gt;
+&lt;p&gt;Standard cleanup at the end of main only works if your program exits normally. If it crashes (a null pointer dereference, for example), the OS raises SIGSEGV and your program dies immediately, so your cleanup code never runs.&lt;&#x2F;p&gt;
 &lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;c&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;include&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; &amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;stdio.h&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;include&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; &amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;stdlib.h&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
@@ -54,8 +52,8 @@
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;Allocated&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 500&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; MB&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;Segmentation&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; fault&lt;&#x2F;span&gt;&lt;span&gt; (core&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt; dumped&lt;&#x2F;span&gt;&lt;span&gt;)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
 &lt;p&gt;The &lt;code&gt;free(buffer)&lt;&#x2F;code&gt; never runs.&lt;&#x2F;p&gt;
-&lt;h2 id=&quot;first-thought-atexit&quot;&gt;First Thought: atexit()&lt;&#x2F;h2&gt;
-&lt;p&gt;You might think &lt;code&gt;atexit()&lt;&#x2F;code&gt; solves this:&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;first-thought-atexit&quot;&gt;first thought: atexit()&lt;&#x2F;h2&gt;
+&lt;p&gt;You might think &lt;code&gt;atexit()&lt;&#x2F;code&gt; solves this, where you register a cleanup function and it gets called on exit:&lt;&#x2F;p&gt;
 &lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;c&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt; cleanup&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;    free&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;buffer&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
@@ -64,9 +62,9 @@
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;    atexit&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span&gt;cleanup&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt;    &#x2F;&#x2F;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7A7D7A, #7F7C77);font-style: italic;&quot;&gt; ...&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;But &lt;code&gt;atexit()&lt;&#x2F;code&gt; handlers only run on &lt;strong&gt;normal&lt;&#x2F;strong&gt; exit, when main returns or when you call &lt;code&gt;exit()&lt;&#x2F;code&gt;. A signal like SIGSEGV bypasses atexit entirely.&lt;&#x2F;p&gt;
-&lt;h2 id=&quot;the-solution-signal-handlers&quot;&gt;The Solution: Signal Handlers&lt;&#x2F;h2&gt;
-&lt;p&gt;To run cleanup code on crash, you register a signal handler:&lt;&#x2F;p&gt;
+&lt;p&gt;But &lt;code&gt;atexit()&lt;&#x2F;code&gt; handlers only run on &lt;strong&gt;normal&lt;&#x2F;strong&gt; exit (when main returns or when you call &lt;code&gt;exit()&lt;&#x2F;code&gt;), and a signal like SIGSEGV bypasses atexit entirely.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-solution-signal-handlers&quot;&gt;the solution: signal handlers&lt;&#x2F;h2&gt;
+&lt;p&gt;To run cleanup code on crash, you register a signal handler that catches the signal before the process dies:&lt;&#x2F;p&gt;
 &lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;c&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;include&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; &amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;signal.h&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;include&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; &amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;stdio.h&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;#&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt;include&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; &amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4A6934, #CB8B8B);&quot;&gt;stdlib.h&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
@@ -104,15 +102,9 @@
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;    return&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
 &lt;p&gt;Now when the program crashes, the handler runs first.&lt;&#x2F;p&gt;
-&lt;h2 id=&quot;important-async-signal-safety&quot;&gt;Important: Async-Signal-Safety&lt;&#x2F;h2&gt;
-&lt;p&gt;There&#x27;s a catch. Signal handlers can interrupt your program at any point, even in the middle of malloc or printf. If your handler then calls malloc or printf, you can deadlock or corrupt memory.&lt;&#x2F;p&gt;
-&lt;p&gt;Only certain functions are safe to call from signal handlers. These are called &quot;async-signal-safe&quot; functions. The POSIX standard defines the list. Key ones:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;write()&lt;&#x2F;code&gt; - safe (printf is NOT safe)&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;code&gt;_exit()&lt;&#x2F;code&gt; - safe (exit is NOT safe, it runs atexit handlers)&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;code&gt;close()&lt;&#x2F;code&gt;, &lt;code&gt;unlink()&lt;&#x2F;code&gt;, &lt;code&gt;fsync()&lt;&#x2F;code&gt; - safe&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;&lt;code&gt;free()&lt;&#x2F;code&gt; is &lt;strong&gt;not&lt;&#x2F;strong&gt; async-signal-safe. It might &quot;work&quot; in a toy program, and then deadlock in production because the signal interrupted malloc&#x2F;free internals. Don&#x27;t rely on it.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;async-signal-safety&quot;&gt;async-signal-safety&lt;&#x2F;h2&gt;
+&lt;p&gt;There&#x27;s an important catch: signal handlers can interrupt your program at any point, even in the middle of malloc or printf. If your handler then calls malloc or printf, you can deadlock or corrupt memory because those functions aren&#x27;t reentrant.&lt;&#x2F;p&gt;
+&lt;p&gt;Only certain functions are safe to call from signal handlers, and POSIX defines the list. The key safe ones are &lt;code&gt;write()&lt;&#x2F;code&gt; (printf is NOT safe), &lt;code&gt;_exit()&lt;&#x2F;code&gt; (exit is NOT safe because it runs atexit handlers), &lt;code&gt;close()&lt;&#x2F;code&gt;, &lt;code&gt;unlink()&lt;&#x2F;code&gt;, and &lt;code&gt;fsync()&lt;&#x2F;code&gt;. Notably, &lt;code&gt;free()&lt;&#x2F;code&gt; is &lt;strong&gt;not&lt;&#x2F;strong&gt; async-signal-safe; it might &quot;work&quot; in a toy program and then deadlock in production because the signal interrupted malloc&#x2F;free internals.&lt;&#x2F;p&gt;
 &lt;p&gt;A safer pattern is to set a flag and let the main program handle cleanup:&lt;&#x2F;p&gt;
 &lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;c&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;volatile&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#855959, #A6BCAD);&quot;&gt; sig_atomic_t&lt;&#x2F;span&gt;&lt;span&gt; got_signal &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
@@ -131,39 +123,12 @@
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt;    cleanup&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;    return&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;But for crash signals (SIGSEGV, SIGABRT), you can&#x27;t return to normal execution, the program is already broken. So you do what cleanup you can in the handler and exit.&lt;&#x2F;p&gt;
-&lt;h2 id=&quot;wait-doesn-t-the-os-clean-up-anyway&quot;&gt;Wait, Doesn&#x27;t the OS Clean Up Anyway?&lt;&#x2F;h2&gt;
-&lt;p&gt;Yes. On any modern OS (Linux, macOS, Windows), when your process terminates (normally or not), the kernel reclaims all its resources:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;Heap memory (malloc&#x27;d memory) - freed&lt;&#x2F;li&gt;
-&lt;li&gt;File descriptors - closed&lt;&#x2F;li&gt;
-&lt;li&gt;Memory mappings - unmapped&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;So for plain &lt;code&gt;malloc()&lt;&#x2F;code&gt; and regular files, you don&#x27;t actually need signal handlers for cleanup. The OS handles it.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;Where signal handlers matter:&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
-&lt;ol&gt;
-&lt;li&gt;&lt;strong&gt;Shared resources&lt;&#x2F;strong&gt; - shared memory segments (&lt;code&gt;shm_open&lt;&#x2F;code&gt;), semaphores, message queues. These persist beyond process lifetime.&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;Temp files&lt;&#x2F;strong&gt; - if you want to delete temp files on crash.&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;External state&lt;&#x2F;strong&gt; - network connections you want to close gracefully, database transactions to rollback.&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;strong&gt;Custom cleanup&lt;&#x2F;strong&gt; - resetting terminal modes, unlocking files, etc.&lt;&#x2F;li&gt;
-&lt;&#x2F;ol&gt;
-&lt;p&gt;For my window manager, I use signal handlers to:&lt;&#x2F;p&gt;
-&lt;ul&gt;
-&lt;li&gt;Unmap windows gracefully&lt;&#x2F;li&gt;
-&lt;li&gt;Restore X11 state&lt;&#x2F;li&gt;
-&lt;li&gt;Close the connection to the X server properly&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;Regular heap memory? I just let the OS clean it up. It&#x27;s going to do it anyway.&lt;&#x2F;p&gt;
-&lt;h2 id=&quot;summary&quot;&gt;Summary&lt;&#x2F;h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Cleanup at end of main doesn&#x27;t run if you crash&lt;&#x2F;li&gt;
-&lt;li&gt;&lt;code&gt;atexit()&lt;&#x2F;code&gt; doesn&#x27;t help - it&#x27;s for normal exits only&lt;&#x2F;li&gt;
-&lt;li&gt;Signal handlers let you run code on crash&lt;&#x2F;li&gt;
-&lt;li&gt;Be careful about async-signal-safety in handlers&lt;&#x2F;li&gt;
-&lt;li&gt;For regular malloc&#x27;d memory, the OS cleans up anyway&lt;&#x2F;li&gt;
-&lt;li&gt;Signal handlers are useful for shared resources and external state&lt;&#x2F;li&gt;
-&lt;&#x2F;ul&gt;
-&lt;p&gt;The pattern I use in practice:&lt;&#x2F;p&gt;
+&lt;p&gt;But for crash signals (SIGSEGV, SIGABRT), you can&#x27;t return to normal execution because the program is already broken, so you do what cleanup you can in the handler and exit.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;wait-doesn-t-the-os-clean-up-anyway&quot;&gt;wait, doesn&#x27;t the OS clean up anyway?&lt;&#x2F;h2&gt;
+&lt;p&gt;Yes. On any modern OS (Linux, macOS, Windows), when your process terminates the kernel reclaims all its resources: heap memory gets freed, file descriptors get closed, and memory mappings get unmapped.&lt;&#x2F;p&gt;
+&lt;p&gt;So for plain &lt;code&gt;malloc()&lt;&#x2F;code&gt; and regular files, you don&#x27;t actually need signal handlers for cleanup because the OS handles it. Where signal handlers really matter is shared resources (shared memory segments from &lt;code&gt;shm_open&lt;&#x2F;code&gt;, semaphores, message queues) that persist beyond process lifetime, temp files you want to delete on crash, external state like network connections or database transactions you want to close gracefully, and custom cleanup like resetting terminal modes or unlocking files.&lt;&#x2F;p&gt;
+&lt;p&gt;For my window manager, I use signal handlers to unmap windows gracefully, restore X11 state, and close the connection to the X server properly. Regular heap memory? I just let the OS clean it up because it&#x27;s going to do it anyway.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-pattern-i-use&quot;&gt;the pattern I use&lt;&#x2F;h2&gt;
 &lt;pre class=&quot;giallo&quot; style=&quot;color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);&quot;&gt;&lt;code data-lang=&quot;c&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;volatile&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#855959, #A6BCAD);&quot;&gt; sig_atomic_t&lt;&#x2F;span&gt;&lt;span&gt; should_exit &lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #CB8B8B);&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;void&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#3C6362, #A2BD90);&quot;&gt; signal_handler&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;int&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#7D4242, #D4D4C0);&quot;&gt; sig&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
@@ -185,6 +150,11 @@
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#784367, #D4B399);&quot;&gt;    return&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#784367, #CA9D7D);&quot;&gt; 0&lt;&#x2F;span&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
 &lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: light-dark(#4B4B48, #7F7C77);&quot;&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
 &lt;p&gt;For SIGSEGV&#x2F;SIGABRT, I mostly just let it crash and let the OS clean up. Unless there&#x27;s shared state that needs explicit cleanup, adding a handler for crash signals just complicates things without much benefit.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;notes&quot;&gt;notes&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;signal()&lt;&#x2F;code&gt; behavior varies by platform, &lt;code&gt;sigaction()&lt;&#x2F;code&gt; is more portable and predictable&lt;&#x2F;li&gt;
+&lt;li&gt;You can use &lt;code&gt;SA_RESETHAND&lt;&#x2F;code&gt; flag with sigaction to restore default behavior after catching a crash signal once&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
 </content>
         
     </entry>

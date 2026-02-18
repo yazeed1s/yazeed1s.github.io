@@ -758,13 +758,14 @@ a:focus-visible {
 
     nav {
         width: 100%;
-        flex-direction: column;
-        gap: 0.5rem;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.5rem 1rem;
         font-size: 0.85rem;
     }
 
     nav a {
-        display: block;
+        display: inline-block;
     }
 
     .theme {

@@ -5,23 +5,23 @@
 <meta charset="UTF-8" />
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="description" content="Breaking down what resources a process actually has and what the kernel tracks for it." />
+<meta name="description" content="Everything a process has: address space, file descriptors, signals, credentials, and scheduling context." />
 <meta
     name="keywords"
     content="yazeed, blog, alharthi, yaz, yazeed1s"
 />
 <link rel="canonical" href="https://yazeed1s.github.io/posts/what-a-process-owns/" />
 
-<title>What a Process Really Owns | Yazeed&#x27;s Blog</title>
+<title>What a Process Owns | Yazeed&#x27;s Blog</title>
 <meta property="og:site_name" content="Yazeed&#x27;s Blog" />
-<meta property="og:title" content="What a Process Really Owns | Yazeed&#x27;s Blog" />
+<meta property="og:title" content="What a Process Owns | Yazeed&#x27;s Blog" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://yazeed1s.github.io/posts/what-a-process-owns/" />
-<meta property="og:description" content="Breaking down what resources a process actually has and what the kernel tracks for it." />
+<meta property="og:description" content="Everything a process has: address space, file descriptors, signals, credentials, and scheduling context." />
 
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="What a Process Really Owns" />
-<meta name="twitter:description" content="Breaking down what resources a process actually has and what the kernel tracks for it." />
+<meta name="twitter:title" content="What a Process Owns" />
+<meta name="twitter:description" content="Everything a process has: address space, file descriptors, signals, credentials, and scheduling context." />
 
     <link rel="icon" href="&#x2F;favicon.ico" />
     
@@ -113,160 +113,63 @@
     <main id="main">
 <article>
     <header>
-        <h1>What a Process Really Owns</h1>
+        <h1>What a Process Owns</h1>
         <div class="post-meta">
-            <time datetime="2026-01-05">05 Jan 2026</time>
+            <time datetime="2025-10-19">19 Oct 2025</time>
             
-            <span>Breaking down what resources a process actually has and what the kernel tracks for it.</span>
+            <span>Everything a process has: address space, file descriptors, signals, credentials, and scheduling context.</span>
              
             <span class="post-tags">
                 <span class="post-tags-label">Tags: </span>
                 
-                <a href="https://yazeed1s.github.io/tags/os">os</a><span
+                <a href="https://yazeed1s.github.io/tags/os">OS</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/processes">processes</a><span
+                <a href="https://yazeed1s.github.io/tags/linux">linux</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/linux">linux</a>
+                <a href="https://yazeed1s.github.io/tags/processes">processes</a>
             </span>
             
         </div>
     </header>
-     <p>I wanted to think through what a process actually "owns" because I realized I had a fuzzy picture of it. We throw around words like "process", "thread", "address space" but I wanted to be more concrete about what the kernel actually tracks.</p>
-<h2 id="the-short-version">the short version</h2>
-<p>A process owns:</p>
-<ul>
-<li>Its own virtual address space</li>
-<li>File descriptors</li>
-<li>Signal handlers</li>
-<li>Resource limits</li>
-<li>A process ID and various metadata</li>
-<li>One or more threads of execution</li>
-</ul>
-<p>When you fork(), the child gets copies of most of these. When you exec(), most of it gets replaced with fresh stuff for the new program.</p>
+     <p>A process isn't just "running code." It's a container that owns a set of resources the kernel manages on its behalf, and understanding what those resources are helps explain why certain operations behave the way they do.</p>
 <h2 id="address-space">address space</h2>
-<p>This is the big one. Every process gets its own virtual address space. On a 64-bit system that's a huge range of addresses (48 bits usable on x86-64, so 256 TB of virtual space).</p>
-<p>The address space contains:</p>
-<ul>
-<li><strong>Text segment</strong>: the executable code, usually read-only</li>
-<li><strong>Data segment</strong>: initialized global/static variables</li>
-<li><strong>BSS</strong>: uninitialized globals (zeroed on startup)</li>
-<li><strong>Heap</strong>: dynamic allocations (malloc, new)</li>
-<li><strong>Stack</strong>: function call frames, local variables</li>
-<li><strong>Memory-mapped regions</strong>: shared libraries, mmap'd files, anonymous mappings</li>
-</ul>
-<p>The kernel tracks all this in data structures (on Linux, the <code>mm_struct</code> and a tree of <code>vm_area_struct</code>). Each region has permissions (read/write/execute) and backing (file, anonymous, shared, private).</p>
-<p>You can see your process's memory map in <code>/proc/self/maps</code>:</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="shellscript"><span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">$</span><span style="color: light-dark(#4A6934, #CB8B8B);"> cat</span><span style="color: light-dark(#4A6934, #CB8B8B);"> /proc/self/maps</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">55a4c8a00000-55a4c8a02000</span><span style="color: light-dark(#4A6934, #CB8B8B);"> r--p</span><span style="color: light-dark(#784367, #CA9D7D);"> 00000000</span><span style="color: light-dark(#4A6934, #CB8B8B);"> 08:01</span><span style="color: light-dark(#784367, #CA9D7D);"> 1234567</span><span style="color: light-dark(#4A6934, #CB8B8B);">  /usr/bin/cat</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">55a4c8a02000-55a4c8a06000</span><span style="color: light-dark(#4A6934, #CB8B8B);"> r-xp</span><span style="color: light-dark(#784367, #CA9D7D);"> 00002000</span><span style="color: light-dark(#4A6934, #CB8B8B);"> 08:01</span><span style="color: light-dark(#784367, #CA9D7D);"> 1234567</span><span style="color: light-dark(#4A6934, #CB8B8B);">  /usr/bin/cat</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">55a4c8a06000-55a4c8a09000</span><span style="color: light-dark(#4A6934, #CB8B8B);"> r--p</span><span style="color: light-dark(#784367, #CA9D7D);"> 00006000</span><span style="color: light-dark(#4A6934, #CB8B8B);"> 08:01</span><span style="color: light-dark(#784367, #CA9D7D);"> 1234567</span><span style="color: light-dark(#4A6934, #CB8B8B);">  /usr/bin/cat</span></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #CA9D7D);">.</span><span style="color: light-dark(#784367, #CA9D7D);">.</span><span style="color: light-dark(#784367, #CA9D7D);">.</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">7f8c12000000-7f8c12021000</span><span style="color: light-dark(#4A6934, #CB8B8B);"> rw-p</span><span style="color: light-dark(#784367, #CA9D7D);"> 00000000</span><span style="color: light-dark(#4A6934, #CB8B8B);"> 00:00</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">7ffd5c9e0000-7ffd5ca01000</span><span style="color: light-dark(#4A6934, #CB8B8B);"> rw-p</span><span style="color: light-dark(#784367, #CA9D7D);"> 00000000</span><span style="color: light-dark(#4A6934, #CB8B8B);"> 00:00</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span>        [stack</span><span>]</span></span></code></pre>
-<p>Each line is a region with its address range, permissions, offset, device, inode, and path.</p>
+<p>Each process gets its own virtual address space, which is a complete illusion of having memory all to itself. On 64-bit Linux a process gets a 128TB virtual space (48-bit addressing), split into user space (lower half) and kernel space (upper half, shared across all processes but inaccessible from user mode).</p>
+<p>Inside this space you have the text segment (your compiled code, read-only and executable), the data segment for initialized globals, BSS for uninitialized globals (zeroed by the kernel), the heap growing upward from the end of BSS (managed by malloc/brk/mmap), the stack growing downward from near the top of user space, and memory-mapped regions scattered in between for shared libraries, mmap'd files, and anonymous mappings.</p>
+<p>Two processes can have the same virtual address pointing to completely different physical memory because each process has its own page table. The kernel switches page tables on every context switch by writing a new value to CR3 on x86.</p>
+<p>You can look at a process's memory map through <code>/proc/&lt;pid&gt;/maps</code>, which shows each VMA (Virtual Memory Area) with its address range, permissions, offset, device, inode, and pathname.</p>
 <h2 id="file-descriptors">file descriptors</h2>
-<p>A process has a table of open file descriptors. These are just small integers (0, 1, 2, 3, ...) that refer to open files, pipes, sockets, devices, whatever.</p>
-<p>By convention:</p>
-<ul>
-<li>0 = stdin</li>
-<li>1 = stdout</li>
-<li>2 = stderr</li>
-</ul>
-<p>When you open() a file, you get the lowest available fd number. When you fork(), the child inherits copies of the parent's fd table (pointing to the same underlying file objects, so they share the file offset).</p>
-<p>The kernel tracks this in a <code>files_struct</code>. Each fd points to a <code>file</code> object which points to an inode.</p>
-<p>You can see a process's fds in <code>/proc/[pid]/fd/</code>:</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="shellscript"><span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">$</span><span style="color: light-dark(#4A6934, #CB8B8B);"> ls</span><span style="color: light-dark(#784367, #CA9D7D);"> -</span><span style="color: light-dark(#784367, #CA9D7D);">la</span><span style="color: light-dark(#4A6934, #CB8B8B);"> /proc/self/fd</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">lrwx------</span><span style="color: light-dark(#784367, #CA9D7D);"> 1</span><span style="color: light-dark(#4A6934, #CB8B8B);"> user</span><span style="color: light-dark(#4A6934, #CB8B8B);"> user</span><span style="color: light-dark(#784367, #CA9D7D);"> 64</span><span style="color: light-dark(#4A6934, #CB8B8B);"> Jan</span><span style="color: light-dark(#784367, #CA9D7D);">  1</span><span style="color: light-dark(#4A6934, #CB8B8B);"> 00:00</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span> -</span><span style="color: light-dark(#4B4B48, #CB8B8B);">&gt;</span><span style="color: light-dark(#4A6934, #CB8B8B);"> /dev/pts/0</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">lrwx------</span><span style="color: light-dark(#784367, #CA9D7D);"> 1</span><span style="color: light-dark(#4A6934, #CB8B8B);"> user</span><span style="color: light-dark(#4A6934, #CB8B8B);"> user</span><span style="color: light-dark(#784367, #CA9D7D);"> 64</span><span style="color: light-dark(#4A6934, #CB8B8B);"> Jan</span><span style="color: light-dark(#784367, #CA9D7D);">  1</span><span style="color: light-dark(#4A6934, #CB8B8B);"> 00:00</span><span style="color: light-dark(#784367, #CA9D7D);"> 1</span><span> -</span><span style="color: light-dark(#4B4B48, #CB8B8B);">&gt;</span><span style="color: light-dark(#4A6934, #CB8B8B);"> /dev/pts/0</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">lrwx------</span><span style="color: light-dark(#784367, #CA9D7D);"> 1</span><span style="color: light-dark(#4A6934, #CB8B8B);"> user</span><span style="color: light-dark(#4A6934, #CB8B8B);"> user</span><span style="color: light-dark(#784367, #CA9D7D);"> 64</span><span style="color: light-dark(#4A6934, #CB8B8B);"> Jan</span><span style="color: light-dark(#784367, #CA9D7D);">  1</span><span style="color: light-dark(#4A6934, #CB8B8B);"> 00:00</span><span style="color: light-dark(#784367, #CA9D7D);"> 2</span><span> -</span><span style="color: light-dark(#4B4B48, #CB8B8B);">&gt;</span><span style="color: light-dark(#4A6934, #CB8B8B);"> /dev/pts/0</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">lr-x------</span><span style="color: light-dark(#784367, #CA9D7D);"> 1</span><span style="color: light-dark(#4A6934, #CB8B8B);"> user</span><span style="color: light-dark(#4A6934, #CB8B8B);"> user</span><span style="color: light-dark(#784367, #CA9D7D);"> 64</span><span style="color: light-dark(#4A6934, #CB8B8B);"> Jan</span><span style="color: light-dark(#784367, #CA9D7D);">  1</span><span style="color: light-dark(#4A6934, #CB8B8B);"> 00:00</span><span style="color: light-dark(#784367, #CA9D7D);"> 3</span><span> -</span><span style="color: light-dark(#4B4B48, #CB8B8B);">&gt;</span><span style="color: light-dark(#4A6934, #CB8B8B);"> /proc/12345/fd</span></span></code></pre><h2 id="credentials-and-ids">credentials and IDs</h2>
-<p>A process has:</p>
-<ul>
-<li><strong>PID</strong>: unique process ID</li>
-<li><strong>PPID</strong>: parent process ID</li>
-<li><strong>UID/GID</strong>: user and group IDs (real, effective, saved)</li>
-<li><strong>Process group and session IDs</strong>: for job control</li>
-</ul>
-<p>The UID/GID stuff is more complicated than I expected. There's the real UID (who you actually are), effective UID (what permissions you're currently using), and saved UID (so you can drop and regain privileges). This is how setuid programs work.</p>
-<h2 id="signal-handling">signal handling</h2>
-<p>A process has a table of signal handlers. Each signal (SIGINT, SIGTERM, SIGSEGV, etc.) can have:</p>
-<ul>
-<li>Default action (terminate, ignore, stop, etc.)</li>
-<li>A custom handler function</li>
-<li>Ignored</li>
-</ul>
-<p>Plus there's a signal mask (which signals are currently blocked) and pending signals (delivered but not yet handled).</p>
-<h2 id="resource-limits">resource limits</h2>
-<p>Every process has limits on things like:</p>
-<ul>
-<li>Maximum file size it can create</li>
-<li>Number of open files</li>
-<li>Stack size</li>
-<li>CPU time</li>
-<li>Memory</li>
-</ul>
-<p>You can see these with <code>ulimit -a</code> in bash. The kernel enforces these.</p>
-<h2 id="threads">threads</h2>
-<p>Here's where it gets a bit confusing. On Linux, threads are really just processes that share stuff. When you create a thread (via clone() with the right flags), the new "thread" shares the address space, file descriptors, signal handlers, etc. with the parent.</p>
-<p>So a "process" might have multiple threads, and they all share most of the resources I listed above. But each thread has its own:</p>
-<ul>
-<li>Thread ID</li>
-<li>Stack</li>
-<li>Register state</li>
-<li>Signal mask</li>
-<li>errno</li>
-<li>Thread-local storage</li>
-</ul>
-<p>The kernel calls these "tasks" internally. A process is really a group of tasks that share an address space.</p>
-<h2 id="pcb-and-tcb">PCB and TCB</h2>
-<p>So all this stuff I've been talking about, the kernel has to store it somewhere. That's where the Process Control Block (PCB) and Thread Control Block (TCB) come in.</p>
-<p><strong>Process Control Block (PCB)</strong> is a kernel data structure that holds everything about a process. On Linux this is the <code>task_struct</code> (confusingly named since it's used for both processes and threads). It contains:</p>
-<ul>
-<li>Process state (running, sleeping, stopped, zombie)</li>
-<li>PID, PPID, credentials</li>
-<li>Pointers to the memory management structures (<code>mm_struct</code>)</li>
-<li>Pointer to the file descriptor table (<code>files_struct</code>)</li>
-<li>Signal handling info</li>
-<li>Scheduling info (priority, time slice, CPU affinity)</li>
-<li>Accounting info (CPU time used, etc.)</li>
-<li>Pointers to parent, children, siblings in the process tree</li>
-</ul>
-<p>When the scheduler picks a process to run, it reads from the PCB to restore the process's context. When the kernel needs to check permissions or deliver a signal, it looks at the PCB.</p>
-<p><strong>Thread Control Block (TCB)</strong> stores the execution context for a specific thread. On Linux this is also in <code>task_struct</code> since threads and processes use the same structure. But the thread-specific stuff includes:</p>
-<ul>
-<li>Register state (saved during context switch)</li>
-<li>Stack pointer</li>
-<li>Thread ID</li>
-<li>Signal mask (which signals this thread blocks)</li>
-<li>Thread-local storage pointer</li>
-<li>errno location</li>
-</ul>
-<p>The key difference is that multiple TCBs (threads) can point to the same memory management structures and file descriptor tables, while separate PCBs (processes) have their own.</p>
-<p>When you do a context switch, the kernel saves the current thread's register state into its TCB, then loads the next thread's state from its TCB. If the threads belong to different processes, it also has to switch page tables (which is the expensive part).</p>
-<p>You can think of it like this: the PCB holds "what resources does this process own" while the TCB holds "where is this thread in its execution". A single-threaded process has one PCB and effectively one TCB. A multi-threaded process has one PCB (shared resources) and multiple TCBs (one per thread).</p>
-<h2 id="what-happens-on-fork">what happens on fork()</h2>
-<p>When you fork():</p>
-<ul>
-<li>Address space is copied (or copy-on-write, so it's cheap until you modify things)</li>
-<li>File descriptors are copied (but point to the same file objects)</li>
-<li>Signal handlers are copied</li>
-<li>The child gets a new PID</li>
-</ul>
-<p>The child is almost identical to the parent at the moment of fork. This is why fork+exec is the traditional Unix way to spawn programs: fork copies everything, then exec replaces it all with a new program.</p>
-<h2 id="what-i-find-interesting">what I find interesting</h2>
-<p>The address space isolation is the core thing. That's what makes a process a process. Everything else (fds, credentials, signals) is just bookkeeping.</p>
-<p>Threads share the address space but are otherwise separate schedulable entities. This is why data races are possible with threads but not between processes (unless you explicitly share memory).</p>
-<p>The /proc filesystem is amazing for introspection. You can see almost everything about a running process without any special tools. Just cat files.</p>
+<p>A file descriptor is an integer index into a per-process table of open files. When you call <code>open()</code>, the kernel creates an entry pointing to the underlying file object and returns the lowest available integer, which is why <code>stdin</code> is 0, <code>stdout</code> is 1, and <code>stderr</code> is 2 (they're opened first).</p>
+<p>Each process has its own file descriptor table, so fd 5 in one process is completely unrelated to fd 5 in another. The file descriptor carries the current read/write position, flags (like <code>O_NONBLOCK</code>), and a reference to the underlying inode.</p>
+<p>File descriptors aren't just for files on disk: they represent pipes, sockets, eventfd, timerfd, signalfd, epoll instances, and even directories. The "everything is a file" philosophy means one interface for many types of I/O.</p>
+<p>There's a per-process limit on open file descriptors (check with <code>ulimit -n</code>, default often 1024) and a system-wide limit. Leaking file descriptors is a common bug, especially in long-running services that open connections and forget to close them.</p>
+<p>You can see all open file descriptors for a process in <code>/proc/&lt;pid&gt;/fd/</code>, where each entry is a symlink to the actual file, socket, or pipe.</p>
+<h2 id="signals">signals</h2>
+<p>Each process has a signal disposition table describing what happens for each signal. The default action depends on the signal: <code>SIGTERM</code> terminates, <code>SIGSTOP</code> suspends, <code>SIGCHLD</code> is ignored by default. You can override most defaults with signal handlers, except for <code>SIGKILL</code> and <code>SIGSTOP</code> which can't be caught or ignored.</p>
+<p>A process also has a signal mask that blocks specific signals from being delivered (they queue up until unblocked), and a set of pending signals that have been sent but not yet handled.</p>
+<p>Signal handling is per-process (signal disposition) but delivery can target specific threads. <code>kill(pid, sig)</code> sends to the process, <code>pthread_kill(tid, sig)</code> targets a thread.</p>
+<h2 id="credentials">credentials</h2>
+<p>Every process has a set of UIDs and GIDs that determine what it can access. There are three sets: <strong>real</strong> (who actually started the process), <strong>effective</strong> (what's checked for access), and <strong>saved</strong> (the previous effective, so you can drop and regain privileges).</p>
+<p>Usually real and effective are the same, but setuid programs differ. When you run <code>passwd</code>, the file has the setuid bit set, so the effective UID becomes root (owner of the file) while the real UID stays yours. The process can access <code>/etc/shadow</code> because effective UID is root, but the program knows who actually called it through the real UID.</p>
+<p>Groups work the same way, and there's also a supplementary group list for all the groups you belong to. All of this is stored in the process's credential structure in the kernel.</p>
+<h2 id="scheduling-context">scheduling context</h2>
+<p>The kernel tracks scheduling metadata for each process: its priority (nice value from -20 to 19, and real-time priority if applicable), which scheduling class it belongs to (CFS for normal processes, FIFO or round-robin for real-time), how much CPU time it has consumed, when it last ran, and which CPU it ran on.</p>
+<p>CFS (Completely Fair Scheduler) on Linux uses a virtual runtime to track how much CPU time a process has received relative to others, and it always picks the process with the lowest virtual runtime to run next. The nice value adjusts the weight: a lower nice value means more weight, which means the virtual runtime advances more slowly, which means more CPU time.</p>
+<h2 id="namespaces-and-cgroups">namespaces and cgroups</h2>
+<p>In containerized environments, processes also own namespace memberships and cgroup associations. Namespaces give a process an isolated view of system resources: PID namespace makes it think its PID is 1, network namespace gives it a separate network stack, mount namespace gives it a different filesystem view.</p>
+<p>Cgroups limit how much resource a process (or group of processes) can use: CPU quota, memory limit, I/O bandwidth, and number of PIDs. These are the building blocks of containers.</p>
+<h2 id="the-task-struct">the task_struct</h2>
+<p>Internally, the kernel represents all of this in a single structure called <code>task_struct</code>, which on Linux is a large struct (several kilobytes) containing or pointing to everything described above: the memory descriptor for address space, the files struct for file descriptors, the signal handler table, credentials, scheduling state, namespace pointers, cgroup references, and many other fields.</p>
+<p>Every running thread has a <code>task_struct</code>. A single-threaded process has one. A multi-threaded process has one per thread, and they share the memory descriptor, file table, and signal handlers through pointers to the same structures.</p>
 <h2 id="notes">notes</h2>
 <ul>
-<li>On Linux, look at <code>task_struct</code> in the kernel source to see what the kernel tracks per task</li>
-<li><code>mm_struct</code> holds the memory management info</li>
-<li><code>files_struct</code> holds the fd table</li>
-<li><code>signal_struct</code> and <code>sighand_struct</code> handle signals</li>
-<li>The clone() syscall lets you pick exactly what to share between parent and child, which is how threads are implemented</li>
-<li>cgroups and namespaces add more layers of isolation on top of this (for containers)</li>
+<li><code>/proc/&lt;pid&gt;/status</code> gives a summary of most of these: UIDs, GIDs, threads, memory usage, signal masks, context switch counts</li>
+<li><code>/proc/&lt;pid&gt;/maps</code> for address space layout</li>
+<li><code>/proc/&lt;pid&gt;/fd/</code> for open file descriptors</li>
+<li><code>/proc/&lt;pid&gt;/cgroup</code> for cgroup membership</li>
+<li><code>ls -la /proc/&lt;pid&gt;/ns/</code> shows namespace memberships</li>
+<li><code>strace -p &lt;pid&gt;</code> lets you watch syscalls in real time</li>
+<li>A zombie process has exited but its parent hasn't called <code>wait()</code>, so the task_struct stays around holding the exit status</li>
 </ul>
-<p>If you want to poke around a running process, check <code>/proc/[pid]/status</code> (state, memory, threads), <code>/proc/[pid]/maps</code> (memory map), <code>/proc/[pid]/fd</code> (open file descriptors), <code>/proc/[pid]/limits</code> (resource limits), <code>/proc/[pid]/task/</code> (threads). Also <code>ulimit -a</code> for your shell's limits and <code>grep ctxt /proc/self/status</code> for context switch counts.</p>
   
 </article>
 </main>

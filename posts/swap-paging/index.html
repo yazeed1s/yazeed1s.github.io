@@ -122,62 +122,32 @@
             <span class="post-tags">
                 <span class="post-tags-label">Tags: </span>
                 
-                <a href="https://yazeed1s.github.io/tags/operating-systems">Operating Systems</a><span
+                <a href="https://yazeed1s.github.io/tags/os">OS</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/memory">Memory</a><span
+                <a href="https://yazeed1s.github.io/tags/memory">memory</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/linux">Linux</a><span
-                    class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/paging">Paging</a>
+                <a href="https://yazeed1s.github.io/tags/paging">paging</a>
             </span>
             
         </div>
     </header>
-     <hr />
-<p>I kept hitting concepts like "page fault" and "swap" while reading memory disaggregation papers. Figured I should actually understand what these mean at a low level before going further.</p>
-<hr />
+     <p>I kept hitting concepts like "page fault" and "swap" while reading memory disaggregation papers, so I figured I should actually understand what these mean at a low level before going further.</p>
 <h2 id="what-swap-is">what swap is</h2>
-<p>Swap is disk space that acts as overflow for RAM. When physical memory fills up, the kernel moves some data to swap. Later, if that data is needed again, it gets loaded back.</p>
-<p>That's basically it. The messy part is the details.</p>
-<hr />
+<p>Swap is disk space that acts as overflow for RAM: when physical memory fills up, the kernel moves some data to swap, and later, if that data is needed again, it gets loaded back. That's basically it, but the messy part is in the details.</p>
 <h2 id="pages">pages</h2>
-<p>The kernel doesn't manage memory byte by byte. Too much bookkeeping. Instead it works in fixed-size chunks called <strong>pages</strong>. Usually 4KB.</p>
-<p>When you allocate memory, you get pages. When data moves to disk, it moves as pages. The physical counterpart is called a <strong>frame</strong>. Same size, different name. Pages are virtual, frames are physical.</p>
-<p>8GB of RAM = roughly 2 million frames. A process might think it has way more pages than that. Most aren't backed by physical memory until used.</p>
-<hr />
+<p>The kernel doesn't manage memory byte by byte because the bookkeeping would be too expensive, so instead it works in fixed-size chunks called <strong>pages</strong>, usually 4KB.</p>
+<p>When you allocate memory you get pages, and when data moves to disk it moves as pages. The physical counterpart is called a <strong>frame</strong>, same size, different name: pages are virtual, frames are physical.</p>
+<p>8GB of RAM gives you roughly 2 million frames, and a process might think it has way more pages than that, but most aren't backed by physical memory until they're actually used.</p>
 <h2 id="page-tables-and-the-mmu">page tables and the mmu</h2>
-<p>The CPU doesn't know about virtual addresses on its own. There's a <strong>Memory Management Unit (MMU)</strong> that translates virtual addresses to physical ones.</p>
-<p>How does it know the mapping? Through <strong>page tables</strong>, data structures the kernel maintains that the MMU walks to find where a virtual page actually lives (which physical frame, or if it's not in RAM at all).</p>
-<p>Walking page tables on every memory access would be slow, so the MMU keeps a cache called the <strong>TLB (Translation Lookaside Buffer)</strong> where recent translations are stored: a hit is fast, and a miss pays for the walk.</p>
-<p>Most accesses hit the TLB. That's what makes virtual memory practical.</p>
-<hr />
+<p>The CPU doesn't know about virtual addresses on its own, there's a <strong>Memory Management Unit (MMU)</strong> that translates virtual addresses to physical ones using <strong>page tables</strong>, which are data structures the kernel maintains that the MMU walks to find where a virtual page actually lives (which physical frame, or if it's not in RAM at all).</p>
+<p>Walking page tables on every memory access would be slow, so the MMU keeps a cache called the <strong>TLB (Translation Lookaside Buffer)</strong> where recent translations are stored: a hit is fast, and a miss pays for the full page table walk. Most accesses hit the TLB, and that's what makes virtual memory practical.</p>
 <h2 id="page-faults">page faults</h2>
-<p>Program accesses a virtual address. MMU checks: is this page in RAM? If not, you get a <strong>page fault</strong>.</p>
-<p>Not an error. Just the kernel saying "hold on, I need to go get that."</p>
-<ol>
-<li>Program accesses memory</li>
-<li>MMU finds page isn't resident</li>
-<li>CPU traps to kernel</li>
-<li>Kernel figures out where page lives (swap, file, or nowhere)</li>
-<li>Kernel loads it into a frame</li>
-<li>Page table updated</li>
-<li>Program resumes</li>
-</ol>
-<p>Two kinds:</p>
-<p><strong>Minor fault.</strong> Page is already somewhere in memory (page cache, shared mapping). Kernel just fixes the page table. Fast.</p>
-<p><strong>Major fault.</strong> The page has to be read from disk, which is really slow.</p>
-<p>Some faults are expected:</p>
-<ul>
-<li><strong>Lazy allocation.</strong> Kernel doesn't back memory until you touch it. First access = minor fault.</li>
-<li><strong>Copy-on-write.</strong> Shared pages aren't copied until someone writes.</li>
-<li><strong>Swapping.</strong> Page was evicted earlier and now needed again.</li>
-</ul>
-<p>Others mean bugs. Accessing garbage address = SIGSEGV.</p>
-<hr />
+<p>When a program accesses a virtual address, the MMU checks whether that page is in RAM, and if it's not, you get a <strong>page fault</strong>. This isn't an error, it's just the kernel saying "hold on, I need to go get that." The program accesses memory, the MMU finds the page isn't resident, the CPU traps to the kernel, the kernel figures out where the page lives (swap, file, or nowhere), loads it into a frame, updates the page table, and then the program resumes.</p>
+<p>There are two kinds: a <strong>minor fault</strong> is when the page is already somewhere in memory (page cache, shared mapping) and the kernel just fixes the page table, which is fast. A <strong>major fault</strong> means the page has to be read from disk, which is really slow.</p>
+<p>Some faults are expected. <strong>Lazy allocation</strong> means the kernel doesn't back memory until you touch it, so the first access causes a minor fault. <strong>Copy-on-write</strong> means shared pages aren't copied until someone writes. <strong>Swapping</strong> means a page was evicted earlier and now needs to come back. Other faults mean bugs, like accessing a garbage address gives you SIGSEGV.</p>
 <h2 id="paging-in-and-out">paging in and out</h2>
-<p><strong>Page in</strong> = loading a page from disk into RAM.</p>
-<p><strong>Page out</strong> = moving a page from RAM to disk to free space.</p>
-<p>RAM full. New page needed. Kernel picks a <strong>victim</strong> (some page not accessed recently). If it's dirty (modified since loaded), kernel writes it to swap first. If it's clean, kernel just drops it and reloads later if needed.</p>
+<p><strong>Page in</strong> means loading a page from disk into RAM, and <strong>page out</strong> means moving a page from RAM to disk to free space.</p>
+<p>When RAM is full and a new page is needed, the kernel picks a <strong>victim</strong> (some page not accessed recently). If the victim is dirty (modified since it was loaded), the kernel writes it to swap first, and if it's clean, the kernel just drops it and reloads later if needed.</p>
 <pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="plain"><span class="giallo-l"><span>Before:</span></span>
 <span class="giallo-l"><span>RAM:  [A][B][C][D] ← full</span></span>
 <span class="giallo-l"><span>Swap: [empty]</span></span>
@@ -188,79 +158,55 @@
 <span class="giallo-l"><span>RAM:  [A][E][C][D]</span></span>
 <span class="giallo-l"><span>Swap: [B]</span></span></code></pre>
 <p>If B is accessed again, you take a major fault, load B, and evict something else; this happens constantly under memory pressure.</p>
-<hr />
 <h2 id="the-dirty-bit">the dirty bit</h2>
-<p>Each page has a <strong>dirty bit</strong>. Set if the page has been modified since it was loaded.</p>
-<p>Why it matters: clean pages can be dropped. Kernel can reload from file or wherever. Dirty pages can't. Kernel has to write them somewhere first.</p>
-<p>Anonymous memory (heap, stack) that's dirty goes to swap. File-backed memory that's modified goes back to the file (or swap, depends).</p>
-<hr />
+<p>Each page has a <strong>dirty bit</strong> that gets set if the page has been modified since it was loaded.</p>
+<p>Why it matters: clean pages can be dropped because the kernel can reload them from the file or wherever they came from, but dirty pages can't be dropped without writing them somewhere first. Anonymous memory (heap, stack) that's dirty goes to swap, and file-backed memory that's been modified goes back to the file (or swap, depends).</p>
 <h2 id="why-disk-access-hurts">why disk access hurts</h2>
 <table><thead><tr><th>Access</th><th>Latency</th></tr></thead><tbody>
 <tr><td>RAM</td><td>~100 nanoseconds</td></tr>
 <tr><td>SSD</td><td>~100 microseconds</td></tr>
 <tr><td>HDD</td><td>~10 milliseconds</td></tr>
 </tbody></table>
-<p>SSD is 1,000× slower than RAM. HDD is 100,000× slower.</p>
-<p>Major fault = disk access = program stalls for eternity in CPU time.</p>
-<p>One major fault, who cares. Hundred per second, app feels sluggish. Thousand, system unusable.</p>
-<hr />
+<p>SSD is 1,000× slower than RAM, and HDD is 100,000× slower.</p>
+<p>A major fault means a disk access, which means the program stalls for an eternity in CPU time. One major fault, who cares. Hundred per second and the app feels sluggish. Thousand and the system is unusable.</p>
 <h2 id="thrashing">thrashing</h2>
-<p><strong>Thrashing</strong> is what happens when working set doesn't fit in RAM.</p>
-<p>Working set = the memory you're actively using right now. Bigger than RAM? Kernel constantly swapping pages in and out. Every page you load evicts something you need again soon.</p>
+<p><strong>Thrashing</strong> is what happens when the working set doesn't fit in RAM.</p>
+<p>Working set is the memory you're actively using right now, and if it's bigger than RAM, the kernel constantly swaps pages in and out because every page you load evicts something you need again soon.</p>
 <ol>
 <li>Need page A -&gt; fault, load A, evict B</li>
 <li>Need page B -&gt; fault, load B, evict A</li>
 <li>Need page A -&gt; fault, load A, evict B</li>
 <li>Forever</li>
 </ol>
-<p>System spends 99% of time moving data. 1% doing work. This is where you get the "stuck mouse" feeling.</p>
-<hr />
+<p>The system spends 99% of its time moving data and 1% doing work, and this is where you get the "stuck mouse" feeling.</p>
 <h2 id="lru-picking-victims">lru: picking victims</h2>
-<p>How does kernel decide which page to evict?</p>
-<p>Ideal: evict the one that won't be needed soonest. Can't predict future. So kernel approximates with <strong>LRU (Least Recently Used)</strong>. Pages not accessed in a while are good candidates.</p>
-<p>Linux maintains active/inactive lists. Pages accessed recently go to active. Cold pages drift to inactive. Reclaim takes from inactive first.</p>
-<p>True LRU would track exact access times for every page. Too expensive. Linux settles for "recently used" vs "not recently used."</p>
-<hr />
+<p>How does the kernel decide which page to evict? The ideal strategy would be to evict the one that won't be needed soonest, but you can't predict the future, so the kernel approximates with <strong>LRU (Least Recently Used)</strong> where pages not accessed in a while are good candidates.</p>
+<p>Linux maintains active/inactive lists where pages accessed recently go to active and cold pages drift to inactive, and reclaim takes from inactive first. True LRU would track exact access times for every page, which is too expensive, so Linux settles for "recently used" vs "not recently used."</p>
 <h2 id="swappiness">swappiness</h2>
-<p>Linux doesn't wait until RAM is completely full to start swapping. There's a knob called <strong>swappiness</strong>.</p>
+<p>Linux doesn't wait until RAM is completely full to start swapping, there's a knob called <strong>swappiness</strong>.</p>
 <pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="shellscript"><span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">$</span><span style="color: light-dark(#4A6934, #CB8B8B);"> cat</span><span style="color: light-dark(#4A6934, #CB8B8B);"> /proc/sys/vm/swappiness</span></span>
 <span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">60</span></span></code></pre>
-<p>Range is 0-200. Affects how willing kernel is to swap anonymous memory vs reclaim file cache.</p>
-<ul>
-<li><strong>0</strong> = Avoid swapping. Hold app memory, sacrifice cache.</li>
-<li><strong>60</strong> = Default. Balanced.</li>
-<li><strong>100+</strong> = Swap more. Keep cache warm.</li>
-</ul>
-<p>No universal right answer. Depends on workload.</p>
-<hr />
+<p>Range is 0-200 and it affects how willing the kernel is to swap anonymous memory vs reclaim file cache. At <strong>0</strong> it avoids swapping and holds app memory while sacrificing cache, <strong>60</strong> is the default and balanced, and <strong>100+</strong> means swap more aggressively and keep the file cache warm. No universal right answer, depends on workload.</p>
 <h2 id="what-can-t-be-swapped">what can't be swapped</h2>
-<p>Not everything can go to disk.</p>
-<p><strong>Kernel memory.</strong> Page tables, process descriptors, driver state. Must stay in RAM. If kernel got paged out, who pages it back in?</p>
-<p><strong>Pinned memory.</strong> Memory explicitly locked by application (mlock). Used by RDMA, databases, etc.</p>
-<p>Kernel memory leaks are dangerous. That memory is gone until reboot.</p>
-<hr />
+<p>Not everything can go to disk. <strong>Kernel memory</strong> like page tables, process descriptors, and driver state must stay in RAM because if the kernel got paged out, who pages it back in? <strong>Pinned memory</strong> is memory explicitly locked by the application using mlock, and it's used by RDMA, databases, and similar systems. Kernel memory leaks are dangerous because that memory is gone until reboot.</p>
 <h2 id="overcommit">overcommit</h2>
-<p>Linux lets you allocate more memory than exists. <code>malloc(1GB)</code> succeeds even with 512MB free.</p>
-<p>Intentional. Called <strong>overcommit</strong>. Most programs allocate more than they use. Sparse arrays. Forked processes before exec. Refusing would break software.</p>
-<p>Downside: actually use all that memory? OOM killer fires. Allocation succeeded, using it didn't.</p>
+<p>Linux lets you allocate more memory than exists, so <code>malloc(1GB)</code> succeeds even with 512MB free. This is intentional, called <strong>overcommit</strong>, and it makes sense because most programs allocate more than they use (sparse arrays, forked processes before exec), and refusing would break software.</p>
+<p>The downside: actually use all that memory and the OOM killer fires. Allocation succeeded, using it didn't.</p>
 <pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="shellscript"><span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">$</span><span style="color: light-dark(#4A6934, #CB8B8B);"> cat</span><span style="color: light-dark(#4A6934, #CB8B8B);"> /proc/sys/vm/overcommit_memory</span></span>
 <span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">0</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">  #</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> heuristic (default)</span></span>
 <span class="giallo-l"></span>
 <span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">#</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> 0 = guess what&#39;s safe</span></span>
 <span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">#</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> 1 = always allow (yolo)</span></span>
 <span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">#</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> 2 = strict (refuse if exceeds limit)</span></span></code></pre>
-<p>Mode 2 is safer but breaks things. Mode 1 is living dangerously.</p>
+<p>Mode 2 is safer but breaks things, and mode 1 is living dangerously.</p>
 <blockquote>
 <p>Mode 0 isn't blind. The kernel uses heuristics that account for total RAM, swap space, and current usage. It will still refuse obviously absurd allocations. Mode 2 enforces a strict limit based on <code>overcommit_ratio</code> (default 50%) of physical RAM plus swap. So "always allow" vs "strict" is more nuanced than it looks.</p>
 </blockquote>
-<hr />
 <h2 id="why-this-matters-for-remote-memory">why this matters for remote memory</h2>
-<p>Main problem: disk is slow. 1,000-100,000× slower than RAM.</p>
-<p>Systems like Infiniswap replace swap with network access to remote memory; RDMA gives single-digit microsecond latency, which is still slower than local RAM but 10-1000× faster than disk.</p>
-<p>Keep the paging model, replace the slow part, and the performance cliff becomes a slope.</p>
-<p>The interesting thing: Linux has a <strong>frontswap</strong> interface. It's a hook that lets you intercept pages before they go to disk. Implement a few callbacks and your module becomes an alternative swap backend. That's how Infiniswap plugs into the kernel. Pages that would go to disk get redirected over the network instead.</p>
-<p>I want to look at this interface in more detail later. How frontswap works, what the callbacks look like, and what's involved in building something like Infiniswap. Different post.</p>
-<hr />
+<p>The main problem is that disk is slow, 1,000-100,000× slower than RAM.</p>
+<p>Systems like Infiniswap replace swap with network access to remote memory; RDMA gives single-digit microsecond latency, which is still slower than local RAM but 10-1000× faster than disk. Keep the paging model, replace the slow part, and the performance cliff becomes a slope.</p>
+<p>The interesting thing is that Linux has a <strong>frontswap</strong> interface, which is a hook that lets you intercept pages before they go to disk. Implement a few callbacks and your module becomes an alternative swap backend, and that's how Infiniswap plugs into the kernel: pages that would go to disk get redirected over the network instead.</p>
+<p>I want to look at this interface in more detail later, how frontswap works, what the callbacks look like, and what's involved in building something like Infiniswap. Different post.</p>
 <h2 id="notes">notes</h2>
 <ul>
 <li>Page size usually 4KB. Huge pages exist (2MB, 1GB) to reduce TLB pressure.</li>

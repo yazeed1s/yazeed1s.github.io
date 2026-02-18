@@ -5,23 +5,23 @@
 <meta charset="UTF-8" />
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="description" content="The mmap syscall, its flags, and the situations where it actually makes sense." />
+<meta name="description" content="How mmap works, when to use it, and when not to." />
 <meta
     name="keywords"
     content="yazeed, blog, alharthi, yaz, yazeed1s"
 />
 <link rel="canonical" href="https://yazeed1s.github.io/posts/mmap/" />
 
-<title>mmap: What It Does, How to Use It, and When | Yazeed&#x27;s Blog</title>
+<title>mmap: Mapping Files into Memory | Yazeed&#x27;s Blog</title>
 <meta property="og:site_name" content="Yazeed&#x27;s Blog" />
-<meta property="og:title" content="mmap: What It Does, How to Use It, and When | Yazeed&#x27;s Blog" />
+<meta property="og:title" content="mmap: Mapping Files into Memory | Yazeed&#x27;s Blog" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://yazeed1s.github.io/posts/mmap/" />
-<meta property="og:description" content="The mmap syscall, its flags, and the situations where it actually makes sense." />
+<meta property="og:description" content="How mmap works, when to use it, and when not to." />
 
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="mmap: What It Does, How to Use It, and When" />
-<meta name="twitter:description" content="The mmap syscall, its flags, and the situations where it actually makes sense." />
+<meta name="twitter:title" content="mmap: Mapping Files into Memory" />
+<meta name="twitter:description" content="How mmap works, when to use it, and when not to." />
 
     <link rel="icon" href="&#x2F;favicon.ico" />
     
@@ -113,111 +113,76 @@
     <main id="main">
 <article>
     <header>
-        <h1>mmap: What It Does, How to Use It, and When</h1>
+        <h1>mmap: Mapping Files into Memory</h1>
         <div class="post-meta">
-            <time datetime="2025-11-21">21 Nov 2025</time>
+            <time datetime="2024-11-08">08 Nov 2024</time>
             
-            <span>The mmap syscall, its flags, and the situations where it actually makes sense.</span>
+            <span>How mmap works, when to use it, and when not to.</span>
              
             <span class="post-tags">
                 <span class="post-tags-label">Tags: </span>
                 
-                <a href="https://yazeed1s.github.io/tags/linux">Linux</a><span
+                <a href="https://yazeed1s.github.io/tags/linux">linux</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/c">C</a><span
+                <a href="https://yazeed1s.github.io/tags/memory">memory</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/systems-programming">Systems Programming</a><span
-                    class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/memory">Memory</a>
+                <a href="https://yazeed1s.github.io/tags/systems-programming">systems programming</a>
             </span>
             
         </div>
     </header>
-     <p><code>mmap</code> maps a region of virtual address space. That region can be backed by a file, by anonymous memory, or by shared memory. The kernel sets up the page table entries but doesn't necessarily load anything into physical memory until you touch it.</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#3C6362, #A2BD90);">mmap</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#7D4242, #D4D4C0);">addr</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> size_t</span><span style="color: light-dark(#7D4242, #D4D4C0);"> length</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> int</span><span style="color: light-dark(#7D4242, #D4D4C0);"> prot</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> int</span><span style="color: light-dark(#7D4242, #D4D4C0);"> flags</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> int</span><span style="color: light-dark(#7D4242, #D4D4C0);"> fd</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> off_t</span><span style="color: light-dark(#7D4242, #D4D4C0);"> offset</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span></code></pre>
-<p>Six arguments. The combination of <code>prot</code> and <code>flags</code> determines what you get.</p>
-<h2 id="protection-flags-prot">protection flags (prot)</h2>
-<p>These control what you can do with the mapped memory:</p>
-<ul>
-<li><code>PROT_READ</code>: pages can be read</li>
-<li><code>PROT_WRITE</code>: pages can be written</li>
-<li><code>PROT_EXEC</code>: pages can be executed (for JIT compilation or loading code)</li>
-<li><code>PROT_NONE</code>: pages cannot be accessed at all (useful for guard pages)</li>
-</ul>
-<p>You can combine them with OR. <code>PROT_READ | PROT_WRITE</code> is the common case for data. <code>PROT_READ | PROT_EXEC</code> is what the loader uses for <code>.text</code> segments.</p>
-<p><code>PROT_NONE</code> sounds useless but it's how stack guard pages work. Map a page with no permissions between thread stacks. If a stack overflows into it, the hardware traps immediately instead of silently corrupting the next stack.</p>
-<h2 id="mapping-flags">mapping flags</h2>
-<h3 id="map-shared-vs-map-private">MAP_SHARED vs MAP_PRIVATE</h3>
-<p>This is the most important distinction.</p>
-<p><code>MAP_SHARED</code> means modifications are visible to other processes that map the same file, and changes are eventually written back to the file. This is actual shared memory. Multiple processes can map the same file with <code>MAP_SHARED</code> and see each other's writes.</p>
-<p><code>MAP_PRIVATE</code> creates a copy-on-write mapping. You can read the file contents, but writes go to a private copy. The underlying file is never modified. Other processes see the original data.</p>
-<p>The dynamic linker uses <code>MAP_PRIVATE</code> to load shared libraries. Every process maps the same <code>.so</code> file. As long as nobody writes to it, they all share the same physical pages. If a debugger patches a function, only that process gets a private copy of the modified page.</p>
-<h3 id="map-anonymous">MAP_ANONYMOUS</h3>
-<p>No file backing. The mapping is initialized to zero. This is how <code>malloc</code> allocates large blocks. When you <code>malloc(1 &lt;&lt; 20)</code>, glibc usually calls <code>mmap</code> with <code>MAP_ANONYMOUS | MAP_PRIVATE</code> instead of using <code>brk</code>.</p>
-<p>When combined with <code>MAP_SHARED</code>, you get shared anonymous memory (useful for communication between parent and child processes after <code>fork</code>).</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">//</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> allocate 4MB of zeroed memory, no file involved</span></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>buf </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#3C6362, #A2BD90);"> mmap</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #CA9D7D);">NULL</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #CA9D7D);"> 4</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> &lt;&lt;</span><span style="color: light-dark(#784367, #CA9D7D);"> 20</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> PROT_READ </span><span style="color: light-dark(#4B4B48, #CB8B8B);">|</span><span> PROT_WRITE</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
-<span class="giallo-l"><span>                 MAP_ANONYMOUS </span><span style="color: light-dark(#4B4B48, #CB8B8B);">|</span><span> MAP_PRIVATE</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> -</span><span style="color: light-dark(#784367, #CA9D7D);">1</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span></code></pre><h3 id="map-fixed">MAP_FIXED</h3>
-<p>Forces the mapping to the exact address you specify in <code>addr</code>. If something is already mapped there, it gets silently unmapped. Dangerous, but necessary for some use cases (loading ELF segments at specific addresses, implementing custom allocators with known layouts).</p>
-<p>Without <code>MAP_FIXED</code>, the <code>addr</code> argument is a hint. The kernel can place the mapping wherever it wants.</p>
-<h3 id="map-fixed-noreplace">MAP_FIXED_NOREPLACE</h3>
-<p>Same as <code>MAP_FIXED</code> but fails with <code>EEXIST</code> if the address range is already mapped. Added in Linux 4.17. Safer than <code>MAP_FIXED</code> because it won't silently destroy existing mappings.</p>
-<h3 id="map-populate">MAP_POPULATE</h3>
-<p>Pre-fault all pages immediately. Normally mmap doesn't load anything until you access it (demand paging). <code>MAP_POPULATE</code> tells the kernel to read the entire region into memory upfront.</p>
-<p>Useful when you know you'll need the whole mapping and want to avoid page faults during processing. The trade-off is slower setup time and higher initial memory usage.</p>
-<h3 id="map-hugetlb">MAP_HUGETLB</h3>
-<p>Use huge pages (2MB or 1GB on x86) instead of regular 4KB pages. Reduces TLB pressure for large mappings. Requires huge pages to be available on the system (configured via <code>/proc/sys/vm/nr_hugepages</code> or transparent huge pages).</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">//</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> map 64MB using 2MB huge pages</span></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>buf </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#3C6362, #A2BD90);"> mmap</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #CA9D7D);">NULL</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #CA9D7D);"> 64</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> &lt;&lt;</span><span style="color: light-dark(#784367, #CA9D7D);"> 20</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> PROT_READ </span><span style="color: light-dark(#4B4B48, #CB8B8B);">|</span><span> PROT_WRITE</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
-<span class="giallo-l"><span>                 MAP_ANONYMOUS </span><span style="color: light-dark(#4B4B48, #CB8B8B);">|</span><span> MAP_PRIVATE </span><span style="color: light-dark(#4B4B48, #CB8B8B);">|</span><span> MAP_HUGETLB</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> -</span><span style="color: light-dark(#784367, #CA9D7D);">1</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span></code></pre><h3 id="map-noreserve">MAP_NORESERVE</h3>
-<p>By default, the kernel checks whether enough swap space exists to back a private writable mapping. <code>MAP_NORESERVE</code> skips this check. The mapping may succeed but later writes can fail (SIGBUS) if the system runs out of memory. Only matters when overcommit settings restrict it.</p>
-<h3 id="map-locked">MAP_LOCKED</h3>
-<p>Lock pages into physical memory and don't allow them to be swapped out. Similar to calling <code>mlock</code> after mmap. Requires <code>CAP_IPC_LOCK</code> or sufficient <code>RLIMIT_MEMLOCK</code>.</p>
-<h3 id="map-growsdown">MAP_GROWSDOWN</h3>
-<p>Used for stack-like mappings that grow downward. The kernel automatically extends the mapping when the process touches the guard page below it. Used internally for thread stacks.</p>
-<h2 id="companion-syscalls">companion syscalls</h2>
-<h3 id="munmap">munmap</h3>
-<p>Releases a mapping:</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">int</span><span style="color: light-dark(#3C6362, #A2BD90);"> munmap</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#7D4242, #D4D4C0);">addr</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> size_t</span><span style="color: light-dark(#7D4242, #D4D4C0);"> length</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span></code></pre>
-<p>After this, accessing the region causes a segfault. The kernel frees the page table entries and (eventually) the physical pages.</p>
-<h3 id="msync">msync</h3>
-<p>Forces modified pages of a <code>MAP_SHARED</code> file mapping back to disk:</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">int</span><span style="color: light-dark(#3C6362, #A2BD90);"> msync</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#7D4242, #D4D4C0);">addr</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> size_t</span><span style="color: light-dark(#7D4242, #D4D4C0);"> length</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> int</span><span style="color: light-dark(#7D4242, #D4D4C0);"> flags</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span></code></pre>
-<p>Flags are <code>MS_SYNC</code> (block until written), <code>MS_ASYNC</code> (schedule the write but return immediately), or <code>MS_INVALIDATE</code> (invalidate cached copies so other mappings see the latest file content).</p>
-<p>Without <code>msync</code>, the kernel writes dirty pages back at its own pace. If the system crashes before that, changes can be lost.</p>
-<h3 id="mprotect">mprotect</h3>
-<p>Changes protection on an existing mapping:</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">int</span><span style="color: light-dark(#3C6362, #A2BD90);"> mprotect</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#7D4242, #D4D4C0);">addr</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> size_t</span><span style="color: light-dark(#7D4242, #D4D4C0);"> len</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #D4B399);"> int</span><span style="color: light-dark(#7D4242, #D4D4C0);"> prot</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span></code></pre>
-<p>Common use: allocate with <code>PROT_NONE</code>, then upgrade to <code>PROT_READ | PROT_WRITE</code> when needed. JIT compilers use this to toggle between writable (fill code buffer) and executable (run the code).</p>
-<h3 id="madvise">madvise</h3>
-<p>Hints to the kernel about expected access patterns:</p>
-<ul>
-<li><code>MADV_SEQUENTIAL</code>: will access pages sequentially (kernel can prefetch aggressively)</li>
-<li><code>MADV_RANDOM</code>: will access pages randomly (kernel should not prefetch)</li>
-<li><code>MADV_WILLNEED</code>: will need these pages soon (start loading them)</li>
-<li><code>MADV_DONTNEED</code>: won't need these pages soon (can discard them, re-reading from file or re-zeroing anonymous pages)</li>
-<li><code>MADV_FREE</code>: pages can be reclaimed if memory is needed, but keep them if possible (lazy reclaim, Linux 4.5+)</li>
-<li><code>MADV_HUGEPAGE</code>: enable transparent huge pages for this region</li>
-<li><code>MADV_NOHUGEPAGE</code>: disable transparent huge pages</li>
-</ul>
-<p>These are hints, not commands. The kernel can ignore them. But in practice they make a measurable difference for large sequential reads (prefetch) and memory-intensive applications that want to release memory without unmapping (MADV_DONTNEED).</p>
-<h2 id="when-mmap-makes-sense">when mmap makes sense</h2>
-<p><strong>Reading large files sequentially or with known access patterns.</strong> Map the file, access it through pointers. The kernel handles paging. For read-only workloads where the file fits in memory, this is simple and efficient.</p>
-<p><strong>Shared memory between processes.</strong> Map the same file (or anonymous region) with <code>MAP_SHARED</code> in multiple processes. Writes are visible across processes. No copies, no pipes, no serialization. Used for high-performance IPC.</p>
-<p><strong>Large allocations.</strong> glibc uses mmap for allocations above a threshold (typically 128KB). Anonymous private mappings are simpler to manage than growing the heap with <code>brk</code> because they can be returned to the OS individually with <code>munmap</code>.</p>
-<p><strong>Loading executables and shared libraries.</strong> The dynamic linker maps <code>.text</code> (read + execute), <code>.rodata</code> (read-only), and <code>.data</code> (read + write, copy-on-write) segments from ELF files. This is the most widespread use of mmap and you never call it directly.</p>
-<p><strong>Guard pages and memory protection.</strong> Map regions with <code>PROT_NONE</code> to catch overflows. Change protection dynamically with <code>mprotect</code>. JIT compilers write code into RW pages, then flip them to RX before execution.</p>
-<h2 id="when-mmap-is-the-wrong-tool">when mmap is the wrong tool</h2>
-<p><strong>Database buffer management.</strong> <a href="https://yazeed1s.github.io/posts/mmap-databases/">Covered in a separate post</a>. The OS controls eviction and write-back, which conflicts with WAL ordering and application-level caching.</p>
-<p><strong>Small, frequent, short-lived allocations.</strong> mmap has overhead per call (kernel entry, VMA creation, page table setup). <code>malloc</code> with arena-based allocation is better for small objects.</p>
-<p><strong>When you need precise control over I/O scheduling.</strong> mmap gives you demand paging. If you need async I/O, prefetching at specific offsets, or I/O prioritization, use <code>read</code>/<code>write</code> with <code>io_uring</code> or <code>aio</code>.</p>
+     <p><code>mmap</code> maps a file (or anonymous memory) into your process's address space so you can access it through pointers instead of read/write syscalls. The kernel sets up page table entries pointing to the file's pages, and when you access a mapped region the data appears in memory through the standard page fault mechanism.</p>
+<h2 id="how-it-works">how it works</h2>
+<p>When you call <code>mmap</code>, the kernel creates a virtual memory area (VMA) in your process but doesn't actually load any data yet. The first time you access a page in the mapped region, a page fault fires, the kernel loads that page from the file into the page cache (or allocates a zero page for anonymous mappings), updates the page table, and your access continues. Subsequent accesses to the same page hit the page cache directly, no fault needed.</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">int</span><span> fd </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#3C6362, #A2BD90);"> open</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#4B4B48, #7F7C77);">&quot;</span><span style="color: light-dark(#4A6934, #CB8B8B);">data.bin</span><span style="color: light-dark(#4B4B48, #7F7C77);">&quot;</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> O_RDONLY</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">struct</span><span> stat st</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">fstat</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>fd</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> &amp;</span><span style="color: light-dark(#7D4242, #D4D4C0);">st</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>ptr </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#3C6362, #A2BD90);"> mmap</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #CA9D7D);">NULL</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> st.st_size</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> PROT_READ</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> MAP_PRIVATE</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> fd</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">//</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> now ptr[0..st.st_size-1] is the file contents</span></span></code></pre>
+<p>The file is accessible through pointer arithmetic. No <code>read()</code> calls, no user-space buffers. The kernel handles paging transparently.</p>
+<h2 id="flags-that-matter">flags that matter</h2>
+<p><code>mmap</code> behavior changes significantly based on the flags you pass, and the two most important are the sharing flags: <code>MAP_PRIVATE</code> creates a copy-on-write mapping where writes go to a private copy and the original file is unchanged, while <code>MAP_SHARED</code> means writes go through to the actual file (other processes mapping the same file see your changes, and changes eventually get written back to disk).</p>
+<p><code>MAP_ANONYMOUS</code> creates a mapping not backed by any file, just zero-filled pages, and this is what malloc uses internally for large allocations. <code>MAP_FIXED</code> forces the mapping at a specific address (dangerous if you don't know what's there), and <code>MAP_POPULATE</code> pre-faults all pages at mmap time instead of waiting for access, which avoids page faults later but means the mmap call itself is slow.</p>
+<p>Protection flags control access: <code>PROT_READ</code> for read-only, <code>PROT_WRITE</code> for writable, <code>PROT_EXEC</code> for executable (JIT compilers use this), and <code>PROT_NONE</code> for no access (useful for guard pages). You can change protections later with <code>mprotect</code>.</p>
+<h2 id="anonymous-mappings">anonymous mappings</h2>
+<p>When you <code>mmap</code> with <code>MAP_ANONYMOUS</code>, there's no file involved, you just get zero-filled memory. This is actually how glibc malloc works for large allocations: small allocations come from <code>sbrk</code> (the heap), but anything over a threshold (usually 128KB) gets its own anonymous mmap.</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">//</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> what malloc does internally for large allocs</span></span>
+<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>p </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#3C6362, #A2BD90);"> mmap</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #CA9D7D);">NULL</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> size</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span>    PROT_READ </span><span style="color: light-dark(#4B4B48, #CB8B8B);">|</span><span> PROT_WRITE</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span>    MAP_PRIVATE </span><span style="color: light-dark(#4B4B48, #CB8B8B);">|</span><span> MAP_ANONYMOUS</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span></span>
+<span class="giallo-l"><span style="color: light-dark(#4B4B48, #CB8B8B);">    -</span><span style="color: light-dark(#784367, #CA9D7D);">1</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span></code></pre>
+<p>The advantage is that when you free a large allocation, the kernel can immediately reclaim the pages since the mapping is independent. With sbrk, the heap can only shrink from the end, so fragmentation keeps memory allocated.</p>
+<h2 id="shared-memory">shared memory</h2>
+<p><code>MAP_SHARED</code> with <code>MAP_ANONYMOUS</code> gives you shared memory between parent and child processes (across <code>fork</code>), and <code>MAP_SHARED</code> with a named file gives you shared memory between unrelated processes. The file acts as the backing store, and the kernel ensures coherence through the page cache.</p>
+<p>For IPC, you can also use <code>shm_open</code> + <code>mmap</code> to create a named shared memory region without a real file on disk, which is how many high-performance IPC mechanisms work.</p>
+<h2 id="msync-and-coherence">msync and coherence</h2>
+<p>With <code>MAP_SHARED</code> file mappings, your writes eventually make it to disk, but "eventually" isn't a guarantee of when. If you need to ensure data has been written, you call <code>msync</code> which flushes dirty pages to the file.</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">msync</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>ptr</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> length</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> MS_SYNC</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">  //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> blocks until written</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">msync</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>ptr</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> length</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> MS_ASYNC</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> schedules write, returns immediately</span></span></code></pre>
+<p>This matters for databases and anything that needs durability. Without explicit msync, a crash might lose recent writes. With MAP_PRIVATE you don't need msync because writes never go to the file anyway.</p>
+<h2 id="when-mmap-is-good">when mmap is good</h2>
+<p>File I/O without syscall overhead is the classic use case, and it works well when you're reading a large file sequentially or doing random access across a file that mostly fits in memory. There are no read/write syscalls per access, just page faults on cold pages, and the kernel manages caching automatically.</p>
+<p>Memory-mapped I/O also shines for read-only shared data where multiple processes can map the same file and share the physical pages through the page cache, meaning ten processes mapping the same 1GB file don't use 10GB of RAM.</p>
+<p>Other good uses include loading shared libraries (<code>.so</code> files are mmap'd into process address space), JIT compilation (<code>PROT_EXEC</code> on anonymous mappings), and inter-process communication through shared mappings.</p>
+<h2 id="when-mmap-is-bad">when mmap is bad</h2>
+<p>For databases, mmap is <a href="https://yazeed1s.github.io/posts/mmap-databases/">usually the wrong choice</a>. The OS can flush dirty pages whenever it wants, which breaks write-ahead logging. Page faults stall threads unpredictably, and there's no async fault interface. Error handling goes through SIGBUS instead of return codes. And under memory pressure, TLB shootdowns during eviction can collapse throughput.</p>
+<p>Sequential writes to a new file are also better with <code>write()</code> because mmap requires you to know the file size upfront (or use <code>ftruncate</code> to grow it), and the page-fault-per-page overhead can be worse than buffered writes.</p>
+<p>Small files aren't worth the mmap overhead either, since the setup cost (VMA creation, page table manipulation) is higher than just calling read() once.</p>
+<h2 id="munmap-and-cleanup">munmap and cleanup</h2>
+<p>When you're done with a mapping, call <code>munmap</code> to release it. For <code>MAP_SHARED</code> mappings, you should <code>msync</code> first if you care about durability.</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">msync</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>ptr</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> length</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> MS_SYNC</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">munmap</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>ptr</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> length</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">close</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>fd</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span></code></pre>
+<p>If you just exit without munmap, the kernel cleans up all mappings on process exit (same as all resources), but explicit cleanup is good practice for long-running processes to avoid accumulating VMAs.</p>
 <h2 id="notes">notes</h2>
 <ul>
-<li><code>mmap</code> returns <code>MAP_FAILED</code> (which is <code>(void *)-1</code>), not <code>NULL</code>, on failure. Check against the wrong value and you miss errors.</li>
-<li>You can remap an existing mapping with <code>mremap</code> to grow or shrink it without copying. glibc's <code>realloc</code> uses this for mmap'd allocations.</li>
-<li><code>/proc/[pid]/maps</code> shows all current mappings for a process. Each line shows the address range, permissions, offset, device, inode, and pathname.</li>
-<li>Mappings are inherited across <code>fork</code>. The child gets the same mappings. With <code>MAP_PRIVATE</code>, both parent and child share physical pages until one of them writes (copy-on-write). With <code>MAP_SHARED</code>, they share the actual pages.</li>
-<li><code>MAP_ANONYMOUS</code> allocations from mmap are always zero-initialized by the kernel (for security). <code>malloc</code> makes no such guarantee.</li>
+<li><code>MAP_HUGETLB</code> for huge page mappings, reduces TLB pressure for large mappings</li>
+<li><code>madvise()</code> hints to the kernel about access patterns: <code>MADV_SEQUENTIAL</code>, <code>MADV_RANDOM</code>, <code>MADV_DONTNEED</code></li>
+<li><code>MADV_DONTNEED</code> on anonymous memory zeros the pages, on file-backed it drops them from cache</li>
+<li>The 64-bit address space means you can mmap very large files without worrying about address space exhaustion</li>
+<li><code>mmap</code> on <code>/dev/mem</code> gives access to physical memory (requires root, used for hardware access)</li>
+<li>On 32-bit systems, mmap was limited by the 3GB user-space address space</li>
 </ul>
   
 </article>
