@@ -54,6 +54,10 @@
         <lastmod>2025-02-18</lastmod>
     </url>
     <url>
+        <loc>https://yazeed1s.github.io/posts/live-streaming/</loc>
+        <lastmod>2025-12-22</lastmod>
+    </url>
+    <url>
         <loc>https://yazeed1s.github.io/posts/malloc-to-teired/</loc>
         <lastmod>2026-02-16</lastmod>
     </url>
@@ -145,6 +149,9 @@
         <loc>https://yazeed1s.github.io/tags/hardware/</loc>
     </url>
     <url>
+        <loc>https://yazeed1s.github.io/tags/infrastructure/</loc>
+    </url>
+    <url>
         <loc>https://yazeed1s.github.io/tags/kernel-bypass/</loc>
     </url>
     <url>
@@ -193,10 +200,16 @@
         <loc>https://yazeed1s.github.io/tags/spatial-data-structures/</loc>
     </url>
     <url>
+        <loc>https://yazeed1s.github.io/tags/streaming/</loc>
+    </url>
+    <url>
         <loc>https://yazeed1s.github.io/tags/systems-programming/</loc>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/tiling-window-manager/</loc>
+    </url>
+    <url>
+        <loc>https://yazeed1s.github.io/tags/video/</loc>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/window-manager/</loc>
