@@ -6,7 +6,7 @@ description = "The full pipeline from OBS to your screen, and where it gets expe
 tags = ["Streaming", "Video", "Infrastructure", "Networking"]
 +++
 
-I spent a lot of time thinking about this because of Strimo. Most people look at a Twitch stream and think it's just video going from a camera to their browser, but between the streamer's screen and yours there's encoding, protocol negotiation, transcoding into multiple qualities, segmentation into tiny files, CDN distribution, and adaptive playback — each step adding latency and cost.
+I spent a lot of time thinking about this because of Strimo. Most people look at a Twitch stream and think it's just video going from a camera to their browser, but between the streamer's screen and yours there's encoding, protocol negotiation, transcoding into multiple qualities, segmentation into tiny files, CDN distribution, and adaptive playback. And each step adds latency and cost.
 
 ## the pipeline
 
@@ -56,7 +56,7 @@ The player does adaptive bitrate switching, like if bandwidth drops it falls to 
 
 The tradeoff tho is latency. The player has to buffer at least a segment or two before it starts playing, so with 4-second segments and 2 buffered, you're at 8 seconds of delay before you even account for anything else in the pipeline. That's the fundamental reason HLS streams have higher latency than something like a WebRTC call.
 
-HLS was created by Apple, I think. 
+HLS was created by Apple, I think.
 
 > Apple introduced Low-Latency HLS which uses partial segments (sub-second chunks) to bring latency closer to 2-3 seconds, and Twitch uses a proprietary low-latency HLS variant. These help but they add real complexity to both server and player implementations.
 
@@ -104,15 +104,15 @@ The economics are hard for anyone competing with Twitch (Amazon infrastructure),
 
 Where the delay actually lives:
 
-| Stage | Typical latency |
-|---|---|
-| Encoding (frame buffering) | 30-60 ms |
-| RTMP to ingest | 50-200 ms |
-| Transcoding | 500-2000 ms |
-| HLS segmentation | 2000-6000 ms |
-| CDN propagation | 50-200 ms |
-| Player buffering | 2000-8000 ms |
-| **Total** | **~5-15 seconds** |
+| Stage                      | Typical latency   |
+| -------------------------- | ----------------- |
+| Encoding (frame buffering) | 30-60 ms          |
+| RTMP to ingest             | 50-200 ms         |
+| Transcoding                | 500-2000 ms       |
+| HLS segmentation           | 2000-6000 ms      |
+| CDN propagation            | 50-200 ms         |
+| Player buffering           | 2000-8000 ms      |
+| **Total**                  | **~5-15 seconds** |
 
 Almost all of it is HLS segmentation and player buffering (assuming you actually write good performant code). The actual encoding and network transit are fast. Reducing stream latency basically means either making segments smaller (LL-HLS) or abandoning HLS for WebRTC.
 
