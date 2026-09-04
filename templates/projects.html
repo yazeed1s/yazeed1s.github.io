@@ -7,21 +7,14 @@ projects_data.projects -%}
     {% for project in projects_data.projects -%}
     <article class="project">
         <header>
-            {% if project.emoji %}<span class="project-emoji"
-                >{{ project.emoji }}</span
-            >{% endif %}
+            {% if project.emoji %}<span class="project-emoji">{{ project.emoji }}</span>{% endif %}
             <h2>
-                {% if project.url %}<a href="{{ project.url }}"
-                    >{{ project.title }}</a
-                >{% else %}{{ project.title }}{% endif %}
+                {% if project.url %}<a href="{{ project.url }}">{{ project.title }}</a>{% else %}{{ project.title }}{%
+                endif %}
             </h2>
         </header>
         {% if project.image -%}
-        <img
-            src="{{ get_url(path=section.path ~ project.image) }}"
-            alt="{{ project.title }}"
-            class="project-image"
-        />
+        <img src="{{ get_url(path=section.path ~ project.image) }}" alt="{{ project.title }}" class="project-image" />
         {% endif -%} {% if project.date or project.status -%}
         <p class="project-meta s">
             {% if project.date %}{{ project.date }}{% endif %} {% if
@@ -34,9 +27,7 @@ projects_data.projects -%}
         <ul class="tags">
             {% for tag in project.tags -%}
             <li>
-                #<a href="{{ get_url(path='tags/' ~ tag | slugify) }}"
-                    >{{ tag }}</a
-                >
+                <span class="tag-hash">#</span><a href="{{ get_url(path='tags/' ~ tag | slugify) }}">{{ tag }}</a>
             </li>
             {% endfor -%}
         </ul>

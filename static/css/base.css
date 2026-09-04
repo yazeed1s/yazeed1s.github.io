@@ -383,6 +383,11 @@ body>footer svg {
     display: inline;
 }
 
+.tag-hash {
+    color: var(--border);
+    margin-right: 0.25rem;
+}
+
 nav {
     display: flex;
     flex-wrap: wrap;
