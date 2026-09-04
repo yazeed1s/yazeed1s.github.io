@@ -11,30 +11,57 @@
 
 [[projects]]
 title = "zwm"
-emoji = "#"
-description = "Tiling window manager for X11. Uses a BSP tree for layouts, supports multiple modes (master/stack/grid), per-monitor workspaces, and drag-and-drop. Written in C with XCB. Runs at around 2 MB."
+# emoji = "#"
+description = "Tiling window manager for X11, written in C with XCB. Uses a BSP tree for layouts, master/stack/grid modes, per-monitor workspaces, and drag-and-drop. Runs at around 2 MB."
 url = "https://github.com/Yazeed1s/zwm"
 image = "img1.png"
-date = "2024–Present"
+date = "2023–Present"
 status = "Active"
 tags = ["C", "X11", "tiling WM", "BSP", "XCB"]
 
 [[projects]]
-title = "sqlweb"
-emoji = "#"
-description = "Web-based SQL client. Has an editor, schema export, CSV/JSON export, and editable cells. Connects to PostgreSQL, MySQL, and SQLite (local or remote). Small binary, low memory."
-url = "https://github.com/Yazeed1s/sqlweb"
-image = "dbit1.png"
-date = "2023–Present"
+title = "Prism"
+# emoji = "#"
+description = "Live streaming engine in Go, one binary. Pipeline is ingest, demux, normalize, transcode, transmux, sinks, origin, each stage its own package. Codec parsing (H.264, H.265, AAC, Opus, AV1, VP9) and format muxing (fMP4, HLS, MPEG-TS) are in-house, no third-party media library gets past those boundaries. Takes RTMP or SRT in, serves HLS/LL-HLS out."
+url = "https://github.com/yazeed1s/prism"
+date = "2025–Present"
 status = "Active"
-tags = ["Go", "PostgreSQL", "MySQL", "SQLite", "Web"]
+tags = ["Go", "RTMP", "HLS", "fMP4", "MPEG-TS", "Streaming", "Transcoding"]
+
+[[projects]]
+title = "rtmp"
+# emoji = "#"
+description = "RTMP ingest library for Go, zero dependencies outside stdlib. Handles the handshake, chunk parsing, AMF0 commands, and flow control, then hands off typed media packets through five callbacks. What you do with those packets, decoding, muxing, storage, is left entirely to the caller. Powers ingest in Prism."
+url = "https://github.com/yazeed1s/rtmp"
+date = "2025–Present"
+status = "Active"
+tags = ["Go", "RTMP", "Streaming", "Library"]
 
 [[projects]]
 title = "Strimo"
-emoji = "#"
-description = "Streaming platform (like Twitch). Go backend with CQRS, outbox/inbox for reliability, NATS for messaging, Redis for presence tracking, PostgreSQL for storage, and a SvelteKit frontend."
+# emoji = "#"
+description = "Streaming platform. Modular monolith in Go, CQRS split between write handlers and read DTOs, stream engine is mostly in-house. Outbox/inbox around NATS gives exactly-once delivery, so state changes and events stay atomic. WebSocket for chat, SSE for stream runtime and notifications, PostgreSQL and Redis underneath, SvelteKit frontend."
 url = "https://github.com/Yazeed1s/strimo"
 image = "STRIMO.png"
 date = "2024–Present"
 status = "Active"
-tags = ["Go", "SvelteKit", "PostgreSQL", "NATS", "Redis", "Streaming"]
+tags = ["Go", "FFmpeg", "SvelteKit", "PostgreSQL", "NATS", "Redis", "Streaming"]
+
+[[projects]]
+title = "oflv"
+# emoji = "#"
+description = "Small FLV parser, written in Odin mostly to try the language out. Walks the file header and tag stream, validates each tag against its PreviousTagSize, and picks apart AVC video payloads down to the SPS/PPS in the AVCDecoderConfigurationRecord. Has an ffmpeg helper to generate test files on the fly."
+url = "https://github.com/yazeed1s/oflv"
+date = "2026"
+status = "Archived"
+tags = ["Odin", "FLV", "Parsing"]
+
+[[projects]]
+title = "sqlweb"
+# emoji = "#"
+description = "Web-based SQL client, with an editor, schema export, CSV/JSON export, and editable cells. Connects to PostgreSQL, MySQL, and SQLite, local or remote. Small binary, low memory."
+url = "https://github.com/Yazeed1s/sqlweb"
+image = "dbit1.png"
+date = "2022-2023"
+status = "Archived"
+tags = ["Go", "PostgreSQL", "MySQL", "SQLite", "Web"]

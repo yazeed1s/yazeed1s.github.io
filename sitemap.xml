@@ -46,6 +46,10 @@
         <lastmod>2026-01-12</lastmod>
     </url>
     <url>
+        <loc>https://yazeed1s.github.io/posts/go-channels/</loc>
+        <lastmod>2026-09-04</lastmod>
+    </url>
+    <url>
         <loc>https://yazeed1s.github.io/posts/infiniswap/</loc>
         <lastmod>2026-01-18</lastmod>
     </url>
@@ -130,6 +134,9 @@
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/c/</loc>
+    </url>
+    <url>
+        <loc>https://yazeed1s.github.io/tags/concurrency/</loc>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/cpu/</loc>
