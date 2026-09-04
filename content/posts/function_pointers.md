@@ -6,13 +6,11 @@ description = "How C uses structs of function pointers to get dispatch without i
 tags = ["C", "systems programming", "patterns"]
 +++
 
-C doesn't have interfaces, virtual methods, or inheritance. But it has function pointers. And a struct of function pointers is basically an interface.
-
-This pattern is everywhere. The Linux kernel uses it for everything. I used it in ZWM without thinking about it as polymorphism until later.
+C doesn't have interfaces, virtual methods, or inheritance, but it has function pointers, and a struct of function pointers is basically an interface. The pattern is everywhere, the Linux kernel uses it for nearly everything, and I used it in ZWM without thinking about it as polymorphism until later.
 
 ## the basic pattern
 
-Say you have different types that need to support the same operations. In C++ you'd make a base class with virtual methods. In C you make a struct of function pointers.
+Say you have different types that need to support the same operations, so in C++ you'd make a base class with virtual methods and in C you make a struct of function pointers.
 
 ```c
 typedef struct {
@@ -38,7 +36,7 @@ io_ops_t file_ops = { file_open, file_read, file_write, file_close };
 io_ops_t sock_ops = { sock_open, sock_read, sock_write, sock_close };
 ```
 
-Code that uses `io_ops_t` doesn't know if it's talking to a file or a socket. It just calls `ops->read(buf, n)`. That's polymorphism. No vtable keyword, no `virtual`, just a struct and some function pointers.
+Code that uses `io_ops_t` doesn't know if it's talking to a file or a socket, it just calls `ops->read(buf, n)`, and that's polymorphism without a vtable keyword or `virtual`, just a struct and some function pointers.
 
 ## the kernel does this constantly
 
@@ -57,13 +55,11 @@ struct file_operations {
 ```
 You can find the full definition in `linux/fs.h`.
 
-ext4 fills in ext4 functions. tmpfs fills in tmpfs functions. procfs fills in procfs functions. When you call `read()` from user space, the syscall handler looks up which `file_operations` struct is attached to your fd and calls the right `.read`. The VFS doesn't care what filesystem is underneath.
+ext4 fills in ext4 functions, tmpfs fills in tmpfs functions, procfs fills in procfs functions, and when you call `read()` from user space the syscall handler looks up which `file_operations` struct is attached to your fd and calls the right `.read`, so the VFS doesn't care what filesystem is underneath. Same idea with `struct inode_operations`, `struct address_space_operations`, and `struct net_device_ops`, and the kernel is basically a giant collection of these interface structs.
 
-Same idea with `struct inode_operations`, `struct address_space_operations`, `struct net_device_ops`. The kernel is basically a giant collection of these interface structs.
+## a simpler example, event dispatch
 
-## a simpler example: event dispatch
-
-In ZWM I needed to dispatch X11 events to handler functions. Each event type maps to a function. The table-driven approach:
+In ZWM I needed to dispatch X11 events to handler functions where each event type maps to a function, and the table-driven approach looks like this:
 
 ```c
 typedef int (*event_handler_t)(xcb_generic_event_t *event);
@@ -94,13 +90,11 @@ for (size_t i = 0; i < n; i++) {
 }
 ```
 
-This isn't a struct-of-function-pointers in the interface sense, but it's the same idea. Data drives the dispatch instead of a switch statement. Adding a new event handler means adding a row, not modifying control flow.
-
-A switch statement would work fine here. But the table is easier to read when you have many entries, and you can build it at runtime if you need to.
+This isn't a struct-of-function-pointers in the interface sense, but it's the same idea, where data drives the dispatch instead of a switch statement, so adding a new event handler means adding a row rather than modifying control flow. A switch statement would work fine here too, but the table is easier to read when you have many entries, and you can build it at runtime if you need to.
 
 ## the vtable pattern
 
-Sometimes you want the function pointers attached to each instance, not shared globally. C++ does this automatically with virtual methods. In C you do it manually:
+Sometimes you want the function pointers attached to each instance rather than shared globally, which C++ does automatically with virtual methods and C makes you do manually:
 
 ```c
 typedef struct shape_t shape_t;
@@ -132,25 +126,15 @@ static float circle_area(const shape_t *self) {
 static const shape_ops_t circle_ops = { circle_area, circle_draw };
 ```
 
-Now any code that has a `shape_t *` can call `shape->ops->area(shape)` and it works for circles, rectangles, whatever. The cast from `shape_t *` to `circle_t *` works because `base` is the first member.
-
-This is exactly what a C++ vtable is. The compiler generates the struct of function pointers and the dispatch. In C you write it yourself.
+Now any code that has a `shape_t *` can call `shape->ops->area(shape)` and it works for circles, rectangles, whatever, and the cast from `shape_t *` to `circle_t *` works because `base` is the first member. This is exactly what a C++ vtable is, except the compiler generates the struct of function pointers and the dispatch for you, and in C you write it yourself.
 
 ## where this falls apart
 
-No type safety on the casts. You cast `shape_t *` to `circle_t *` and the compiler trusts you. Pass the wrong type and you get garbage, not a compile error.
-
-No compiler enforcement that you filled in all the function pointers. Leave one NULL and you segfault at runtime. C++ gives you pure virtual and abstract classes. C gives you nothing. You can add runtime checks (`assert(ops->read != NULL)`) but it's manual.
-
-Function signature mismatches are silent if you're not careful. If `ops->read` expects three arguments and you assign a function that takes two, some compilers will warn, some won't. Depends on how you typedef things.
-
-And the `self` pointer pattern is verbose. Every method takes a `self` parameter. Every call passes it. C++ hides this with `this`. C makes you type it every time.
+There's no type safety on the casts, so you cast `shape_t *` to `circle_t *` and the compiler just trusts you, and if you pass the wrong type you get garbage rather than a compile error. There's no enforcement that you filled in all the function pointers either, so leave one NULL and you segfault at runtime, and where C++ gives you pure virtual and abstract classes C gives you nothing, so you can add runtime checks like `assert(ops->read != NULL)` but it's manual. Function signature mismatches are silent if you're not careful, so if `ops->read` expects three arguments and you assign a function that takes two, some compilers warn and some don't depending on how you typedef things. And the `self` pointer pattern is verbose, since every method takes a `self` parameter and every call passes it, where C++ hides this with `this` and C makes you type it every time.
 
 ## it's still worth it
 
-The pattern is still useful though. It gives you the main thing polymorphism provides: code that operates on behavior rather than concrete types. The VFS layer works because it dispatches through function pointers. Device drivers work the same way. My event loop works the same way.
-
-You don't get compile-time safety. But you get a clean separation between interface and implementation in a language that has no keyword for either.
+The pattern is still useful though, since it gives you the main thing polymorphism provides, code that operates on behavior rather than concrete types, and the VFS layer works because it dispatches through function pointers, and device drivers and my event loop work the same way. You don't get compile-time safety, but you get a clean separation between interface and implementation in a language that has no keyword for either.
 
 ## notes
 

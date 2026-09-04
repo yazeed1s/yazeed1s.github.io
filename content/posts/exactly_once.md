@@ -12,7 +12,7 @@ But exactly-once delivery doesn't exist. What exists is engineering around the f
 
 ## what can actually happen
 
-A producer sends a message to a broker, and there are three outcomes: the broker receives it, acknowledges, and the producer gets the ack (success); the broker receives it, acknowledges, but the ack is lost so the producer doesn't know it worked and retries, creating two copies; or the broker never receives it and the message is gone.
+A producer sends a message to a broker and there are three outcomes. The broker receives it, acknowledges, and the producer gets the ack, which is the success case. Or the broker receives it and acknowledges but the ack is lost, so the producer doesn't know it worked and retries, creating two copies. Or the broker never receives it and the message is gone.
 
 That's it, those are the options on an unreliable network. You can avoid case 3 by retrying, but retrying introduces case 2, and you cannot eliminate both. At the network level you get at-most-once (don't retry, accept losses) or at-least-once (retry, accept duplicates), and there's no third option that the network gives you for free.
 
@@ -20,17 +20,15 @@ That's it, those are the options on an unreliable network. You can avoid case 3 
 
 Kafka advertises exactly-once semantics, but what it actually implements is two things working together.
 
-**Idempotent producer.** Each producer gets an ID, and each message gets a sequence number. If the broker sees the same producer ID + sequence number twice, it drops the duplicate, which handles the lost-ack problem: the producer retries, the broker deduplicates. This only works within a single producer session though; if the producer crashes and restarts with a new ID, the deduplication state is gone.
+The first is the idempotent producer, where each producer gets an ID and each message gets a sequence number, so if the broker sees the same producer ID and sequence number twice it drops the duplicate, which handles the lost-ack problem because the producer retries and the broker deduplicates. This only works within a single producer session though, so if the producer crashes and restarts with a new ID the deduplication state is gone.
 
-**Transactions.** Kafka lets you wrap a consume-process-produce cycle in a transaction: read from input topic, do work, write to output topic, commit offsets, all atomically. If anything fails, everything rolls back.
+The second is transactions, where Kafka lets you wrap a consume-process-produce cycle in a transaction so you read from the input topic, do work, write to the output topic, and commit offsets all atomically, and if anything fails everything rolls back.
 
 So Kafka doesn't deliver messages exactly once. It uses at-least-once delivery with deduplication and atomic commits to make the _processing_ behave as if messages were delivered once, but the duplicates still happen at the transport layer and the broker just hides them.
 
 ## delivery vs processing
 
-These are different things. **Exactly-once delivery** would mean the network guarantees each message arrives once, and no system does this because the network is unreliable: acks get lost, connections drop, machines crash between receiving and acknowledging.
-
-**Exactly-once processing** means the side effects of handling a message happen once, even if the message itself arrives more than once. That's achievable, but it requires work: deduplication, idempotency, transactions. It's not a delivery guarantee, it's an application-level property.
+These are different things. Exactly-once delivery would mean the network guarantees each message arrives once, and no system does this because the network is unreliable, acks get lost, connections drop, machines crash between receiving and acknowledging. Exactly-once processing means the side effects of handling a message happen once even if the message itself arrives more than once, and that's achievable but it takes work in the form of deduplication, idempotency, and transactions, so it's not a delivery guarantee, it's an application-level property.
 
 When brokers say "exactly-once" they mean the second thing, and they don't say that clearly.
 
@@ -38,15 +36,11 @@ When brokers say "exactly-once" they mean the second thing, and they don't say t
 
 Even with Kafka transactions, exactly-once only works within Kafka: read from Kafka, write to Kafka, commit. That's a closed system where Kafka controls both sides.
 
-The moment your consumer does something outside Kafka, the guarantee breaks. Write to a database? Send an HTTP request? Call an external API? Kafka doesn't know about those. If your consumer processes a message, writes to Postgres, then crashes before committing the Kafka offset, it'll reprocess on restart and Postgres gets the write twice.
-
-This is where the inbox pattern from my [outbox/inbox post](@/posts/outbox_inbox_patterns.md) comes in: you need idempotency at your handler level, recording that you processed this message before doing the work, so if you see it again you skip it.
-
-The broker gives you tools, it doesn't give you a complete solution.
+The moment your consumer does something outside Kafka the guarantee breaks, since Kafka doesn't know about a write to a database, an HTTP request, or a call to an external API, so if your consumer processes a message, writes to Postgres, then crashes before committing the Kafka offset, it'll reprocess on restart and Postgres gets the write twice. This is where the inbox pattern from my [outbox/inbox post](@/posts/outbox_inbox_patterns.md) comes in, where you need idempotency at your handler level, recording that you processed this message before doing the work, so if you see it again you skip it. The broker gives you tools, it doesn't give you a complete solution.
 
 ## idempotency is always your problem
 
-Regardless of what your broker promises, if your consumer has side effects you need to handle duplicates. Either make the operation naturally idempotent (SET is idempotent, INCREMENT is not), track processed message IDs and skip duplicates, or use transactions that span both the broker offset and your external state (hard, often impractical).
+Regardless of what your broker promises, if your consumer has side effects you need to handle duplicates, so you either make the operation naturally idempotent (SET is idempotent, INCREMENT is not), or track processed message IDs and skip duplicates, or use transactions that span both the broker offset and your external state, which is hard and often impractical.
 
 At-least-once delivery + idempotent handling gives you the effect of exactly-once, and that's what production systems actually do. The "exactly-once" label is marketing over a real but narrower mechanism.
 

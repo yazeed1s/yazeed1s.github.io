@@ -46,7 +46,7 @@ Segmentation fault (core dumped)
 
 The `free(buffer)` never runs.
 
-## first thought: atexit()
+## first thought, atexit()
 
 You might think `atexit()` solves this, where you register a cleanup function and it gets called on exit:
 
@@ -63,7 +63,7 @@ int main(void) {
 
 But `atexit()` handlers only run on **normal** exit (when main returns or when you call `exit()`), and a signal like SIGSEGV bypasses atexit entirely.
 
-## the solution: signal handlers
+## the solution, signal handlers
 
 To run cleanup code on crash, you register a signal handler that catches the signal before the process dies:
 
@@ -110,7 +110,7 @@ Now when the program crashes, the handler runs first.
 
 ## async-signal-safety
 
-There's an important catch: signal handlers can interrupt your program at any point, even in the middle of malloc or printf. If your handler then calls malloc or printf, you can deadlock or corrupt memory because those functions aren't reentrant.
+There's an important catch here, which is that signal handlers can interrupt your program at any point, even in the middle of malloc or printf, so if your handler then calls malloc or printf you can deadlock or corrupt memory because those functions aren't reentrant.
 
 Only certain functions are safe to call from signal handlers, and POSIX defines the list. The key safe ones are `write()` (printf is NOT safe), `_exit()` (exit is NOT safe because it runs atexit handlers), `close()`, `unlink()`, and `fsync()`. Notably, `free()` is **not** async-signal-safe; it might "work" in a toy program and then deadlock in production because the signal interrupted malloc/free internals.
 
@@ -140,11 +140,9 @@ But for crash signals (SIGSEGV, SIGABRT), you can't return to normal execution b
 
 ## wait, doesn't the OS clean up anyway?
 
-Yes. On any modern OS (Linux, macOS, Windows), when your process terminates the kernel reclaims all its resources: heap memory gets freed, file descriptors get closed, and memory mappings get unmapped.
+Yes. On any modern OS, Linux, macOS, or Windows, when your process terminates the kernel reclaims all its resources, so heap memory gets freed, file descriptors get closed, and memory mappings get unmapped. So for plain `malloc()` and regular files you don't actually need signal handlers for cleanup because the OS handles it, and where signal handlers really matter is shared resources like shared memory segments from `shm_open`, semaphores, and message queues that persist beyond process lifetime, temp files you want to delete on crash, external state like network connections or database transactions you want to close gracefully, and custom cleanup like resetting terminal modes or unlocking files.
 
-So for plain `malloc()` and regular files, you don't actually need signal handlers for cleanup because the OS handles it. Where signal handlers really matter is shared resources (shared memory segments from `shm_open`, semaphores, message queues) that persist beyond process lifetime, temp files you want to delete on crash, external state like network connections or database transactions you want to close gracefully, and custom cleanup like resetting terminal modes or unlocking files.
-
-For my window manager, I use signal handlers to unmap windows gracefully, restore X11 state, and close the connection to the X server properly. Regular heap memory? I just let the OS clean it up because it's going to do it anyway.
+For my window manager I use signal handlers to unmap windows gracefully, restore X11 state, and close the connection to the X server properly. Regular heap memory I just let the OS clean up because it's going to do it anyway.
 
 ## the pattern I use
 

@@ -6,39 +6,31 @@ description = "How Infiniswap uses RDMA to swap pages to remote memory instead o
 tags = ["memory", "RDMA", "paging"]
 +++
 
-I found this paper while reading about memory disaggregation. The idea is simple: when a machine runs out of RAM, page to another machine's unused memory instead of disk.
-
-What caught my attention is how they did it: it works without application changes or core kernel patches through a kernel module that hooks into Linux's swap path, where remote RAM becomes the fast tier and disk is just the fallback.
+I found this paper while reading about memory disaggregation, and the idea behind it is small enough to state in one line, which is that when a machine runs out of RAM it pages to another machine's unused memory instead of to disk. What caught my attention is how they got there without asking anything from the application or the core kernel, just a kernel module that hooks into Linux's swap path so remote RAM becomes the fast tier and disk drops to being the fallback.
 
 ## the problem they're solving
 
-Production clusters waste a lot of memory. Some machines are memory-starved while others sit idle. The 99th percentile machine uses 2-3× more memory than the median. Over half the cluster's aggregate memory goes unused.
+Production clusters waste a lot of memory because the load is uneven, some machines are memory-starved while others sit idle, and the paper puts numbers on it, the 99th percentile machine uses 2-3× more memory than the median and over half of the cluster's aggregate memory goes unused. On the other side, when an app can't fit its working set in RAM the performance doesn't degrade gently, it falls off a cliff, and they show this with VoltDB dropping from 95K TPS to 4K and Memcached's tail latency going up 21×, mostly because disk is around 1000× slower than memory and once you're on that path you've already lost.
 
-When apps can't fit their working set in RAM, performance falls off a cliff. VoltDB drops from 95K TPS to 4K TPS. Memcached's tail latency shoots up 21×. Disk is just too slow (like 1000× slower than memory).
-
-So they thought: RDMA gives single-digit microsecond latencies. That's fast enough to make remote memory a viable swap target. Pages go to remote RAM over RDMA instead of disk. The remote CPU stays out of the data movement entirely since the RNIC does the DMA.
-
-Result: swap that looks normal to Linux but is backed by slabs of remote memory scattered across the cluster.
+RDMA is what makes remote memory a plausible answer here since it gives single-digit microsecond latencies, and the remote CPU stays out of the data movement entirely because the RNIC does the DMA, so what you end up with is swap that looks normal to Linux but is backed by slabs of remote memory scattered across the cluster.
 
 ## what I thought was clever
 
-**Using swap as the integration point.** Instead of modifying the page fault handler or remapping virtual memory, they plug into Linux's swap subsystem. The kernel already knows how to page out and page in. Infiniswap just changes where those pages live. The trade-off is you still go through the swap path (page faults, context switches). But you get deployment simplicity because everything else just works.
+**Using swap as the integration point.** Instead of modifying the page fault handler or remapping virtual memory, they plug into Linux's swap subsystem, which already knows how to page out and page in, so Infiniswap only has to change where those pages live. The trade-off is that you still go through the whole swap path with its page faults and context switches, but in return everything else keeps working unchanged and the thing is actually deployable.
 
-**One-sided RDMA.** Traditional network block devices like Mellanox's nbdX use send/recv. Remote CPU wakes up, copies data, responds. Infiniswap uses RDMA_READ and RDMA_WRITE. The RNIC accesses remote memory directly without running any code on the remote side. nbdX burns multiple vCPUs on the remote machine. Infiniswap doesn't touch the remote CPU at all.
+**One-sided RDMA.** Network block devices like Mellanox's nbdX use send/recv, so the remote CPU has to wake up, copy the data, and respond, which burns multiple vCPUs on the remote machine. Infiniswap uses RDMA_READ and RDMA_WRITE instead, where the RNIC accesses remote memory directly without running any code on the remote side, so the remote CPU isn't touched at all during a transfer.
 
-**Slab-based design.** Pages are grouped into 1GB slabs. Each slab maps to one remote machine. This keeps metadata manageable. Tracking millions of 4KB pages across the cluster would be expensive. Hot slabs (more than 20 page I/O ops/sec) get mapped to remote memory. Cold slabs stay on disk.
+**Slab-based design.** Pages are grouped into 1GB slabs and each slab maps to a single remote machine, which keeps the metadata manageable since tracking millions of individual 4KB pages across the cluster would be expensive. Slabs doing more than 20 page I/O ops per second count as hot and get mapped to remote memory, cold slabs stay on disk.
 
 ## where it works well
 
-Memory-bound workloads see big wins. Memcached stays nearly flat even when only 50% of the working set fits in memory. PowerGraph runs 6.5× faster. VoltDB sees 15× throughput improvement over disk.
-
-Cluster memory utilization: goes from 40% to 60%. That's 47% more effective use of RAM. Network overhead is less than 1% of capacity.
+The paper's evaluation shows the memory-bound workloads getting most of the benefit: Memcached stays nearly flat even when only 50% of the working set fits in memory, PowerGraph runs 6.5× faster, and VoltDB sees a 15× throughput improvement over the disk case. Across the cluster they report memory utilization going from 40% to 60%, which they frame as 47% more effective use of RAM, with network overhead staying under 1% of capacity.
 
 ## where it doesn't work
 
-CPU-bound workloads don't benefit much. VoltDB and Spark already run at high CPU utilization. Adding paging overhead (context switches, TLB flushes, page table walks) eats into that. Spark at 50% memory thrashes so badly it doesn't complete.
+CPU-bound workloads don't get much out of it because things like VoltDB and Spark already run at high CPU utilization, so the added paging overhead of context switches, TLB flushes, and page table walks eats directly into work they were already doing, and in their tests Spark at 50% memory thrashes badly enough that it doesn't complete.
 
-There's a fundamental limit here: this isn't local memory. Page faults still happen. You're masking latency, not eliminating it. For workloads where microseconds matter deterministically, that's still a problem.
+There's a limit underneath all of this that no amount of engineering removes, which is that remote memory still isn't local memory, the page faults still happen, and you're masking the latency rather than eliminating it, so for workloads where microseconds have to be predictable this is still a problem. The paper mostly assumes the masking is good enough, and for the workloads they picked it seems to be, but I'm not sure that generalizes.
 
 ## notes
 
@@ -47,7 +39,7 @@ There's a fundamental limit here: this isn't local memory. Page faults still hap
 - Slab placement uses "power of two choices" (pick two random machines, query free memory, use the one with more headroom)
 - Slab eviction queries E+5 machines, evicts coldest (~363μs median)
 - Page-out: synchronous RDMA_WRITE + async disk write (disk is fallback if remote crashes)
-- Page-in: check bitmap → RDMA_READ if remote, else disk
+- Page-in: check bitmap -> RDMA_READ if remote, else disk
 - Slab remapping after failure takes ~54ms (Infiniband memory registration)
 - Default headroom threshold: 8GB per machine
 - Hot slab threshold: 20 page I/O ops/sec (EWMA, α=0.2)

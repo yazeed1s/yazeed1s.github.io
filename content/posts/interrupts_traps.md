@@ -10,13 +10,13 @@ Your app might call a syscall, a packet might arrive on the network card, or the
 
 ## user space vs kernel space
 
-First the basics: modern CPUs have privilege levels called rings on x86, where ring 0 is the most privileged (kernel) and ring 3 is least privileged (user applications).
+Starting from the basics, modern CPUs have privilege levels called rings on x86, where ring 0 is the most privileged (kernel) and ring 3 is the least privileged (user applications).
 
 Your application runs in ring 3 and can execute normal instructions, access its own memory, and do math, but it cannot access hardware directly, read/write arbitrary memory addresses, or execute privileged instructions (like changing page tables or disabling interrupts). The kernel runs in ring 0 and can do all of those things.
 
 When you call `read()` to read from a file, your code can't just talk to the disk controller, it has to ask the kernel. The CPU has to switch from ring 3 to ring 0, do the privileged work, then switch back.
 
-This switch is the kernel boundary, and crossing it costs you: register save/restore, privilege change, and sometimes cache disruption. That's why syscalls aren't free.
+This switch is the kernel boundary, and crossing it costs you a register save and restore, a privilege change, and sometimes cache disruption, which is why syscalls aren't free.
 
 ## interrupts
 
@@ -28,7 +28,7 @@ When an interrupt happens, the CPU stops executing the current instruction strea
 
 ## traps
 
-A trap is a synchronous exception triggered by the currently running code, and it's intentional. The main example is syscalls: when you call `read()`, the C library eventually executes a special instruction (`syscall` on x86-64, `int 0x80` on older x86) that deliberately triggers a trap.
+A trap is a synchronous exception triggered by the currently running code, and it's intentional, the main example being syscalls, where when you call `read()` the C library eventually executes a special instruction (`syscall` on x86-64, `int 0x80` on older x86) that deliberately triggers a trap.
 
 ```
 User code calls read()
@@ -44,7 +44,7 @@ Other traps and exceptions include page faults (you accessed memory that isn't m
 
 ## the naming confusion
 
-Different sources use these terms differently. Here's how I think about it: **interrupt** means external, async, from hardware. **Trap** means internal, sync, intentional (syscalls). **Exception** means internal, sync, usually an error (page fault, div by zero). **Fault** is an exception that can be corrected (page fault) where the instruction retries. **Abort** is an unrecoverable error.
+Different sources use these terms differently, and the way I think about it is that an interrupt is external, async, and from hardware, a trap is internal, sync, and intentional like a syscall, an exception is internal, sync, and usually an error like a page fault or div by zero, a fault is an exception that can be corrected where the instruction retries, and an abort is an unrecoverable error.
 
 Some people use "exception" as the umbrella term for everything, some use "interrupt" for everything, and the Intel manual has its own definitions. It's messy. What matters is understanding whether the trigger is external (hardware) or internal (executing code), and whether it's expected (syscall) or unexpected (error).
 
@@ -58,13 +58,11 @@ For hardware interrupts, the entries point to kernel interrupt handlers, and for
 
 When a device needs attention, it signals an interrupt request (IRQ), and on modern systems this goes through an interrupt controller (APIC). The kernel has to acknowledge the interrupt, figure out which device caused it, call the right driver's handler, and tell the interrupt controller we're done. Handling needs to be fast because interrupts are disabled (or that IRQ is masked) while you're in the handler, and if you take too long you miss other interrupts.
 
-Linux splits this into top half and bottom half: the **top half** runs in interrupt context, does the minimum work, and schedules the bottom half. The **bottom half** runs later with interrupts enabled and does the real work (softirqs, tasklets, workqueues). For example, a network card interrupt's top half grabs the packet from hardware, queues it, and schedules the bottom half, which then processes the packet up the network stack.
+Linux splits this into a top half and a bottom half, where the top half runs in interrupt context, does the minimum work, and schedules the bottom half, and the bottom half runs later with interrupts enabled and does the real work through softirqs, tasklets, and workqueues. A network card interrupt's top half grabs the packet from hardware, queues it, and schedules the bottom half, which then processes the packet up the network stack.
 
 ## syscall cost
 
-Crossing the kernel boundary isn't free. You pay for saving and restoring registers, switching stacks (user stack to kernel stack), TLB and cache effects, and Spectre mitigations on modern kernels (KPTI, retpolines).
-
-On a modern system, a syscall might take a few hundred nanoseconds, which doesn't sound like much, but if you're doing thousands per second it adds up. That cost is why people use batching (fewer syscalls, more work per call), io_uring (submit many I/O requests with one syscall), and mmap (access files without read() syscalls).
+Crossing the kernel boundary isn't free, since you pay for saving and restoring registers, switching from the user stack to the kernel stack, TLB and cache effects, and Spectre mitigations on modern kernels like KPTI and retpolines. On a modern system a syscall might take a few hundred nanoseconds, which doesn't sound like much, but if you're doing thousands per second it adds up, and that cost is why people use batching to do more work per call, io_uring to submit many I/O requests with one syscall, and mmap to access files without read() syscalls at all.
 
 ## notes
 

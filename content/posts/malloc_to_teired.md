@@ -6,25 +6,17 @@ description = "glibc malloc was designed for uniform DRAM. Tiered memory changes
 tags = ["OS", "memory", "linux"]
 +++
 
-When you call `malloc()`, the allocator gives you a pointer. It doesn't know or care whether the physical page behind it sits in fast local DRAM or slower CXL-attached memory. From user space, memory still looks flat. But it isn't anymore. Machines now have 2–3x latency differences between memory tiers, and the allocator is completely blind to that.
+This started as a side thought during advanced systems class, we were talking about OS transparency in general and I kept coming back to malloc specifically afterward, because it's the one abstraction I interact with the most and never actually question. So this is me chewing on it after the fact, not a fully formed argument.
 
-## how glibc malloc sees the world
+When you call `malloc()`, the allocator gives you a pointer. It doesn't know or care whether the physical page behind it sits in fast local DRAM or slower CXL-attached memory, and it does not even care if hugepages are enabled or not, and from user space memory still looks completely flat, one address space, no notion of near or far. Except it isn't flat anymore, not really. Machines now have 2-3x latency differences between memory tiers and the allocator is completely blind to all of it.
 
-glibc's allocator (ptmalloc2) was designed in a mostly uniform DRAM world. It manages arenas, splits and coalesces chunks, decides when to use `brk` and when to use `mmap`, and tries to reduce lock contention between threads. But it doesn't care about which NUMA node backs an allocation unless the application explicitly asks for it. In the common case, it just requests virtual memory and leaves physical placement to the kernel.
+glibc's allocator (ptmalloc2) was built for a mostly uniform DRAM world. It manages arenas, splits and coalesces chunks, decides when to use `brk` vs `mmap`, worries about lock contention between threads, all of that. What it does not worry about is which NUMA node ends up backing an allocation, unless you explicitly ask it to. In the common path it just requests virtual memory and leaves the physical placement decision entirely to the kernel. Memory, from the allocator's point of view, is virtual address space and nothing else, it has no idea if the physical pages come from local DRAM, remote NUMA, CXL, or somewhere weirder. That was fine when latency gaps were small and mostly a bandwidth-balancing story, and it's not really fine anymore.
 
-So from the allocator's perspective, memory is virtual address space. It doesn't know whether the physical pages will come from local DRAM, remote NUMA, CXL-attached memory, or something else. That blindness was perfectly reasonable when latency differences were small and mostly about bandwidth balancing. The allocator could afford to ignore placement because the hardware was close to uniform.
+Tiered memory systems now treat slow memory as basically another NUMA node, demoting cold pages down and promoting hot ones back up when they get busy again. TPP migrates based on observed access frequency, and Memtis goes further and looks at access distribution, even splitting huge pages when the access pattern inside one is skewed. But notice the pattern is always the same shape, you allocate first, observe later, and migrate if needed, so we're always reacting.
 
-## what tiered memory changes
+And migration is not free, not even close, since you're copying 4KB pages, updating page tables, invalidating TLB entries, and maybe disturbing caches on top of it. M5's work shows misclassification and migration overhead can actively hurt performance if you're not careful with it. So you're paying a correction tax because the initial allocation was made blind. I keep wondering how much of that tax disappears if the allocator just knew *something* about what's hot before it even placed the memory.
 
-In tiered memory systems, the kernel often treats slow memory as another NUMA node. It may demote cold pages to slow memory and promote hot pages back to fast DRAM. Research systems like TPP migrate pages based on observed access frequency, and Memtis tries to improve classification by looking at access distribution and even splitting huge pages when access inside them is skewed.
-
-But the pattern is always the same: allocate first, observe later, migrate if needed. The allocator places data somewhere, the kernel watches page faults or samples accesses, then corrects the placement. We're always reacting.
-
-Migration isn't free. It involves copying 4KB pages, updating page tables, invalidating TLB entries, and potentially disturbing caches. Work like M5 shows that misclassification and migration overhead can actually hurt performance if not handled carefully. So you're paying a correction cost because the initial allocation was blind. I keep wondering how much of this cost could be avoided if the allocator had any information at all about what's hot.
-
-## the allocator knows nothing about temperature
-
-Consider a simple program:
+take this:
 
 ```c
 void *hot_table = malloc(1 << 20);   // frequently accessed
@@ -32,49 +24,29 @@ void *log_buffer = malloc(1 << 20);  // rarely accessed
 void *archive = malloc(100 << 20);   // mostly cold
 ```
 
-From glibc's perspective, these are identical calls. Same API, same path. But their temperature is completely different. The allocator has no way to express or detect that difference.
+identical calls as far as glibc is concerned. same api, same path, no distinction whatsoever. but the temperature of these three allocations is wildly different and the allocator has zero way to express or even detect that. the application usually already knows this stuff though. a database knows its buffer pool is hot. a web server knows which structures sit in the request path. a compiler knows which tables get reused constantly. and yet we throw all of that away and make the kernel re-derive it from access bits and sampling, from scratch, every time.
 
-The application often already knows which data is critical. A database knows its buffer pool is hot. A web server knows which structures sit in the request path. A compiler knows which tables are heavily reused. Yet we force the kernel to guess using access bits and heuristics.
+so are we solving this problem too late in the pipeline? maybe.
 
-That naturally leads to the question: are we solving the problem too late?
-
-## should malloc become tier-aware?
-
-One idea, not that exotic: let the allocator express intent.
+one idea, not that exotic honestly, is to let the allocator take intent as input.
 
 ```c
 void *malloc_hot(size_t size);
 void *malloc_cold(size_t size);
 ```
 
-Internally, `malloc_hot()` could bind memory to the fast NUMA node using mechanisms that already exist, like `mbind()` or `set_mempolicy()`. `malloc_cold()` could allocate directly on the slow tier. Instead of allocate -> detect -> migrate, you'd allocate correctly from the start.
+`malloc_hot()` could bind to the fast NUMA node using stuff that already exists like `mbind()` and `set_mempolicy()`, nothing new needed under the hood, and `malloc_cold()` allocates straight onto the slow tier. Instead of allocate then detect then migrate you just allocate correctly the first time, which skips a bunch of migration outright, means fewer TLB shootdowns and less copying, and makes placement something you decide instead of something that gets corrected later.
 
-This avoids some migration entirely. Fewer TLB shootdowns, less page copying. Placement becomes a proactive decision rather than a reactive correction.
+which brings up the actual question underneath all of this. is OS transparency still sacred here?
 
-But now the deeper question comes up.
+virtual memory exists specifically to hide physical placement, that's the whole point of it, developers don't need to know or care where their bytes physically live, they just allocate and use. tiered memory pokes at that. once the latency gap gets big enough placement starts mattering again whether we like it or not.
 
-## is OS transparency still sacred?
+you could keep full transparency, kernel infers temperature from access patterns, developers stay fully insulated, and the system just grows more internal complexity to deal with it, more sampling, more migration machinery. or you leak some of the abstraction, let developers label things hot or cold and trust them, let the allocator actually participate in placement decisions.
 
-Virtual memory was designed to hide physical placement. That abstraction is powerful because developers don't need to care where bytes live. They just allocate and use.
+I genuinely don't know which is better. the second one sounds cleaner right up until you think about what happens when people misclassify things. what happens when everyone just labels everything "fast" because why not. do you override the hint? ignore it silently? once you expose placement you also hand out responsibility for it, and I don't think most application developers actually want that responsibility, even the ones who complain about performance.
 
-Tiered memory challenges that. When latency differences become large enough, placement starts to matter again.
+huge pages make this whole thing worse, by the way, almost forgot to mention it. Memtis shows access inside a single 2MB huge page can be extremely skewed, so promoting the entire page because a tiny sliver of it is hot wastes a lot of fast-tier capacity for nothing. the allocator has no idea how its own allocations line up against huge page boundaries, and the kernel might split or merge those pages on you later anyway. page size, allocation strategy, and tier placement are all tangled together now and I don't think anyone has a clean model for how they're supposed to interact. the old layering assumed these were independent concerns. they are not, not anymore.
 
-You can keep full transparency. The kernel observes access patterns and tries to infer temperature. Developers stay insulated. The system grows more complex internally, with more sampling and migration.
+I don't think transparency should get abandoned entirely, it's still genuinely valuable for the vast majority of applications that don't care about squeezing out this kind of performance. but maybe it doesn't have to be all-or-nothing. default stays abstract, kernel handles it like today, and for the performance-critical stuff the allocator exposes controlled hints while the kernel keeps some override power so a bad hint doesn't destabilize the whole system.
 
-Or you can leak some abstraction. Let developers label allocations as hot or cold. Trust applications to express intent, and let the allocator participate in placement.
-
-I honestly don't know which is better. The second approach sounds cleaner until you think about what happens when developers misclassify. What if everything gets labeled "fast"? Do you override their hints? Ignore them? Once you expose placement, you also expose responsibility, and most application developers probably don't want that.
-
-## huge pages make it worse
-
-Memtis shows that access inside a 2MB huge page can be highly skewed. Promoting an entire huge page to fast memory because a small region is hot wastes precious capacity. The allocator doesn't know how its allocations align with huge pages. The kernel may split or merge them later.
-
-So page size, allocation strategy, and tier placement are all interacting and I'm not sure anyone has a clean model for how they should interact. The original layering between allocator and kernel assumed these things were independent. They're not anymore.
-
-## a possible middle ground
-
-I don't think we should abandon OS transparency completely. It's still valuable, especially for most applications that don't care about deep performance tuning. But maybe transparency should become adjustable.
-
-By default, memory stays abstract. The kernel handles tiering. But for performance-critical systems, the allocator could expose controlled hints, and the kernel could enforce limits so that misclassification doesn't destabilize things.
-
-I don't know if this would hold up in real systems. It depends on how well the kernel can override bad hints, and on whether developers will bother annotating allocations. My guess is most people ignore it and a small group gets real value out of it.
+no idea if this actually holds up outside of my head. depends a lot on how well the kernel can override a bad hint without it being a mess, and on whether anyone would actually bother annotating their allocations in the first place. my guess, and it's just a guess, most people ignore it and a small group of people building databases or whatever get real value out of it.

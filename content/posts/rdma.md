@@ -14,15 +14,13 @@ That sounded wrong to me at first. I knew the slogan, "skip the kernel, go fast,
 
 When you use TCP, the kernel is always involved. The app calls `send()`, which is a syscall, so execution enters the kernel; your data gets copied from the app buffer to a kernel buffer, TCP runs its state machine (checksum, segmentation, queueing), and eventually the driver sends it to the NIC.
 
-Receive side is the same thing: NIC gets packet, interrupt, kernel wakes up, copies to socket buffer, and then the app calls `recv()` which triggers another copy into the app buffer. So you end up with two copies, multiple syscalls, and context switches every time, and the CPU stays busy with all of it.
-
-If you're moving big files, it's OK because the overhead doesn't matter much. But if you want millions of small operations per second (like key-value gets), this overhead is too much.
+The receive side is the same thing, where the NIC gets a packet, raises an interrupt, the kernel wakes up and copies to the socket buffer, and then the app calls `recv()` which triggers another copy into the app buffer. So you end up with two copies, multiple syscalls, and context switches every time, and the CPU stays busy with all of it. If you're moving big files it's OK because the overhead doesn't matter much, but if you want millions of small operations per second like key-value gets, this overhead is too much.
 
 ## what rdma does different
 
 With RDMA, the network card reads and writes directly to your app memory. When you send, the NIC reads from your buffer via DMA, and when you receive, it writes into your buffer via DMA, so the kernel is off the fast path and the extra copies disappear.
 
-There's also one-sided operations: RDMA_WRITE puts bytes into remote memory and RDMA_READ pulls bytes from it, while the remote CPU keeps running because nobody wakes it up. First time I saw this it looked strange, you're writing to memory on a different machine, through the network card, and that machine doesn't know it happened.
+There's also one-sided operations, where RDMA_WRITE puts bytes into remote memory and RDMA_READ pulls bytes from it, while the remote CPU keeps running because nobody wakes it up. First time I saw this it looked strange, you're writing to memory on a different machine, through the network card, and that machine doesn't know it happened.
 
 > "Doesn't know" means the remote CPU isn't interrupted and doesn't execute any code. But the NIC is still doing DMA over PCIe, which consumes memory bandwidth on the remote machine. At high throughput, one-sided RDMA operations can noticeably affect remote-side performance even though no software runs there.
 
@@ -36,11 +34,9 @@ Only after setup does the fast path work, where you post work directly to hardwa
 
 ## queue pairs
 
-RDMA doesn't use sockets, it uses queues instead. A **Queue Pair** is your connection, and it has a send queue and a receive queue where you put work requests saying what to do (send this buffer, read from that address), and the NIC processes them when it can.
+RDMA doesn't use sockets, it uses queues instead. A queue pair is your connection, and it has a send queue and a receive queue where you put work requests saying what to do, like send this buffer or read from that address, and the NIC processes them when it can. A completion queue is how you know things finished, since the NIC puts entries there and you poll or wait.
 
-A **Completion Queue** is how you know things finished: the NIC puts entries there and you poll or wait.
-
-The annoying thing is that queue pairs start in RESET state and must move through RESET → INIT → RTR → RTS, and if you miss one transition nothing works and you usually don't get a useful error, which took me a while to learn the first time.
+The annoying thing is that queue pairs start in RESET state and must move through RESET -> INIT -> RTR -> RTS, and if you miss one transition nothing works and you usually don't get a useful error, which took me a while to learn the first time.
 
 ## memory registration
 
@@ -50,17 +46,17 @@ Registration is a syscall, and this is where the kernel checks permissions.
 
 ## who checks if not kernel
 
-This part confused me for a while. With normal networking the kernel validates everything: bad pointer gives you SIGSEGV, wrong permission gives you an error, the kernel is the one checking. But with RDMA the kernel is not in the data path, so how do bad accesses get stopped?
+This part confused me for a while. With normal networking the kernel validates everything, so a bad pointer gives you SIGSEGV, a wrong permission gives you an error, and the kernel is the one checking, but with RDMA the kernel is not in the data path, so how do bad accesses get stopped?
 
-The answer is hardware. When you register memory, the kernel tells the NIC which addresses are valid and what permissions they have and which protection domain they belong to, and the NIC stores all this in its memory protection tables. Then during transfers the NIC checks every operation: is the address in a registered region, are the permissions OK, does the key match. If something is wrong, the operation fails and the error shows up in the completion queue (not SIGSEGV, because the NIC caught it, not the CPU). Hardware does what the kernel would do, just at wire speed.
+The answer is hardware. When you register memory the kernel tells the NIC which addresses are valid, what permissions they have, and which protection domain they belong to, and the NIC stores all this in its memory protection tables. Then during transfers the NIC checks every operation, so whether the address is in a registered region, whether the permissions are OK, whether the key matches, and if something is wrong the operation fails and the error shows up in the completion queue rather than as SIGSEGV, because the NIC caught it, not the CPU. Hardware does what the kernel would do, just at wire speed.
 
 ## protection domains
 
-You can't access anyone's memory. A **Protection Domain** is a security boundary: when you make a queue pair and register memory, you put them in a PD, and operations only work on memory in the same PD. This is like kernel process isolation but for RDMA, where different apps get different PDs.
+You can't access anyone's memory. A protection domain is a security boundary, so when you make a queue pair and register memory you put them in a PD, and operations only work on memory in the same PD. This is like kernel process isolation but for RDMA, where different apps get different PDs.
 
 ## one-sided and two-sided
 
-There are two kinds of operations. **Two-sided** means both sides do something: the receiver posts a buffer first, the sender posts a send, and both CPUs are involved. **One-sided** means only you do something: RDMA_WRITE pushes data to remote memory, RDMA_READ pulls data, and the remote CPU is not involved, not even aware.
+There are two kinds of operations. Two-sided means both sides do something, where the receiver posts a buffer first, the sender posts a send, and both CPUs are involved. One-sided means only you do something, where RDMA_WRITE pushes data to remote memory, RDMA_READ pulls data, and the remote CPU is not involved, not even aware.
 
 One-sided is where RDMA is really powerful, but it's also more work because if the remote app needs to know you wrote, you have to tell it somehow. Usually you write a flag that it polls, or use atomics, and synchronization becomes your problem to solve.
 
@@ -72,7 +68,7 @@ There are atomic operations (compare-and-swap and fetch-and-add) that run at rem
 
 You need a special NIC because normal ones don't do RDMA.
 
-**InfiniBand** is the original, it needs its own switches and cables, has very low latency (under a microsecond), and HPC clusters use it. **RoCE** is RDMA over Ethernet, which works on regular switches, but Ethernet drops packets and RDMA really doesn't like that, so you configure switches for "lossless" mode with priority flow control and so on, and it gets complicated. **iWARP** is RDMA over TCP, which is the most compatible option, but TCP adds latency. I think most datacenters use RoCE v2 now.
+InfiniBand is the original, it needs its own switches and cables, has very low latency under a microsecond, and HPC clusters use it. RoCE is RDMA over Ethernet, which works on regular switches, but Ethernet drops packets and RDMA really doesn't like that, so you configure switches for "lossless" mode with priority flow control and so on, and it gets complicated. iWARP is RDMA over TCP, which is the most compatible option, but TCP adds latency. I think most datacenters use RoCE v2 now.
 
 ## some numbers
 

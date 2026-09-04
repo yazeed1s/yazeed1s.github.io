@@ -12,9 +12,9 @@
 />
 <link rel="canonical" href="https://yazeed1s.github.io/posts/ewmh-icccm/" />
 
-<title>EWMH and ICCCM: What a WM Actually Needs to Implement | Yazeed&#x27;s Blog</title>
-<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
-<meta property="og:title" content="EWMH and ICCCM: What a WM Actually Needs to Implement | Yazeed&#x27;s Blog" />
+<title>EWMH and ICCCM: What a WM Actually Needs to Implement | Yazeed&#39;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#39;s Blog" />
+<meta property="og:title" content="EWMH and ICCCM: What a WM Actually Needs to Implement | Yazeed&#39;s Blog" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://yazeed1s.github.io/posts/ewmh-icccm/" />
 <meta property="og:description" content="The two specs that define how X11 window managers communicate with clients." />
@@ -23,10 +23,12 @@
 <meta name="twitter:title" content="EWMH and ICCCM: What a WM Actually Needs to Implement" />
 <meta name="twitter:description" content="The two specs that define how X11 window managers communicate with clients." />
 
-    <link rel="icon" href="&#x2F;favicon.ico" />
+    <link rel="icon" href="/favicon.ico" />
     
     <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
     <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+    <link id="giallo-light" rel="stylesheet" href="https://yazeed1s.github.io/giallo-light.css" />
+    <link id="giallo-dark" rel="stylesheet" href="https://yazeed1s.github.io/giallo-dark.css" />
 
            
     
@@ -39,7 +41,7 @@
     
     <style>
         :root {
-            --nav-basis: 25%;
+            --nav-basis: 25.0%;
             --light-bg: #eae6deff;
             --light-text: #1a1410;
             --light-text-muted: #1a1410;
@@ -68,10 +70,14 @@
             var m = matchMedia("(prefers-color-scheme:dark)"),
                 t = localStorage.theme || (m.matches ? "dark" : "light"),
                 h = document.documentElement,
-                c = document.getElementById("tc");
+                c = document.getElementById("tc"),
+                gl = document.getElementById("giallo-light"),
+                gd = document.getElementById("giallo-dark");
             h.className = t;
             function u() {
                 c.content = getComputedStyle(h).getPropertyValue("--tc");
+                gl.disabled = t !== "light";
+                gd.disabled = t !== "dark";
             }
             u();
             window.T = function () {
@@ -94,7 +100,7 @@
 
     <header id="site-header">
         <div>
-            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#39;s Blog</strong></a></span>
             <nav>
                 <a href="https://yazeed1s.github.io/" >Home</a>
                 <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
@@ -106,7 +112,9 @@
                         return false;
                     " class="theme" aria-label="Toggle theme" title="Toggle theme">
 <svg><use href="#light"/></svg>
-<svg><use href="#asleep"/></svg></a>
+
+<svg><use href="#asleep"/></svg>
+</a>
         </div>
     </header>
     <hr class="site-sep" />
@@ -122,11 +130,11 @@
             <span class="post-tags">
                 <span class="post-tags-label">Tags: </span>
                 
-                <a href="https://yazeed1s.github.io/tags/linux">Linux</a><span
+                <a href="https://yazeed1s.github.io/tags/linux">linux</a><span
                     class="tag-comma">,</span> 
                 <a href="https://yazeed1s.github.io/tags/x11">x11</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/window-manager">Window Manager</a>
+                <a href="https://yazeed1s.github.io/tags/window-manager">window manager</a>
             </span>
             
         </div>
@@ -227,13 +235,13 @@
 <li><code>data.l[2]</code> = second state atom (optional)</li>
 </ul>
 <p>So to handle fullscreen toggle:</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>action </span><span style="color: light-dark(#4B4B48, #CB8B8B);">==</span><span> _NET_WM_STATE_TOGGLE</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#3C6362, #A2BD90);">is_fullscreen</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>win</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">        unfullscreen</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>win</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    }</span><span style="color: light-dark(#784367, #D4B399);"> else</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">        fullscreen</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>win</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    }</span></span>
-<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-4 z-d-8">if</span><span class="z-d-1"> (</span><span>action </span><span class="z-d-6">==</span><span> _NET_WM_STATE_TOGGLE</span><span class="z-d-1">)</span><span class="z-d-1"> {</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">    if</span><span class="z-d-1"> (</span><span class="z-l-2 z-d-3">is_fullscreen</span><span class="z-d-1">(</span><span>win</span><span class="z-d-1">)</span><span class="z-d-1">)</span><span class="z-d-1"> {</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-3">        unfullscreen</span><span class="z-d-1">(</span><span>win</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-d-1">    }</span><span class="z-l-4 z-d-8"> else</span><span class="z-d-1"> {</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-3">        fullscreen</span><span class="z-d-1">(</span><span>win</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-d-1">    }</span></span>
+<span class="giallo-l"><span class="z-d-1">}</span></span></code></pre>
 <p>You also need to update the property on the window afterwards so other apps (like pagers and taskbars) can see the current state.</p>
 <h2 id="the-annoying-parts">the annoying parts</h2>
 <p><strong>Order matters.</strong> Some apps expect you to set properties in a specific order during initial manage, and Java is notorious for this.</p>

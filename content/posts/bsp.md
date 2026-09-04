@@ -6,57 +6,31 @@ description = "How I use binary space partitioning to manage windows in my X11 w
 tags = ["C", "spatial data structures", "tiling window manager"]
 +++
 
----
+At some point I decided to build my own tiling window manager from scratch. I was working with spatial data structures at work, BSP trees looked like a good fit for this kind of problem, and it also sounded like a fun challenge.
 
-At some point I decided to build my own tiling window manager from scratch. I was working with spatial data structures at work, and BSP trees looked like a good fit for this kind of problem. It also sounded like a fun challenge.
+## what's a tiling window manager?
 
----
+A tiling window manager arranges windows so they don't overlap, so instead of floating windows on top of each other like macOS or Windows it splits the screen into sections, where you open a window and it goes into a tile, open another and the screen splits, and you don't manually position anything.
 
-## What's a Tiling Window Manager?
+Linux has a bunch of these like dwm, i3, and bspwm, and on Mac there's Yabai. They're not mainstream, but if you're into keyboard-driven workflows they're nice. The question I care about here is how you represent this layout in memory.
 
-A tiling window manager arranges windows so they don't overlap. Instead of floating windows on top of each other like macOS or Windows, it splits the screen into sections. You open a window, it goes into a tile. Open another, the screen splits. You don't manually position anything.
+## what the layout data structure needs to do
 
-Linux has a bunch of these (dwm, i3, bspwm). On Mac there's Yabai. They're not mainstream, but if you're into keyboard-driven workflows, they're nice.
+Before picking a data structure it helps to think about what operations matter. At minimum a tiling window manager needs to insert a new window when one opens and split the focused region, delete a window when it closes and reclaim the space, resize regions by adjusting split ratios, traverse the layout to find the next or previous window, and render by walking the structure and applying positions to X11.
 
-The question is: how do you represent this layout in memory?
+The shape of the data matters too, since window layouts are inherently hierarchical and spatial, where the screen splits into halves and those halves split again, so it's not a flat sequence at all. Whatever structure you pick should make the common operations cheap and match this hierarchical shape, otherwise you're fighting the data.
 
-## What the Layout Data Structure Needs to Do
+## why a linear structure falls apart
 
-Before picking a data structure, it helps to think about what operations matter.
+Given those constraints the obvious first thought is a linked list since it's simple and well understood, but there's a mismatch underneath, which is that linked lists are linear and window layouts are 2D. When windows tile they form a hierarchy, this half of the screen, that quarter, and so on, and a list doesn't capture that naturally, so every time you add or remove a window you'd have to recalculate all the rectangles from scratch, which works but it's more math than I want to deal with.
 
-A tiling window manager, at minimum, needs to:
+## trees handle it better
 
-- **Insert** a new window when one opens, splitting the focused region
-- **Delete** a window when it closes, reclaiming the space
-- **Resize** regions by adjusting split ratios
-- **Traverse** the layout to find the next/previous window
-- **Render** by walking the structure and applying positions to X11
+If the problem is hierarchical the structure should be too, and trees fit naturally, where the screen is the root, each split creates two children, windows live in the leaves, and the structure maps directly to what you see on screen. That's where BSP trees come in.
 
-The shape of the data matters too. Window layouts are inherently hierarchical and spatial. The screen splits into halves, those halves split again. It's not a flat sequence at all.
+## binary space partitioning
 
-Whatever structure we pick, it should make the common operations cheap and match this hierarchical shape. Otherwise we're fighting the data.
-
-## Why a Linear Structure Falls Apart
-
-Given those constraints, the obvious first thought is a linked list since it's simple and well understood, but there's a fundamental mismatch: linked lists are linear and window layouts are 2D.
-
-When windows tile they form a hierarchy (this half of the screen, that quarter, and so on), and a list doesn't capture this naturally. Every time you add or remove a window you'd have to recalculate all the rectangles from scratch, which works but it's more math than I want to deal with.
-
-## Trees Handle It Better
-
-If the problem is hierarchical, the structure should be too. Trees fit naturally: the screen is the root, each split creates two children, windows live in the leaves, and the structure maps directly to what you see on screen. That's where BSP trees come in.
-
-## Binary Space Partitioning
-
-BSP trees are a specific kind of tree designed for recursive spatial division: start with the full screen, split it in half (horizontal or vertical), and keep splitting as needed. Each split point becomes an internal node and each final region becomes a leaf.
-
-In my implementation:
-
-- **Root node** = the entire screen/monitor rectangle
-- **Internal nodes** = split regions (no window, just children)
-- **External/leaf nodes** = actual windows
-
-Each node can have zero or two children. Never one.
+BSP trees are a specific kind of tree built for recursive spatial division, so you start with the full screen, split it in half horizontally or vertically, and keep splitting as needed, where each split point becomes an internal node and each final region becomes a leaf. In my implementation the root node is the entire screen or monitor rectangle, internal nodes are split regions with no window and just children, and external or leaf nodes are the actual windows. Each node has either zero or two children, never one.
 
 ```
     Tree Node Types:
@@ -73,7 +47,7 @@ Each node can have zero or two children. Never one.
     - External Nodes (E): hold actual windows
 ```
 
-## The Node Structure
+## the node structure
 
 Here's the actual node definition from my code:
 
@@ -96,18 +70,9 @@ struct node_t {
 
 I include a parent pointer because some implementations skip it to save memory, but having it makes traversal and sibling access trivial and worth the extra 8 bytes per node. With the structure in place, the next parts are insertion and deletion.
 
-## Insertion
+## insertion
 
-When you open a new window, here's what happens:
-
-1. Find the currently focused leaf node
-2. Turn it into an internal node
-3. Create two new leaf nodes as children
-4. Move the existing window into the first child
-5. Put the new window into the second child
-6. Split the parent's rectangle between them
-
-The split direction depends on the rectangle shape; if it's wider than tall, split vertically (side by side). Otherwise, split horizontally (top and bottom).
+When you open a new window the manager finds the currently focused leaf node, turns it into an internal node, creates two new leaf nodes as children, moves the existing window into the first child, puts the new window into the second child, and splits the parent's rectangle between them. The split direction depends on the rectangle shape, so if it's wider than tall it splits vertically side by side, and otherwise it splits horizontally into top and bottom.
 
 ```c
 void
@@ -165,9 +130,9 @@ split_rect(node_t *n, split_type_t s)
 }
 ```
 
-### Visual Example: Adding Windows
+### visual example, adding windows
 
-**Empty screen - null tree:**
+**Empty screen, null tree:**
 
 ```
     Screen                          BSP-tree
@@ -248,11 +213,11 @@ split_rect(node_t *n, split_type_t s)
 
 Each internal node's rectangle contains its children. The tree structure directly mirrors the screen layout.
 
-## Deletion
+## deletion
 
-Insertion is the easy part, deletion is where tree operations get interesting. When you close a window the node gets removed, but you can't just delete it because the tree needs to stay valid. The thing is, when you remove a leaf, its parent (an internal node) now has only one child, and that's not valid, so the sibling "takes over" the parent's position.
+Insertion is the easy part, deletion is where tree operations get interesting. When you close a window the node gets removed, but you can't just delete it because the tree needs to stay valid, since when you remove a leaf its parent internal node now has only one child, which isn't valid, so the sibling takes over the parent's position.
 
-### Case 1: Simple deletion (sibling is external, parent is root)
+### case 1, simple deletion (sibling is external, parent is root)
 
 ```
     Before:                             After:
@@ -278,7 +243,7 @@ Insertion is the easy part, deletion is where tree operations get interesting. W
     - Node A becomes a leaf with window 1
 ```
 
-### Case 2: Deletion with grandparent (sibling is external)
+### case 2, deletion with grandparent (sibling is external)
 
 ```
     Before:                              After:
@@ -311,7 +276,7 @@ Insertion is the easy part, deletion is where tree operations get interesting. W
     - Free Node A and Node C
 ```
 
-### Case 3: Deletion when sibling is internal
+### case 3, deletion when sibling is internal
 
 ```
     Before:                              After update links:       Final state:
@@ -387,19 +352,11 @@ unlink_node(node_t *n, desktop_t *d)
 }
 ```
 
-The sibling inherits the parent's rectangle, so after deletion, the remaining windows still fill the screen properly.
+The sibling inherits the parent's rectangle, so after deletion the remaining windows still fill the screen properly.
 
-## Other Operations
+## other operations
 
-Beyond insert/delete, there's a bunch of other stuff the tree needs to handle:
-
-- **Finding nodes by window ID** - recursive search through the tree
-- **Traversal** - next/previous window in the tree
-- **Resizing** - adjusting split ratios and propagating changes down
-- **Layout switching** - master/stack layouts recalculate all rectangles
-- **Rendering** - BFS traversal to apply positions to actual X11 windows
-
-The tree traversal uses a simple queue for BFS:
+Beyond insert and delete there's a bunch of other stuff the tree handles, like finding nodes by window ID with a recursive search, traversal to the next or previous window, resizing by adjusting split ratios and propagating changes down, layout switching where master and stack layouts recalculate all rectangles, and rendering with a BFS traversal that applies positions to the actual X11 windows. The traversal uses a simple queue for the BFS:
 
 ```c
 int
@@ -425,8 +382,6 @@ render_tree(node_t *node)
 }
 ```
 
-## wrap-up
+## notes
 
-BSP trees aren't complicated once you see them as just recursive space division, where the tree structure matches the visual layout and makes most operations straightforward. Insertion splits a rectangle, deletion merges back up, and the tree adjusts as windows come and go.
-
-The full implementation handles more edge cases (floating windows, fullscreen, gaps, borders, multiple monitors), but the core idea is what I described here. Code is here: [github.com/yazeed1s/zwm](https://github.com/yazeed1s/zwm).
+BSP trees aren't complicated once you see them as just recursive space division, where the tree structure matches the visual layout and makes most operations straightforward, so insertion splits a rectangle, deletion merges back up, and the tree adjusts as windows come and go. The full implementation handles more edge cases like floating windows, fullscreen, gaps, borders, and multiple monitors, but the core idea is what I described here. Code is at [github.com/yazeed1s/zwm](https://github.com/yazeed1s/zwm).

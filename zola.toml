@@ -8,7 +8,7 @@ taxonomies = [{ name = "tags", feed = true }]
 
 [markdown]
 [markdown.highlighting]
-highlight_code_in_css = true
+style = "class"
 extra_themes = [
   "themes/zenburn-custom-dark.json",
   "themes/zenburn-custom-light.json",

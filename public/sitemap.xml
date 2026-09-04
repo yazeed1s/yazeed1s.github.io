@@ -94,6 +94,10 @@
         <lastmod>2026-01-16</lastmod>
     </url>
     <url>
+        <loc>https://yazeed1s.github.io/posts/reading-binary-specs/</loc>
+        <lastmod>2026-06-09</lastmod>
+    </url>
+    <url>
         <loc>https://yazeed1s.github.io/posts/swap-paging/</loc>
         <lastmod>2025-10-30</lastmod>
     </url>
@@ -117,6 +121,9 @@
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/</loc>
+    </url>
+    <url>
+        <loc>https://yazeed1s.github.io/tags/binary/</loc>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/bit-manipulation/</loc>
@@ -143,16 +150,10 @@
         <loc>https://yazeed1s.github.io/tags/event-driven/</loc>
     </url>
     <url>
-        <loc>https://yazeed1s.github.io/tags/glibc/</loc>
+        <loc>https://yazeed1s.github.io/tags/go/</loc>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/hardware/</loc>
-    </url>
-    <url>
-        <loc>https://yazeed1s.github.io/tags/infrastructure/</loc>
-    </url>
-    <url>
-        <loc>https://yazeed1s.github.io/tags/kernel-bypass/</loc>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/linux/</loc>
@@ -167,22 +168,19 @@
         <loc>https://yazeed1s.github.io/tags/networking/</loc>
     </url>
     <url>
-        <loc>https://yazeed1s.github.io/tags/operating-systems/</loc>
-    </url>
-    <url>
         <loc>https://yazeed1s.github.io/tags/os/</loc>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/paging/</loc>
     </url>
     <url>
+        <loc>https://yazeed1s.github.io/tags/parsers/</loc>
+    </url>
+    <url>
         <loc>https://yazeed1s.github.io/tags/patterns/</loc>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/performance/</loc>
-    </url>
-    <url>
-        <loc>https://yazeed1s.github.io/tags/picom/</loc>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/processes/</loc>
@@ -201,6 +199,9 @@
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/systems-programming/</loc>
+    </url>
+    <url>
+        <loc>https://yazeed1s.github.io/tags/systems/</loc>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/tiling-window-manager/</loc>

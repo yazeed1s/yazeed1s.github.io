@@ -6,7 +6,7 @@ description = "Why you need transactional outbox and idempotent inbox when build
 tags = ["distributed systems", "event driven", "patterns"]
 +++
 
-I was working on an event-driven system and hit a classic problem: when I save to the database, how do I make sure the event actually gets published to the broker, and on the consumer side, how do I avoid processing the same event twice when the broker redelivers.
+I was working on an event-driven system and hit a classic problem, which is that when I save to the database I need to make sure the event actually gets published to the broker, and on the consumer side I need to avoid processing the same event twice when the broker redelivers.
 
 These are the Outbox and Inbox patterns, not new ideas, but I only really understood them after implementing them.
 
@@ -26,7 +26,7 @@ The obvious thought is "just do both in a transaction," but you can't because th
 
 ## the outbox pattern
 
-The outbox pattern helps with the publishing side: instead of publishing directly to the broker, you write the event to a table in the same database, in the same transaction as your domain data.
+The outbox pattern helps with the publishing side, where instead of publishing directly to the broker you write the event to a table in the same database, in the same transaction as your domain data.
 
 ```
 1. BEGIN transaction
@@ -57,19 +57,19 @@ The worker reads rows where `status = 'PENDING'`, publishes to the broker, and u
 
 ## what can go wrong with outbox
 
-**Ordering.** If you run multiple worker instances for throughput, they might publish events out of order: event B commits after event A, but worker 2 publishes B before worker 1 publishes A. If your consumers care about ordering, you need to partition by aggregate or use a single worker.
+Ordering is one. If you run multiple worker instances for throughput they might publish events out of order, where event B commits after event A but worker 2 publishes B before worker 1 publishes A, so if your consumers care about ordering you need to partition by aggregate or use a single worker.
 
-**Dual write illusion.** The outbox doesn't magically solve the dual write problem, it just moves it. Now the dual write is between "mark row as SENT" and "broker actually received it." If you mark SENT before the broker confirms and the broker was down, you lose the event, and if you mark SENT after the broker confirms and you crash before marking, you'll republish on restart. The second is safer because inbox handles duplicates.
+The dual write illusion is another. The outbox doesn't magically solve the dual write problem, it just moves it, so now the dual write is between "mark row as SENT" and "broker actually received it", and if you mark SENT before the broker confirms and the broker was down you lose the event, and if you mark SENT after the broker confirms and you crash before marking you'll republish on restart. The second is safer because inbox handles duplicates.
 
-**Broker down.** If the broker is unreachable for a long time, your outbox table grows unbounded, and depending on your write rate this can become a real problem. You need monitoring and maybe backpressure if the table gets too large.
+And the broker can be down. If it's unreachable for a long time your outbox table grows unbounded, and depending on your write rate this can become a real problem, so you need monitoring and maybe backpressure if the table gets too large.
 
 ## the inbox pattern
 
 Publishing is one half, consuming is the other.
 
-Delivery guarantees depend on your broker: some offer exactly-once (Kafka with transactions), some offer at-least-once (most durable brokers with acknowledgment), and some offer at-most-once (fire and forget). If you're using something like core NATS with no persistence, you get at-most-once where the message is gone the moment it's published if no one is listening. With a durable broker that retries on no-ack, you get at-least-once, which means your handler might receive the same event multiple times, and processing it every time means you double-create things, double-charge customers, or whatever your handler does happens twice.
+Delivery guarantees depend on your broker, so some offer exactly-once like Kafka with transactions, some offer at-least-once like most durable brokers with acknowledgment, and some offer at-most-once which is fire and forget. If you're using something like core NATS with no persistence you get at-most-once, where the message is gone the moment it's published if no one is listening. With a durable broker that retries on no-ack you get at-least-once, which means your handler might receive the same event multiple times, and processing it every time means you double-create things, double-charge customers, or whatever your handler does happens twice.
 
-The inbox is the mirror of the outbox: before processing, you record that you received this event, and if you see it again, you skip it.
+The inbox is the mirror of the outbox, where before processing you record that you received this event, and if you see it again you skip it.
 
 ```sql
 CREATE TABLE inbox_events (
@@ -87,11 +87,9 @@ The unique constraint on `(event_id, handler_name)` is the key. When a message a
 
 ## what can go wrong with inbox
 
-**Ghosting.** You insert the inbox row, then crash before doing the actual work, and now the event is "locked" because the row exists but the work never happened. Next delivery will see the row and skip it.
+Ghosting is the main one. You insert the inbox row, then crash before doing the actual work, and now the event is "locked" because the row exists but the work never happened, so the next delivery sees the row and skips it. This is a real problem, and one mitigation is to only insert the inbox row after successful processing, but then you're back to the crash-between-work-and-record problem just in a different order, and another is to have a timeout or "last touched" timestamp and treat old pending rows as abandoned.
 
-This is a real problem. One mitigation is to only insert the inbox row after successful processing, but then you're back to the crash-between-work-and-record problem just in a different order. Another is to have a timeout or "last touched" timestamp and treat old pending rows as abandoned.
-
-**Pruning.** Same as outbox, `PROCESSED` rows accumulate and need cleanup.
+Pruning is the other one, since same as with the outbox, `PROCESSED` rows accumulate and need cleanup.
 
 ## some brokers handle parts of this
 
@@ -103,13 +101,13 @@ If you're using a fire-and-forget broker with no persistence (like core NATS), y
 
 ## the at-least-once guarantee
 
-This whole setup gives you at-least-once delivery from end to end: you're guaranteed the event will eventually reach the handler (outbox retries until success), and the handler is guaranteed to not double-process (inbox deduplicates).
+This whole setup gives you at-least-once delivery from end to end, so you're guaranteed the event will eventually reach the handler because the outbox retries until success, and the handler is guaranteed not to double-process because the inbox deduplicates.
 
 You don't get exactly-once because the outbox worker might publish, then crash before marking `SENT`, then on restart publish again. That's fine because the inbox catches the duplicate.
 
 ## operational stuff
 
-Both tables need maintenance: batch reads instead of one row at a time (read 100 or whatever), a polling interval that balances CPU waste vs latency (we use 500ms), a cleanup job that deletes `SENT`/`PROCESSED` rows older than X days, monitoring to track how many `PENDING` rows are piling up and alert if growing, and failure handling that marks events `FAILED` after N retries and maybe routes them to a dead letter table for manual inspection.
+Both tables need maintenance, so batch reads instead of one row at a time (read 100 or whatever), a polling interval that balances CPU waste against latency (we use 500ms), a cleanup job that deletes `SENT` and `PROCESSED` rows older than X days, monitoring to track how many `PENDING` rows are piling up and alert if it's growing, and failure handling that marks events `FAILED` after N retries and maybe routes them to a dead letter table for manual inspection.
 
 
 ## notes

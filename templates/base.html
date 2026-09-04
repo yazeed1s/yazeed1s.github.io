@@ -1,12 +1,9 @@
-{% import "macros/head.html" as head -%} {% import "macros/opengraph.html" as
-social -%} {% import "macros/hooks.html" as hooks -%} {% import
-"macros/images.html" as images -%} {% import "macros/icons.html" as icons -%}
 <!doctype html>
 <html lang="en">
 
 <head>
-    {%- block general_meta -%} {{ head::general_meta() }} {%- endblock
-    general_meta -%} {%- block og_preview -%} {{ social::og_preview() }} {%-
+    {%- block general_meta -%} {{<head.general_meta page section config current_url />}} {%- endblock
+    general_meta -%} {%- block og_preview -%} {{<social.og_preview page section term taxonomy config current_url />}} {%-
     endblock og_preview -%} {% if config.extra.favicon %}
     <link rel="icon" href="{{ config.extra.favicon }}" />
     {% endif %}
@@ -17,6 +14,8 @@ social -%} {% import "macros/hooks.html" as hooks -%} {% import
     set basis = (100 / items_per_row) | round -%}
 
     <link rel="stylesheet" href="{{ get_url(path='css/base.css', trailing_slash=false) }}" />
+    <link id="giallo-light" rel="stylesheet" href="{{ get_url(path='giallo-light.css', trailing_slash=false) }}" />
+    <link id="giallo-dark" rel="stylesheet" href="{{ get_url(path='giallo-dark.css', trailing_slash=false) }}" />
 
     {# Colour configuration with defaults #} {% set light_bg =
     config.extra.colours.light.background | default(value="#FAF7F2") %} {%
@@ -79,10 +78,14 @@ social -%} {% import "macros/hooks.html" as hooks -%} {% import
             var m = matchMedia("(prefers-color-scheme:dark)"),
                 t = localStorage.theme || (m.matches ? "dark" : "light"),
                 h = document.documentElement,
-                c = document.getElementById("tc");
+                c = document.getElementById("tc"),
+                gl = document.getElementById("giallo-light"),
+                gd = document.getElementById("giallo-dark");
             h.className = t;
             function u() {
                 c.content = getComputedStyle(h).getPropertyValue("--tc");
+                gl.disabled = t !== "light";
+                gd.disabled = t !== "dark";
             }
             u();
             window.T = function () {
@@ -98,7 +101,7 @@ social -%} {% import "macros/hooks.html" as hooks -%} {% import
 
 <body>
     <a href="#main" class="skip-link">Skip to content</a>
-    {% if config.extra.inline_icons %}{{ icons::sprite() }}{% endif %}
+    {% if config.extra.inline_icons %}{{<icons.sprite config />}}{% endif %}
     <header id="site-header">
         <div>
             <span class="header-brand">{% if config.extra.site_icon is defined %}{% if
@@ -128,7 +131,7 @@ social -%} {% import "macros/hooks.html" as hooks -%} {% import
                 link_url == config.base_url or link_url == base_url_slash -%} {%
                 set is_active = current_url == link_url or current_url_slash ==
                 link_url or (not is_home and current_url is
-                starting_with(link_url)) -%}
+                starting_with(pat=link_url)) -%}
                 <a href="{{ link_url | safe}}" {% if current_url and is_active %} class="active" {% endif
                     %}>{{menu_link.name}}</a>
                 {% endfor -%}
@@ -136,9 +139,9 @@ social -%} {% import "macros/hooks.html" as hooks -%} {% import
             <a href="#" onclick="
                         T();
                         return false;
-                    " class="theme" aria-label="Toggle theme" title="Toggle theme">{% if config.extra.inline_icons %}{{
-                icons::icon(name="light.svg") }}{{
-                icons::icon(name="asleep.svg") }}{% else %}<img src="/icons/light.svg" alt="Light mode" /><img
+                    " class="theme" aria-label="Toggle theme" title="Toggle theme">{% if config.extra.inline_icons %}{{<icons.icon
+                name="light.svg"/>}}{{<icons.icon
+                name="asleep.svg"/>}}{% else %}<img src="/icons/light.svg" alt="Light mode" /><img
                     src="/icons/asleep.svg" alt="Dark mode" />{% endif
                 %}</a>
         </div>

@@ -14,7 +14,7 @@
 <section class="recent-posts">
     <h2>Recent Posts</h2>
     <ul class="p">
-    {% for post in posts_section.pages | slice(end=count) %}
+    {% for post in posts_section.pages[:count] %}
         <li>
             <time datetime="{{ post.date }}">{{ post.date | date(format='%Y-%m-%d') }}</time>
             <a href="{{ post.permalink | safe }}">{{ post.title }}</a>

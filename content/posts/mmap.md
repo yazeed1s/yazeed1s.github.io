@@ -21,19 +21,19 @@ void *ptr = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 // now ptr[0..st.st_size-1] is the file contents
 ```
 
-The file is accessible through pointer arithmetic. No `read()` calls, no user-space buffers. The kernel handles paging transparently.
+The file is accessible through pointer arithmetic with no `read()` calls and no user-space buffers, and the kernel handles paging transparently.
 
 ## flags that matter
 
-`mmap` behavior changes significantly based on the flags you pass, and the two most important are the sharing flags: `MAP_PRIVATE` creates a copy-on-write mapping where writes go to a private copy and the original file is unchanged, while `MAP_SHARED` means writes go through to the actual file (other processes mapping the same file see your changes, and changes eventually get written back to disk).
+`mmap` behavior changes significantly based on the flags you pass, and the two most important are the sharing flags, where `MAP_PRIVATE` creates a copy-on-write mapping so writes go to a private copy and the original file is unchanged, while `MAP_SHARED` means writes go through to the actual file, so other processes mapping the same file see your changes and those changes eventually get written back to disk.
 
 `MAP_ANONYMOUS` creates a mapping not backed by any file, just zero-filled pages, and this is what malloc uses internally for large allocations. `MAP_FIXED` forces the mapping at a specific address (dangerous if you don't know what's there), and `MAP_POPULATE` pre-faults all pages at mmap time instead of waiting for access, which avoids page faults later but means the mmap call itself is slow.
 
-Protection flags control access: `PROT_READ` for read-only, `PROT_WRITE` for writable, `PROT_EXEC` for executable (JIT compilers use this), and `PROT_NONE` for no access (useful for guard pages). You can change protections later with `mprotect`.
+Protection flags control access, so `PROT_READ` for read-only, `PROT_WRITE` for writable, `PROT_EXEC` for executable which is what JIT compilers use, and `PROT_NONE` for no access which is useful for guard pages, and you can change protections later with `mprotect`.
 
 ## anonymous mappings
 
-When you `mmap` with `MAP_ANONYMOUS`, there's no file involved, you just get zero-filled memory. This is actually how glibc malloc works for large allocations: small allocations come from `sbrk` (the heap), but anything over a threshold (usually 128KB) gets its own anonymous mmap.
+When you `mmap` with `MAP_ANONYMOUS` there's no file involved, you just get zero-filled memory, and this is actually how glibc malloc works for large allocations, where small allocations come from `sbrk` on the heap but anything over a threshold, usually 128KB, gets its own anonymous mmap.
 
 ```c
 // what malloc does internally for large allocs
@@ -72,7 +72,7 @@ Other good uses include loading shared libraries (`.so` files are mmap'd into pr
 
 ## when mmap is bad
 
-For databases, mmap is [usually the wrong choice](@/posts/mmap_databases.md). The OS can flush dirty pages whenever it wants, which breaks write-ahead logging. Page faults stall threads unpredictably, and there's no async fault interface. Error handling goes through SIGBUS instead of return codes. And under memory pressure, TLB shootdowns during eviction can collapse throughput.
+For databases mmap is [usually the wrong choice](@/posts/mmap_databases.md), since the OS can flush dirty pages whenever it wants which breaks write-ahead logging, page faults stall threads unpredictably and there's no async fault interface, error handling goes through SIGBUS instead of return codes, and under memory pressure the TLB shootdowns during eviction can collapse throughput.
 
 Sequential writes to a new file are also better with `write()` because mmap requires you to know the file size upfront (or use `ftruncate` to grow it), and the page-fault-per-page overhead can be worse than buffered writes.
 

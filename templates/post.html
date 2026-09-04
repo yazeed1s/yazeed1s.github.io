@@ -6,7 +6,7 @@
             <time datetime="{{ page.date }}">{{ page.date | date(format='%d %b %Y')}}</time>
             {% if page.description %}
             <span>{{ page.description }}</span>
-            {% endif %} {% if page.taxonomies is containing ("tags") %}
+            {% endif %} {% if page.taxonomies is containing(pat="tags") %}
             <span class="post-tags">
                 <span class="post-tags-label">Tags: </span>
                 {% for tag in page.taxonomies["tags"] %}
@@ -16,9 +16,8 @@
             {% endif %}
         </div>
     </header>
-    {{ hooks::post_above_content(page=page) }} {{ page.content | safe }} {{
-    hooks::post_below_content(page=page) }} {{ hooks::post_below_tags(page=page)
-    }}
+    {{<hooks.post_above_content page />}} {{ page.content | safe }} {{<hooks.post_below_content
+    page />}} {{<hooks.post_below_tags page />}}
 </article>
 {% endblock content %}
 

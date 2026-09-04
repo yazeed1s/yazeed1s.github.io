@@ -12,9 +12,9 @@
 />
 <link rel="canonical" href="https://yazeed1s.github.io/posts/force-memory-cleanup/" />
 
-<title>Signal Handlers for Cleanup in C Programs | Yazeed&#x27;s Blog</title>
-<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
-<meta property="og:title" content="Signal Handlers for Cleanup in C Programs | Yazeed&#x27;s Blog" />
+<title>Signal Handlers for Cleanup in C Programs | Yazeed&#39;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#39;s Blog" />
+<meta property="og:title" content="Signal Handlers for Cleanup in C Programs | Yazeed&#39;s Blog" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://yazeed1s.github.io/posts/force-memory-cleanup/" />
 <meta property="og:description" content="When your program crashes, how do you run cleanup code?" />
@@ -23,10 +23,12 @@
 <meta name="twitter:title" content="Signal Handlers for Cleanup in C Programs" />
 <meta name="twitter:description" content="When your program crashes, how do you run cleanup code?" />
 
-    <link rel="icon" href="&#x2F;favicon.ico" />
+    <link rel="icon" href="/favicon.ico" />
     
     <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
     <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+    <link id="giallo-light" rel="stylesheet" href="https://yazeed1s.github.io/giallo-light.css" />
+    <link id="giallo-dark" rel="stylesheet" href="https://yazeed1s.github.io/giallo-dark.css" />
 
            
     
@@ -39,7 +41,7 @@
     
     <style>
         :root {
-            --nav-basis: 25%;
+            --nav-basis: 25.0%;
             --light-bg: #eae6deff;
             --light-text: #1a1410;
             --light-text-muted: #1a1410;
@@ -68,10 +70,14 @@
             var m = matchMedia("(prefers-color-scheme:dark)"),
                 t = localStorage.theme || (m.matches ? "dark" : "light"),
                 h = document.documentElement,
-                c = document.getElementById("tc");
+                c = document.getElementById("tc"),
+                gl = document.getElementById("giallo-light"),
+                gd = document.getElementById("giallo-dark");
             h.className = t;
             function u() {
                 c.content = getComputedStyle(h).getPropertyValue("--tc");
+                gl.disabled = t !== "light";
+                gd.disabled = t !== "dark";
             }
             u();
             window.T = function () {
@@ -94,7 +100,7 @@
 
     <header id="site-header">
         <div>
-            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#39;s Blog</strong></a></span>
             <nav>
                 <a href="https://yazeed1s.github.io/" >Home</a>
                 <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
@@ -106,7 +112,9 @@
                         return false;
                     " class="theme" aria-label="Toggle theme" title="Toggle theme">
 <svg><use href="#light"/></svg>
-<svg><use href="#asleep"/></svg></a>
+
+<svg><use href="#asleep"/></svg>
+</a>
         </div>
     </header>
     <hr class="site-sep" />
@@ -124,9 +132,9 @@
                 
                 <a href="https://yazeed1s.github.io/tags/c">C</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/signals">Signals</a><span
+                <a href="https://yazeed1s.github.io/tags/signals">signals</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/linux">Linux</a>
+                <a href="https://yazeed1s.github.io/tags/linux">linux</a>
             </span>
             
         </div>
@@ -134,129 +142,129 @@
      <p>In C, you put cleanup code at the end of <code>main()</code> to free your allocations, close your files, and so on. But what if your program crashes before reaching that code?</p>
 <h2 id="the-problem">the problem</h2>
 <p>Standard cleanup at the end of main only works if your program exits normally. If it crashes (a null pointer dereference, for example), the OS raises SIGSEGV and your program dies immediately, so your cleanup code never runs.</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">#</span><span style="color: light-dark(#784367, #CA9D7D);">include</span><span style="color: light-dark(#4B4B48, #7F7C77);"> &lt;</span><span style="color: light-dark(#4A6934, #CB8B8B);">stdio.h</span><span style="color: light-dark(#4B4B48, #7F7C77);">&gt;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">#</span><span style="color: light-dark(#784367, #CA9D7D);">include</span><span style="color: light-dark(#4B4B48, #7F7C77);"> &lt;</span><span style="color: light-dark(#4A6934, #CB8B8B);">stdlib.h</span><span style="color: light-dark(#4B4B48, #7F7C77);">&gt;</span></span>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-d-1">#</span><span class="z-l-4 z-d-5">include</span><span class="z-d-1"> &lt;</span><span class="z-l-3 z-d-6">stdio.h</span><span class="z-d-1">&gt;</span></span>
+<span class="giallo-l"><span class="z-d-1">#</span><span class="z-l-4 z-d-5">include</span><span class="z-d-1"> &lt;</span><span class="z-l-3 z-d-6">stdlib.h</span><span class="z-d-1">&gt;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">char</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>buffer </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#784367, #CA9D7D);"> NULL</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">char</span><span class="z-d-6"> *</span><span>buffer </span><span class="z-d-6">=</span><span class="z-l-4 z-d-5"> NULL</span><span class="z-d-1">;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">int</span><span style="color: light-dark(#3C6362, #A2BD90);"> main</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
-<span class="giallo-l"><span>    buffer </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#3C6362, #A2BD90);"> malloc</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #CA9D7D);">500</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#784367, #CA9D7D);"> 1024</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#784367, #CA9D7D);"> 1024</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> 500 MB</span></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>buffer </span><span style="color: light-dark(#4B4B48, #CB8B8B);">==</span><span style="color: light-dark(#784367, #CA9D7D);"> NULL</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">        return</span><span> EXIT_FAILURE</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    }</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    printf</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#4B4B48, #7F7C77);">&quot;</span><span style="color: light-dark(#4A6934, #CB8B8B);">Allocated 500 MB</span><span style="color: light-dark(#784367, #CA9D7D);">\n</span><span style="color: light-dark(#4B4B48, #7F7C77);">&quot;</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">int</span><span class="z-l-2 z-d-3"> main</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">void</span><span class="z-d-1">)</span><span class="z-d-1"> {</span></span>
+<span class="giallo-l"><span>    buffer </span><span class="z-d-6">=</span><span class="z-l-2 z-d-3"> malloc</span><span class="z-d-1">(</span><span class="z-l-4 z-d-5">500</span><span class="z-d-6"> *</span><span class="z-l-4 z-d-5"> 1024</span><span class="z-d-6"> *</span><span class="z-l-4 z-d-5"> 1024</span><span class="z-d-1">)</span><span class="z-d-1">;</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> //</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> 500 MB</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">    if</span><span class="z-d-1"> (</span><span>buffer </span><span class="z-d-6">==</span><span class="z-l-4 z-d-5"> NULL</span><span class="z-d-1">)</span><span class="z-d-1"> {</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">        return</span><span> EXIT_FAILURE</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-d-1">    }</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-3">    printf</span><span class="z-d-1">(</span><span class="z-d-1">&quot;</span><span class="z-l-3 z-d-6">Allocated 500 MB</span><span class="z-l-4 z-d-5">\n</span><span class="z-d-1">&quot;</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> oops</span></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    char</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>invalid_ptr </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#784367, #CA9D7D);"> NULL</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#4B4B48, #CB8B8B);">    *</span><span>invalid_ptr </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#4B4B48, #7F7C77);"> &#39;</span><span style="color: light-dark(#4A6934, #CB8B8B);">x</span><span style="color: light-dark(#4B4B48, #7F7C77);">&#39;</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> SIGSEGV here</span></span>
+<span class="giallo-l"><span class="z-l-5 z-l-i z-d-1 z-d-i">    //</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> oops</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">    char</span><span class="z-d-6"> *</span><span>invalid_ptr </span><span class="z-d-6">=</span><span class="z-l-4 z-d-5"> NULL</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-d-6">    *</span><span>invalid_ptr </span><span class="z-d-6">=</span><span class="z-d-1"> &#39;</span><span class="z-l-3 z-d-6">x</span><span class="z-d-1">&#39;</span><span class="z-d-1">;</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> //</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> SIGSEGV here</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> never reached</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    printf</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#4B4B48, #7F7C77);">&quot;</span><span style="color: light-dark(#4A6934, #CB8B8B);">About to cleanup...</span><span style="color: light-dark(#784367, #CA9D7D);">\n</span><span style="color: light-dark(#4B4B48, #7F7C77);">&quot;</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    free</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>buffer</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    return</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre>
+<span class="giallo-l"><span class="z-l-5 z-l-i z-d-1 z-d-i">    //</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> never reached</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-3">    printf</span><span class="z-d-1">(</span><span class="z-d-1">&quot;</span><span class="z-l-3 z-d-6">About to cleanup...</span><span class="z-l-4 z-d-5">\n</span><span class="z-d-1">&quot;</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-3">    free</span><span class="z-d-1">(</span><span>buffer</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">    return</span><span class="z-l-4 z-d-5"> 0</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-d-1">}</span></span></code></pre>
 <p>Output:</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="shellscript"><span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">$</span><span style="color: light-dark(#4A6934, #CB8B8B);"> gcc</span><span style="color: light-dark(#4A6934, #CB8B8B);"> crash.c</span><span style="color: light-dark(#784367, #CA9D7D);"> -</span><span style="color: light-dark(#784367, #CA9D7D);">o</span><span style="color: light-dark(#4A6934, #CB8B8B);"> crash</span><span style="color: light-dark(#4B4B48, #7F7C77);"> &amp;&amp;</span><span style="color: light-dark(#3C6362, #A2BD90);"> ./crash</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">Allocated</span><span style="color: light-dark(#784367, #CA9D7D);"> 500</span><span style="color: light-dark(#4A6934, #CB8B8B);"> MB</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">Segmentation</span><span style="color: light-dark(#4A6934, #CB8B8B);"> fault</span><span> (core</span><span style="color: light-dark(#4A6934, #CB8B8B);"> dumped</span><span>)</span></span></code></pre>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="shellscript"><span class="giallo-l"><span class="z-l-2 z-d-3">$</span><span class="z-l-3 z-d-6"> gcc</span><span class="z-l-3 z-d-6"> crash.c</span><span class="z-l-4 z-d-5"> -</span><span class="z-l-4 z-d-5">o</span><span class="z-l-3 z-d-6"> crash</span><span class="z-d-1"> &amp;&amp;</span><span class="z-l-2 z-d-3"> ./crash</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-3">Allocated</span><span class="z-l-4 z-d-5"> 500</span><span class="z-l-3 z-d-6"> MB</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-3">Segmentation</span><span class="z-l-3 z-d-6"> fault</span><span> (core</span><span class="z-l-3 z-d-6"> dumped</span><span>)</span></span></code></pre>
 <p>The <code>free(buffer)</code> never runs.</p>
 <h2 id="first-thought-atexit">first thought: atexit()</h2>
 <p>You might think <code>atexit()</code> solves this, where you register a cleanup function and it gets called on exit:</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#3C6362, #A2BD90);"> cleanup</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    free</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>buffer</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-4 z-d-8">void</span><span class="z-l-2 z-d-3"> cleanup</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">void</span><span class="z-d-1">)</span><span class="z-d-1"> {</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-3">    free</span><span class="z-d-1">(</span><span>buffer</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-d-1">}</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">int</span><span style="color: light-dark(#3C6362, #A2BD90);"> main</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    atexit</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>cleanup</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> ...</span></span>
-<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre>
+<span class="giallo-l"><span class="z-l-4 z-d-8">int</span><span class="z-l-2 z-d-3"> main</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">void</span><span class="z-d-1">)</span><span class="z-d-1"> {</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-3">    atexit</span><span class="z-d-1">(</span><span>cleanup</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-l-5 z-l-i z-d-1 z-d-i">    //</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> ...</span></span>
+<span class="giallo-l"><span class="z-d-1">}</span></span></code></pre>
 <p>But <code>atexit()</code> handlers only run on <strong>normal</strong> exit (when main returns or when you call <code>exit()</code>), and a signal like SIGSEGV bypasses atexit entirely.</p>
 <h2 id="the-solution-signal-handlers">the solution: signal handlers</h2>
 <p>To run cleanup code on crash, you register a signal handler that catches the signal before the process dies:</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">#</span><span style="color: light-dark(#784367, #CA9D7D);">include</span><span style="color: light-dark(#4B4B48, #7F7C77);"> &lt;</span><span style="color: light-dark(#4A6934, #CB8B8B);">signal.h</span><span style="color: light-dark(#4B4B48, #7F7C77);">&gt;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">#</span><span style="color: light-dark(#784367, #CA9D7D);">include</span><span style="color: light-dark(#4B4B48, #7F7C77);"> &lt;</span><span style="color: light-dark(#4A6934, #CB8B8B);">stdio.h</span><span style="color: light-dark(#4B4B48, #7F7C77);">&gt;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">#</span><span style="color: light-dark(#784367, #CA9D7D);">include</span><span style="color: light-dark(#4B4B48, #7F7C77);"> &lt;</span><span style="color: light-dark(#4A6934, #CB8B8B);">stdlib.h</span><span style="color: light-dark(#4B4B48, #7F7C77);">&gt;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">#</span><span style="color: light-dark(#784367, #CA9D7D);">include</span><span style="color: light-dark(#4B4B48, #7F7C77);"> &lt;</span><span style="color: light-dark(#4A6934, #CB8B8B);">unistd.h</span><span style="color: light-dark(#4B4B48, #7F7C77);">&gt;</span></span>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-d-1">#</span><span class="z-l-4 z-d-5">include</span><span class="z-d-1"> &lt;</span><span class="z-l-3 z-d-6">signal.h</span><span class="z-d-1">&gt;</span></span>
+<span class="giallo-l"><span class="z-d-1">#</span><span class="z-l-4 z-d-5">include</span><span class="z-d-1"> &lt;</span><span class="z-l-3 z-d-6">stdio.h</span><span class="z-d-1">&gt;</span></span>
+<span class="giallo-l"><span class="z-d-1">#</span><span class="z-l-4 z-d-5">include</span><span class="z-d-1"> &lt;</span><span class="z-l-3 z-d-6">stdlib.h</span><span class="z-d-1">&gt;</span></span>
+<span class="giallo-l"><span class="z-d-1">#</span><span class="z-l-4 z-d-5">include</span><span class="z-d-1"> &lt;</span><span class="z-l-3 z-d-6">unistd.h</span><span class="z-d-1">&gt;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">char</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>buffer </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#784367, #CA9D7D);"> NULL</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">char</span><span class="z-d-6"> *</span><span>buffer </span><span class="z-d-6">=</span><span class="z-l-4 z-d-5"> NULL</span><span class="z-d-1">;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#3C6362, #A2BD90);"> cleanup_handler</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">int</span><span style="color: light-dark(#7D4242, #D4D4C0);"> sig</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
-<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    (</span><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span>sig</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> Note: using write() instead of printf() - see below</span></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    const</span><span style="color: light-dark(#784367, #D4B399);"> char</span><span> msg</span><span style="color: light-dark(#784367, #D4B399);">[]</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> =</span><span style="color: light-dark(#4B4B48, #7F7C77);"> &quot;</span><span style="color: light-dark(#4A6934, #CB8B8B);">Caught signal, exiting...</span><span style="color: light-dark(#784367, #CA9D7D);">\n</span><span style="color: light-dark(#4B4B48, #7F7C77);">&quot;</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    write</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>STDERR_FILENO</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> msg</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> sizeof</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>msg</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> -</span><span style="color: light-dark(#784367, #CA9D7D);"> 1</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">void</span><span class="z-l-2 z-d-3"> cleanup_handler</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">int</span><span class="z-l-6"> sig</span><span class="z-d-1">)</span><span class="z-d-1"> {</span></span>
+<span class="giallo-l"><span class="z-d-1">    (</span><span class="z-l-4 z-d-8">void</span><span class="z-d-1">)</span><span>sig</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-l-5 z-l-i z-d-1 z-d-i">    //</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> Note: using write() instead of printf() - see below</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">    const</span><span class="z-l-4 z-d-8"> char</span><span> msg</span><span class="z-l-4 z-d-8">[]</span><span class="z-d-6"> =</span><span class="z-d-1"> &quot;</span><span class="z-l-3 z-d-6">Caught signal, exiting...</span><span class="z-l-4 z-d-5">\n</span><span class="z-d-1">&quot;</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-3">    write</span><span class="z-d-1">(</span><span>STDERR_FILENO</span><span class="z-d-1">,</span><span> msg</span><span class="z-d-1">,</span><span class="z-d-6"> sizeof</span><span class="z-d-1">(</span><span>msg</span><span class="z-d-1">)</span><span class="z-d-6"> -</span><span class="z-l-4 z-d-5"> 1</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> For crash signals, keep the handler minimal. Most cleanup is not</span></span>
-<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> async-signal-safe, and the kernel will reclaim process memory anyway.</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    _exit</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #CA9D7D);">1</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> use _exit, not exit()</span></span>
-<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span>
+<span class="giallo-l"><span class="z-l-5 z-l-i z-d-1 z-d-i">    //</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> For crash signals, keep the handler minimal. Most cleanup is not</span></span>
+<span class="giallo-l"><span class="z-l-5 z-l-i z-d-1 z-d-i">    //</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> async-signal-safe, and the kernel will reclaim process memory anyway.</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-3">    _exit</span><span class="z-d-1">(</span><span class="z-l-4 z-d-5">1</span><span class="z-d-1">)</span><span class="z-d-1">;</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> //</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> use _exit, not exit()</span></span>
+<span class="giallo-l"><span class="z-d-1">}</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">int</span><span style="color: light-dark(#3C6362, #A2BD90);"> main</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
-<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> register handler for crash signals</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    signal</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>SIGSEGV</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> cleanup_handler</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    signal</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>SIGABRT</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> cleanup_handler</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    signal</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>SIGINT</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> cleanup_handler</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">  //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> Ctrl+C</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    signal</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>SIGTERM</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> cleanup_handler</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> kill command</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">int</span><span class="z-l-2 z-d-3"> main</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">void</span><span class="z-d-1">)</span><span class="z-d-1"> {</span></span>
+<span class="giallo-l"><span class="z-l-5 z-l-i z-d-1 z-d-i">    //</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> register handler for crash signals</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-3">    signal</span><span class="z-d-1">(</span><span>SIGSEGV</span><span class="z-d-1">,</span><span> cleanup_handler</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-3">    signal</span><span class="z-d-1">(</span><span>SIGABRT</span><span class="z-d-1">,</span><span> cleanup_handler</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-3">    signal</span><span class="z-d-1">(</span><span>SIGINT</span><span class="z-d-1">,</span><span> cleanup_handler</span><span class="z-d-1">)</span><span class="z-d-1">;</span><span class="z-l-5 z-l-i z-d-1 z-d-i">  //</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> Ctrl+C</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-3">    signal</span><span class="z-d-1">(</span><span>SIGTERM</span><span class="z-d-1">,</span><span> cleanup_handler</span><span class="z-d-1">)</span><span class="z-d-1">;</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> //</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> kill command</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span>    buffer </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#3C6362, #A2BD90);"> malloc</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #CA9D7D);">500</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#784367, #CA9D7D);"> 1024</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#784367, #CA9D7D);"> 1024</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    if</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span>buffer </span><span style="color: light-dark(#4B4B48, #CB8B8B);">==</span><span style="color: light-dark(#784367, #CA9D7D);"> NULL</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">        return</span><span> EXIT_FAILURE</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    }</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    printf</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#4B4B48, #7F7C77);">&quot;</span><span style="color: light-dark(#4A6934, #CB8B8B);">Allocated 500 MB</span><span style="color: light-dark(#784367, #CA9D7D);">\n</span><span style="color: light-dark(#4B4B48, #7F7C77);">&quot;</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span>    buffer </span><span class="z-d-6">=</span><span class="z-l-2 z-d-3"> malloc</span><span class="z-d-1">(</span><span class="z-l-4 z-d-5">500</span><span class="z-d-6"> *</span><span class="z-l-4 z-d-5"> 1024</span><span class="z-d-6"> *</span><span class="z-l-4 z-d-5"> 1024</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">    if</span><span class="z-d-1"> (</span><span>buffer </span><span class="z-d-6">==</span><span class="z-l-4 z-d-5"> NULL</span><span class="z-d-1">)</span><span class="z-d-1"> {</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">        return</span><span> EXIT_FAILURE</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-d-1">    }</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-3">    printf</span><span class="z-d-1">(</span><span class="z-d-1">&quot;</span><span class="z-l-3 z-d-6">Allocated 500 MB</span><span class="z-l-4 z-d-5">\n</span><span class="z-d-1">&quot;</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    char</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>invalid_ptr </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#784367, #CA9D7D);"> NULL</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#4B4B48, #CB8B8B);">    *</span><span>invalid_ptr </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#4B4B48, #7F7C77);"> &#39;</span><span style="color: light-dark(#4A6934, #CB8B8B);">x</span><span style="color: light-dark(#4B4B48, #7F7C77);">&#39;</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> triggers SIGSEGV -&gt; cleanup_handler runs</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">    char</span><span class="z-d-6"> *</span><span>invalid_ptr </span><span class="z-d-6">=</span><span class="z-l-4 z-d-5"> NULL</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-d-6">    *</span><span>invalid_ptr </span><span class="z-d-6">=</span><span class="z-d-1"> &#39;</span><span class="z-l-3 z-d-6">x</span><span class="z-d-1">&#39;</span><span class="z-d-1">;</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> //</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> triggers SIGSEGV -&gt; cleanup_handler runs</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    return</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre>
+<span class="giallo-l"><span class="z-l-4 z-d-8">    return</span><span class="z-l-4 z-d-5"> 0</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-d-1">}</span></span></code></pre>
 <p>Now when the program crashes, the handler runs first.</p>
 <h2 id="async-signal-safety">async-signal-safety</h2>
 <p>There's an important catch: signal handlers can interrupt your program at any point, even in the middle of malloc or printf. If your handler then calls malloc or printf, you can deadlock or corrupt memory because those functions aren't reentrant.</p>
 <p>Only certain functions are safe to call from signal handlers, and POSIX defines the list. The key safe ones are <code>write()</code> (printf is NOT safe), <code>_exit()</code> (exit is NOT safe because it runs atexit handlers), <code>close()</code>, <code>unlink()</code>, and <code>fsync()</code>. Notably, <code>free()</code> is <strong>not</strong> async-signal-safe; it might "work" in a toy program and then deadlock in production because the signal interrupted malloc/free internals.</p>
 <p>A safer pattern is to set a flag and let the main program handle cleanup:</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">volatile</span><span style="color: light-dark(#855959, #A6BCAD);"> sig_atomic_t</span><span> got_signal </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-4 z-d-8">volatile</span><span class="z-l-7 z-d-4"> sig_atomic_t</span><span> got_signal </span><span class="z-d-6">=</span><span class="z-l-4 z-d-5"> 0</span><span class="z-d-1">;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#3C6362, #A2BD90);"> handler</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">int</span><span style="color: light-dark(#7D4242, #D4D4C0);"> sig</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
-<span class="giallo-l"><span>    got_signal </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span> sig</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">void</span><span class="z-l-2 z-d-3"> handler</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">int</span><span class="z-l-6"> sig</span><span class="z-d-1">)</span><span class="z-d-1"> {</span></span>
+<span class="giallo-l"><span>    got_signal </span><span class="z-d-6">=</span><span> sig</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-d-1">}</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">int</span><span style="color: light-dark(#3C6362, #A2BD90);"> main</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    signal</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>SIGINT</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> handler</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">int</span><span class="z-l-2 z-d-3"> main</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">void</span><span class="z-d-1">)</span><span class="z-d-1"> {</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-3">    signal</span><span class="z-d-1">(</span><span>SIGINT</span><span class="z-d-1">,</span><span> handler</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    while</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#4B4B48, #CB8B8B);">!</span><span>got_signal</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
-<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">        //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> do work</span></span>
-<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    }</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">    while</span><span class="z-d-1"> (</span><span class="z-d-6">!</span><span>got_signal</span><span class="z-d-1">)</span><span class="z-d-1"> {</span></span>
+<span class="giallo-l"><span class="z-l-5 z-l-i z-d-1 z-d-i">        //</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> do work</span></span>
+<span class="giallo-l"><span class="z-d-1">    }</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> cleanup here, in normal context</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    cleanup</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    return</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre>
+<span class="giallo-l"><span class="z-l-5 z-l-i z-d-1 z-d-i">    //</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> cleanup here, in normal context</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-3">    cleanup</span><span class="z-d-1">(</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">    return</span><span class="z-l-4 z-d-5"> 0</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-d-1">}</span></span></code></pre>
 <p>But for crash signals (SIGSEGV, SIGABRT), you can't return to normal execution because the program is already broken, so you do what cleanup you can in the handler and exit.</p>
 <h2 id="wait-doesn-t-the-os-clean-up-anyway">wait, doesn't the OS clean up anyway?</h2>
 <p>Yes. On any modern OS (Linux, macOS, Windows), when your process terminates the kernel reclaims all its resources: heap memory gets freed, file descriptors get closed, and memory mappings get unmapped.</p>
 <p>So for plain <code>malloc()</code> and regular files, you don't actually need signal handlers for cleanup because the OS handles it. Where signal handlers really matter is shared resources (shared memory segments from <code>shm_open</code>, semaphores, message queues) that persist beyond process lifetime, temp files you want to delete on crash, external state like network connections or database transactions you want to close gracefully, and custom cleanup like resetting terminal modes or unlocking files.</p>
 <p>For my window manager, I use signal handlers to unmap windows gracefully, restore X11 state, and close the connection to the X server properly. Regular heap memory? I just let the OS clean it up because it's going to do it anyway.</p>
 <h2 id="the-pattern-i-use">the pattern I use</h2>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">volatile</span><span style="color: light-dark(#855959, #A6BCAD);"> sig_atomic_t</span><span> should_exit </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-4 z-d-8">volatile</span><span class="z-l-7 z-d-4"> sig_atomic_t</span><span> should_exit </span><span class="z-d-6">=</span><span class="z-l-4 z-d-5"> 0</span><span class="z-d-1">;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#3C6362, #A2BD90);"> signal_handler</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">int</span><span style="color: light-dark(#7D4242, #D4D4C0);"> sig</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
-<span class="giallo-l"><span>    should_exit </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#784367, #CA9D7D);"> 1</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> minimal cleanup for shared resources only</span></span>
-<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">void</span><span class="z-l-2 z-d-3"> signal_handler</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">int</span><span class="z-l-6"> sig</span><span class="z-d-1">)</span><span class="z-d-1"> {</span></span>
+<span class="giallo-l"><span>    should_exit </span><span class="z-d-6">=</span><span class="z-l-4 z-d-5"> 1</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-l-5 z-l-i z-d-1 z-d-i">    //</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> minimal cleanup for shared resources only</span></span>
+<span class="giallo-l"><span class="z-d-1">}</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">int</span><span style="color: light-dark(#3C6362, #A2BD90);"> main</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    signal</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>SIGINT</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> signal_handler</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    signal</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span>SIGTERM</span><span style="color: light-dark(#4B4B48, #7F7C77);">,</span><span> signal_handler</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">int</span><span class="z-l-2 z-d-3"> main</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">void</span><span class="z-d-1">)</span><span class="z-d-1"> {</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-3">    signal</span><span class="z-d-1">(</span><span>SIGINT</span><span class="z-d-1">,</span><span> signal_handler</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-3">    signal</span><span class="z-d-1">(</span><span>SIGTERM</span><span class="z-d-1">,</span><span> signal_handler</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> main loop checks should_exit</span></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    while</span><span style="color: light-dark(#4B4B48, #7F7C77);"> (</span><span style="color: light-dark(#4B4B48, #CB8B8B);">!</span><span>should_exit</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);"> {</span></span>
-<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">        //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> work</span></span>
-<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">    }</span></span>
+<span class="giallo-l"><span class="z-l-5 z-l-i z-d-1 z-d-i">    //</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> main loop checks should_exit</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">    while</span><span class="z-d-1"> (</span><span class="z-d-6">!</span><span>should_exit</span><span class="z-d-1">)</span><span class="z-d-1"> {</span></span>
+<span class="giallo-l"><span class="z-l-5 z-l-i z-d-1 z-d-i">        //</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> work</span></span>
+<span class="giallo-l"><span class="z-d-1">    }</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">    //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> full cleanup runs here on graceful exit</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">    cleanup</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">    return</span><span style="color: light-dark(#784367, #CA9D7D);"> 0</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#4B4B48, #7F7C77);">}</span></span></code></pre>
+<span class="giallo-l"><span class="z-l-5 z-l-i z-d-1 z-d-i">    //</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> full cleanup runs here on graceful exit</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-3">    cleanup</span><span class="z-d-1">(</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">    return</span><span class="z-l-4 z-d-5"> 0</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-d-1">}</span></span></code></pre>
 <p>For SIGSEGV/SIGABRT, I mostly just let it crash and let the OS clean up. Unless there's shared state that needs explicit cleanup, adding a handler for crash signals just complicates things without much benefit.</p>
 <h2 id="notes">notes</h2>
 <ul>

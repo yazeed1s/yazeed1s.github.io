@@ -8,7 +8,7 @@ tags = ["linux", "x11", "window manager"]
 
 I figured I should write down how multi-monitor actually works in ZWM.
 
-The core idea is that each monitor is independent: it has its own desktops, its own focused window, and its own layout state. When you switch desktops, you switch on that monitor only, and when you tile windows, you tile within that monitor's usable area.
+The core idea is that each monitor is independent, so it has its own desktops, its own focused window, and its own layout state, and when you switch desktops you switch on that monitor only, and when you tile windows you tile within that monitor's usable area.
 
 ## the data model
 
@@ -127,7 +127,7 @@ r->width  = usable.width  - 2 * conf.window_gap - 2 * conf.border_width;
 r->height = usable.height - 2 * conf.window_gap - 2 * conf.border_width;
 ```
 
-Fullscreen is also monitor-aware: a fullscreen window fills its monitor, not the whole X11 screen:
+Fullscreen is also monitor-aware, so a fullscreen window fills its monitor rather than the whole X11 screen:
 
 ```c
 monitor_t *m = get_monitor_by_window(win);
@@ -160,7 +160,7 @@ if (using_xrandr &&
 }
 ```
 
-`handle_monitor_changes()` detects three cases: a new monitor connected (create monitor node, initialize desktops, add to linked list), a monitor geometry changed (update the rectangle), and a monitor disconnected, which is the tricky one.
+`handle_monitor_changes()` detects three cases, a new monitor connected which means creating a monitor node, initializing desktops, and adding it to the linked list, a monitor geometry changed which just updates the rectangle, and a monitor disconnected, which is the tricky one.
 
 When a monitor disconnects, its windows need to go somewhere, so I merge them into another monitor:
 

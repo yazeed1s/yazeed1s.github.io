@@ -10,7 +10,7 @@ When I started writing ZWM I didn't understand how a window manager intercepts w
 
 ## everything is events
 
-X11 is event-driven: when something happens (key press, window created, window resized) the server generates an event, and clients tell the server which events they want to receive by setting event masks on windows.
+X11 is event-driven, so when something happens like a key press or a window being created or resized the server generates an event, and clients tell the server which events they want to receive by setting event masks on windows.
 
 In XCB, event masks are just bit flags you OR together:
 
@@ -43,14 +43,14 @@ The root window is how the WM gets control, because by setting certain masks on 
 
 ## SubstructureRedirectMask
 
-When you set `XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT` on the root window, you're telling the X server: don't automatically handle requests that affect the root window's children. Send them to me instead.
+When you set `XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT` on the root window, you're telling the X server not to automatically handle requests that affect the root window's children, and to send them to you instead.
 
 What gets redirected:
-- `XCB_MAP_REQUEST` — client wants to show a window
-- `XCB_CONFIGURE_REQUEST` — client wants to move/resize
-- `XCB_CIRCULATE_REQUEST` — client wants to change stacking order
+- `XCB_MAP_REQUEST`, client wants to show a window
+- `XCB_CONFIGURE_REQUEST`, client wants to move or resize
+- `XCB_CIRCULATE_REQUEST`, client wants to change stacking order
 
-Without this mask, when an app wants to map a window the server just shows it wherever the app asked. With the mask you get a `MapRequest` event and decide what to do, which is how tiling WMs work: the app says "make me 800x600" and the WM intercepts it, ignores the size, and tiles it wherever it should go.
+Without this mask, when an app wants to map a window the server just shows it wherever the app asked, but with the mask you get a `MapRequest` event and decide what to do, which is how tiling WMs work, where the app says "make me 800x600" and the WM intercepts it, ignores the size, and tiles it wherever it should go.
 
 ## only one WM
 
@@ -65,9 +65,9 @@ Client windows need different masks than root. In ZWM:
     (PROPERTY_CHANGE | FOCUS_CHANGE | ENTER_WINDOW | LEAVE_WINDOW)
 ```
 
-- `PROPERTY_CHANGE` — know when window title or state changes
-- `FOCUS_CHANGE` — track focus in/out  
-- `ENTER_WINDOW` / `LEAVE_WINDOW` — for focus-follows-mouse
+- `PROPERTY_CHANGE`, know when window title or state changes
+- `FOCUS_CHANGE`, track focus in and out
+- `ENTER_WINDOW` and `LEAVE_WINDOW`, for focus-follows-mouse
 
 ## the event loop
 
@@ -135,25 +135,23 @@ for (size_t i = 0; i < n; i++) {
 
 ## the important events
 
-**MapRequest** — a window wants to appear, so you decide if you manage it, where it goes, and what size it gets.
+**MapRequest** is a window wanting to appear, so you decide if you manage it, where it goes, and what size it gets.
 
-**ConfigureRequest** — client wants to move or resize. For a tiling WM you mostly ignore the requested geometry, but for floating windows you might honor it.
+**ConfigureRequest** is a client wanting to move or resize, and for a tiling WM you mostly ignore the requested geometry, but for floating windows you might honor it.
 
-**ClientMessage** — EWMH protocol. Other apps send these to request things like:
-- `_NET_WM_STATE` — toggle fullscreen, above, below
-- `_NET_ACTIVE_WINDOW` — bring window to front
-- `_NET_CLOSE_WINDOW` — close a window (from a pager)
-- `_NET_CURRENT_DESKTOP` — switch desktop
+**ClientMessage** is the EWMH protocol, where other apps send these to request things like:
+- `_NET_WM_STATE`, toggle fullscreen, above, below
+- `_NET_ACTIVE_WINDOW`, bring window to front
+- `_NET_CLOSE_WINDOW`, close a window from a pager
+- `_NET_CURRENT_DESKTOP`, switch desktop
 
-**PropertyNotify** — window title changed, WM hints updated, etc.
+**PropertyNotify** is a window title changing, WM hints updating, and so on.
 
-**EnterNotify** — cursor entered a window. Used for focus-follows-mouse.
+**EnterNotify** is the cursor entering a window, used for focus-follows-mouse.
 
 ## reparenting vs non-reparenting
 
-When a WM "manages" a window there are two approaches:
-
-**Reparenting WMs** create a frame window for each client. The client window becomes a child of the frame:
+When a WM "manages" a window there are two approaches. Reparenting WMs create a frame window for each client, and the client window becomes a child of the frame:
 
 ```
 Before managing:
@@ -163,20 +161,16 @@ After managing (reparenting):
   root -> frame -> client
 ```
 
-The frame is where decorations go: title bar, borders, close button. When you move the frame, the client moves with it. i3 does this. It draws frames around windows and uses them for the colored borders and title bars.
-
-**Non-reparenting WMs** leave the client as a direct child of root:
+The frame is where decorations go, so the title bar, borders, and close button, and when you move the frame the client moves with it. i3 does this, drawing frames around windows and using them for the colored borders and title bars. Non-reparenting WMs leave the client as a direct child of root:
 
 ```
 After managing (non-reparenting):
   root -> client
 ```
 
-No frame. If you want borders, you manipulate the client window's X11 border directly (`xcb_configure_window` with `XCB_CONFIG_WINDOW_BORDER_WIDTH`). dwm does this. ZWM does this too.
+There's no frame, so if you want borders you manipulate the client window's X11 border directly with `xcb_configure_window` and `XCB_CONFIG_WINDOW_BORDER_WIDTH`. dwm does this and ZWM does too. The tradeoff is that reparenting gives you more flexibility for decorations but adds complexity, since you have to handle ReparentNotify events, manage the frame lifecycle, and deal with apps that don't like being reparented, while non-reparenting is simpler but you're limited to what X11 window borders can do, which is basically solid color rectangles.
 
-The tradeoff is that reparenting gives you more flexibility for decorations but adds complexity: you have to handle ReparentNotify events, manage the frame lifecycle, and deal with apps that don't like being reparented. Non-reparenting is simpler but you're limited to what X11 window borders can do (basically solid color rectangles).
-
-Some apps behave differently under reparenting WMs. Java apps ARE THE WORST, they historically had issues with reparenting and they still do and expect things to work a certain way and a certain order. Chrome/Electron apps sometimes need hints. Most modern apps handle it fine though.
+Some apps behave differently under reparenting WMs. Java apps are the worst, they historically had issues with reparenting and they still do, and they expect things to work a certain way in a certain order. Chrome and Electron apps sometimes need hints. Most modern apps handle it fine though.
 
 ## what I learned
 

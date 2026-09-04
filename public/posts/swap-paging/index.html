@@ -12,9 +12,9 @@
 />
 <link rel="canonical" href="https://yazeed1s.github.io/posts/swap-paging/" />
 
-<title>Swap and Paging: What Actually Happens When Memory Fills Up | Yazeed&#x27;s Blog</title>
-<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
-<meta property="og:title" content="Swap and Paging: What Actually Happens When Memory Fills Up | Yazeed&#x27;s Blog" />
+<title>Swap and Paging: What Actually Happens When Memory Fills Up | Yazeed&#39;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#39;s Blog" />
+<meta property="og:title" content="Swap and Paging: What Actually Happens When Memory Fills Up | Yazeed&#39;s Blog" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://yazeed1s.github.io/posts/swap-paging/" />
 <meta property="og:description" content="How the OS shuffles memory between RAM and disk." />
@@ -23,10 +23,12 @@
 <meta name="twitter:title" content="Swap and Paging: What Actually Happens When Memory Fills Up" />
 <meta name="twitter:description" content="How the OS shuffles memory between RAM and disk." />
 
-    <link rel="icon" href="&#x2F;favicon.ico" />
+    <link rel="icon" href="/favicon.ico" />
     
     <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
     <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+    <link id="giallo-light" rel="stylesheet" href="https://yazeed1s.github.io/giallo-light.css" />
+    <link id="giallo-dark" rel="stylesheet" href="https://yazeed1s.github.io/giallo-dark.css" />
 
            
     
@@ -39,7 +41,7 @@
     
     <style>
         :root {
-            --nav-basis: 25%;
+            --nav-basis: 25.0%;
             --light-bg: #eae6deff;
             --light-text: #1a1410;
             --light-text-muted: #1a1410;
@@ -68,10 +70,14 @@
             var m = matchMedia("(prefers-color-scheme:dark)"),
                 t = localStorage.theme || (m.matches ? "dark" : "light"),
                 h = document.documentElement,
-                c = document.getElementById("tc");
+                c = document.getElementById("tc"),
+                gl = document.getElementById("giallo-light"),
+                gd = document.getElementById("giallo-dark");
             h.className = t;
             function u() {
                 c.content = getComputedStyle(h).getPropertyValue("--tc");
+                gl.disabled = t !== "light";
+                gd.disabled = t !== "dark";
             }
             u();
             window.T = function () {
@@ -94,7 +100,7 @@
 
     <header id="site-header">
         <div>
-            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#39;s Blog</strong></a></span>
             <nav>
                 <a href="https://yazeed1s.github.io/" >Home</a>
                 <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
@@ -106,7 +112,9 @@
                         return false;
                     " class="theme" aria-label="Toggle theme" title="Toggle theme">
 <svg><use href="#light"/></svg>
-<svg><use href="#asleep"/></svg></a>
+
+<svg><use href="#asleep"/></svg>
+</a>
         </div>
     </header>
     <hr class="site-sep" />
@@ -122,13 +130,11 @@
             <span class="post-tags">
                 <span class="post-tags-label">Tags: </span>
                 
-                <a href="https://yazeed1s.github.io/tags/operating-systems">Operating Systems</a><span
+                <a href="https://yazeed1s.github.io/tags/os">OS</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/memory">Memory</a><span
+                <a href="https://yazeed1s.github.io/tags/memory">memory</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/linux">Linux</a><span
-                    class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/paging">Paging</a>
+                <a href="https://yazeed1s.github.io/tags/paging">paging</a>
             </span>
             
         </div>
@@ -150,7 +156,7 @@
 <h2 id="paging-in-and-out">paging in and out</h2>
 <p><strong>Page in</strong> means loading a page from disk into RAM, and <strong>page out</strong> means moving a page from RAM to disk to free space.</p>
 <p>When RAM is full and a new page is needed, the kernel picks a <strong>victim</strong> (some page not accessed recently). If the victim is dirty (modified since it was loaded), the kernel writes it to swap first, and if it's clean, the kernel just drops it and reloads later if needed.</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="plain"><span class="giallo-l"><span>Before:</span></span>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="plain"><span class="giallo-l"><span>Before:</span></span>
 <span class="giallo-l"><span>RAM:  [A][B][C][D] ← full</span></span>
 <span class="giallo-l"><span>Swap: [empty]</span></span>
 <span class="giallo-l"></span>
@@ -186,20 +192,20 @@
 <p>Linux maintains active/inactive lists where pages accessed recently go to active and cold pages drift to inactive, and reclaim takes from inactive first. True LRU would track exact access times for every page, which is too expensive, so Linux settles for "recently used" vs "not recently used."</p>
 <h2 id="swappiness">swappiness</h2>
 <p>Linux doesn't wait until RAM is completely full to start swapping, there's a knob called <strong>swappiness</strong>.</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="shellscript"><span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">$</span><span style="color: light-dark(#4A6934, #CB8B8B);"> cat</span><span style="color: light-dark(#4A6934, #CB8B8B);"> /proc/sys/vm/swappiness</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">60</span></span></code></pre>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="shellscript"><span class="giallo-l"><span class="z-l-2 z-d-3">$</span><span class="z-l-3 z-d-6"> cat</span><span class="z-l-3 z-d-6"> /proc/sys/vm/swappiness</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-3">60</span></span></code></pre>
 <p>Range is 0-200 and it affects how willing the kernel is to swap anonymous memory vs reclaim file cache. At <strong>0</strong> it avoids swapping and holds app memory while sacrificing cache, <strong>60</strong> is the default and balanced, and <strong>100+</strong> means swap more aggressively and keep the file cache warm. No universal right answer, depends on workload.</p>
 <h2 id="what-can-t-be-swapped">what can't be swapped</h2>
 <p>Not everything can go to disk. <strong>Kernel memory</strong> like page tables, process descriptors, and driver state must stay in RAM because if the kernel got paged out, who pages it back in? <strong>Pinned memory</strong> is memory explicitly locked by the application using mlock, and it's used by RDMA, databases, and similar systems. Kernel memory leaks are dangerous because that memory is gone until reboot.</p>
 <h2 id="overcommit">overcommit</h2>
 <p>Linux lets you allocate more memory than exists, so <code>malloc(1GB)</code> succeeds even with 512MB free. This is intentional, called <strong>overcommit</strong>, and it makes sense because most programs allocate more than they use (sparse arrays, forked processes before exec), and refusing would break software.</p>
 <p>The downside: actually use all that memory and the OOM killer fires. Allocation succeeded, using it didn't.</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="shellscript"><span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">$</span><span style="color: light-dark(#4A6934, #CB8B8B);"> cat</span><span style="color: light-dark(#4A6934, #CB8B8B);"> /proc/sys/vm/overcommit_memory</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">0</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">  #</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> heuristic (default)</span></span>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="shellscript"><span class="giallo-l"><span class="z-l-2 z-d-3">$</span><span class="z-l-3 z-d-6"> cat</span><span class="z-l-3 z-d-6"> /proc/sys/vm/overcommit_memory</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-3">0</span><span class="z-l-5 z-l-i z-d-1 z-d-i">  #</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> heuristic (default)</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">#</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> 0 = guess what&#39;s safe</span></span>
-<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">#</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> 1 = always allow (yolo)</span></span>
-<span class="giallo-l"><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">#</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> 2 = strict (refuse if exceeds limit)</span></span></code></pre>
+<span class="giallo-l"><span class="z-l-5 z-l-i z-d-1 z-d-i">#</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> 0 = guess what&#39;s safe</span></span>
+<span class="giallo-l"><span class="z-l-5 z-l-i z-d-1 z-d-i">#</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> 1 = always allow (yolo)</span></span>
+<span class="giallo-l"><span class="z-l-5 z-l-i z-d-1 z-d-i">#</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> 2 = strict (refuse if exceeds limit)</span></span></code></pre>
 <p>Mode 2 is safer but breaks things, and mode 1 is living dangerously.</p>
 <blockquote>
 <p>Mode 0 isn't blind. The kernel uses heuristics that account for total RAM, swap space, and current usage. It will still refuse obviously absurd allocations. Mode 2 enforces a strict limit based on <code>overcommit_ratio</code> (default 50%) of physical RAM plus swap. So "always allow" vs "strict" is more nuanced than it looks.</p>

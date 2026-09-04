@@ -12,9 +12,9 @@
 />
 <link rel="canonical" href="https://yazeed1s.github.io/posts/live-streaming/" />
 
-<title>How Live Streaming Actually Works | Yazeed&#x27;s Blog</title>
-<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
-<meta property="og:title" content="How Live Streaming Actually Works | Yazeed&#x27;s Blog" />
+<title>How Live Streaming Actually Works | Yazeed&#39;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#39;s Blog" />
+<meta property="og:title" content="How Live Streaming Actually Works | Yazeed&#39;s Blog" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://yazeed1s.github.io/posts/live-streaming/" />
 <meta property="og:description" content="The full pipeline from OBS to your screen, and where it gets expensive." />
@@ -23,10 +23,12 @@
 <meta name="twitter:title" content="How Live Streaming Actually Works" />
 <meta name="twitter:description" content="The full pipeline from OBS to your screen, and where it gets expensive." />
 
-    <link rel="icon" href="&#x2F;favicon.ico" />
+    <link rel="icon" href="/favicon.ico" />
     
     <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
     <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+    <link id="giallo-light" rel="stylesheet" href="https://yazeed1s.github.io/giallo-light.css" />
+    <link id="giallo-dark" rel="stylesheet" href="https://yazeed1s.github.io/giallo-dark.css" />
 
            
     
@@ -39,7 +41,7 @@
     
     <style>
         :root {
-            --nav-basis: 25%;
+            --nav-basis: 25.0%;
             --light-bg: #eae6deff;
             --light-text: #1a1410;
             --light-text-muted: #1a1410;
@@ -68,10 +70,14 @@
             var m = matchMedia("(prefers-color-scheme:dark)"),
                 t = localStorage.theme || (m.matches ? "dark" : "light"),
                 h = document.documentElement,
-                c = document.getElementById("tc");
+                c = document.getElementById("tc"),
+                gl = document.getElementById("giallo-light"),
+                gd = document.getElementById("giallo-dark");
             h.className = t;
             function u() {
                 c.content = getComputedStyle(h).getPropertyValue("--tc");
+                gl.disabled = t !== "light";
+                gd.disabled = t !== "dark";
             }
             u();
             window.T = function () {
@@ -94,7 +100,7 @@
 
     <header id="site-header">
         <div>
-            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#39;s Blog</strong></a></span>
             <nav>
                 <a href="https://yazeed1s.github.io/" >Home</a>
                 <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
@@ -106,7 +112,9 @@
                         return false;
                     " class="theme" aria-label="Toggle theme" title="Toggle theme">
 <svg><use href="#light"/></svg>
-<svg><use href="#asleep"/></svg></a>
+
+<svg><use href="#asleep"/></svg>
+</a>
         </div>
     </header>
     <hr class="site-sep" />
@@ -122,13 +130,11 @@
             <span class="post-tags">
                 <span class="post-tags-label">Tags: </span>
                 
-                <a href="https://yazeed1s.github.io/tags/streaming">Streaming</a><span
+                <a href="https://yazeed1s.github.io/tags/streaming">streaming</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/video">Video</a><span
+                <a href="https://yazeed1s.github.io/tags/video">video</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/infrastructure">Infrastructure</a><span
-                    class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/networking">Networking</a>
+                <a href="https://yazeed1s.github.io/tags/networking">networking</a>
             </span>
             
         </div>
@@ -155,7 +161,7 @@
 </blockquote>
 <h2 id="hls-how-viewers-get-the-stream">HLS: how viewers get the stream</h2>
 <p>HLS (HTTP Live Streaming) is how the video actually reaches viewers. The idea is simple, break the continuous video into small segment files (2-6 seconds each), and then write a playlist (<code>.m3u8</code>) listing the available segments, and let the player download them one by one over plain HTTP.</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="plain"><span class="giallo-l"><span>#EXTM3U</span></span>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="plain"><span class="giallo-l"><span>#EXTM3U</span></span>
 <span class="giallo-l"><span>#EXT-X-STREAM-INF:BANDWIDTH=6000000,RESOLUTION=1920x1080</span></span>
 <span class="giallo-l"><span>1080p/playlist.m3u8</span></span>
 <span class="giallo-l"><span>#EXT-X-STREAM-INF:BANDWIDTH=3000000,RESOLUTION=1280x720</span></span>
@@ -171,7 +177,7 @@
 <h2 id="cdn-distribution">CDN: distribution</h2>
 <p>One server can't push a stream to 50,000 viewers, the bandwidth alone would be 200 Gbps, which is absurd for a single origin. So the origin generates HLS segments and edge servers around the world and cache them close to viewers. A viewer in Tokyo pulls from a Tokyo edge, not from a datacenter in Virginia.</p>
 <p>CDN cost is bandwidth. Providers charge per GB transferred. A stream at 4 Mbps to 10,000 viewers for 3 hours works out to roughly 54 TB of data:</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="plain"><span class="giallo-l"><span>4 Mbps × 10,000 × 10,800 seconds ≈ 54 TB</span></span></code></pre>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="plain"><span class="giallo-l"><span>4 Mbps × 10,000 × 10,800 seconds ≈ 54 TB</span></span></code></pre>
 <p>Even at bulk pricing, that's expensive. Twitch and YouTube operate their own edge networks partly to keep these costs under control. Smaller platforms pay CloudFront or Fastly or Akamai rates, and the bandwidth bill is usually their single largest expense.</p>
 <h2 id="webrtc-the-low-latency-option">WebRTC: the low-latency option</h2>
 <p>WebRTC uses UDP, skips segmentation entirely, and achieves sub-second latency. It was designed for video calls though, not broadcast, and the scaling model reflects that. A 4-person video call is peer-to-peer, everyone sends to everyone. Each one sends to the other three, so 4 people × 3 connections = 12 connections total. That doesn't work for thousands of viewers.</p>
@@ -181,11 +187,11 @@
 </blockquote>
 <h2 id="ffmpeg-the-glue">FFmpeg: the glue</h2>
 <p>FFmpeg shows up at almost every stage. A minimal ingest-to-HLS pipeline is one command:</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="shellscript"><span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">ffmpeg</span><span style="color: light-dark(#784367, #CA9D7D);"> -</span><span style="color: light-dark(#784367, #CA9D7D);">i</span><span style="color: light-dark(#4A6934, #CB8B8B);"> rtmp://localhost/live/stream_key</span><span style="color: light-dark(#784367, #CA9D7D);"> \</span></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #CA9D7D);">  -</span><span style="color: light-dark(#784367, #CA9D7D);">c:v</span><span style="color: light-dark(#4A6934, #CB8B8B);"> libx264</span><span style="color: light-dark(#784367, #CA9D7D);"> -</span><span style="color: light-dark(#784367, #CA9D7D);">preset</span><span style="color: light-dark(#4A6934, #CB8B8B);"> veryfast</span><span style="color: light-dark(#784367, #CA9D7D);"> -</span><span style="color: light-dark(#784367, #CA9D7D);">b:v</span><span style="color: light-dark(#4A6934, #CB8B8B);"> 3000k</span><span style="color: light-dark(#784367, #CA9D7D);"> \</span></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #CA9D7D);">  -</span><span style="color: light-dark(#784367, #CA9D7D);">c:a</span><span style="color: light-dark(#4A6934, #CB8B8B);"> aac</span><span style="color: light-dark(#784367, #CA9D7D);"> -</span><span style="color: light-dark(#784367, #CA9D7D);">b:a</span><span style="color: light-dark(#4A6934, #CB8B8B);"> 128k</span><span style="color: light-dark(#784367, #CA9D7D);"> \</span></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #CA9D7D);">  -</span><span style="color: light-dark(#784367, #CA9D7D);">f</span><span style="color: light-dark(#4A6934, #CB8B8B);"> hls</span><span style="color: light-dark(#784367, #CA9D7D);"> -</span><span style="color: light-dark(#784367, #CA9D7D);">hls_time</span><span style="color: light-dark(#784367, #CA9D7D);"> 4</span><span style="color: light-dark(#784367, #CA9D7D);"> -</span><span style="color: light-dark(#784367, #CA9D7D);">hls_list_size</span><span style="color: light-dark(#784367, #CA9D7D);"> 5</span><span style="color: light-dark(#784367, #CA9D7D);"> \</span></span>
-<span class="giallo-l"><span style="color: light-dark(#4A6934, #CB8B8B);">  /var/www/stream/playlist.m3u8</span></span></code></pre>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="shellscript"><span class="giallo-l"><span class="z-l-2 z-d-3">ffmpeg</span><span class="z-l-4 z-d-5"> -</span><span class="z-l-4 z-d-5">i</span><span class="z-l-3 z-d-6"> rtmp://localhost/live/stream_key</span><span class="z-l-4 z-d-5"> \</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-5">  -</span><span class="z-l-4 z-d-5">c:v</span><span class="z-l-3 z-d-6"> libx264</span><span class="z-l-4 z-d-5"> -</span><span class="z-l-4 z-d-5">preset</span><span class="z-l-3 z-d-6"> veryfast</span><span class="z-l-4 z-d-5"> -</span><span class="z-l-4 z-d-5">b:v</span><span class="z-l-3 z-d-6"> 3000k</span><span class="z-l-4 z-d-5"> \</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-5">  -</span><span class="z-l-4 z-d-5">c:a</span><span class="z-l-3 z-d-6"> aac</span><span class="z-l-4 z-d-5"> -</span><span class="z-l-4 z-d-5">b:a</span><span class="z-l-3 z-d-6"> 128k</span><span class="z-l-4 z-d-5"> \</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-5">  -</span><span class="z-l-4 z-d-5">f</span><span class="z-l-3 z-d-6"> hls</span><span class="z-l-4 z-d-5"> -</span><span class="z-l-4 z-d-5">hls_time</span><span class="z-l-4 z-d-5"> 4</span><span class="z-l-4 z-d-5"> -</span><span class="z-l-4 z-d-5">hls_list_size</span><span class="z-l-4 z-d-5"> 5</span><span class="z-l-4 z-d-5"> \</span></span>
+<span class="giallo-l"><span class="z-l-3 z-d-6">  /var/www/stream/playlist.m3u8</span></span></code></pre>
 <p>That takes an RTMP stream, re-encodes it to H.264 at 3 Mbps, outputs HLS segments of 4 seconds each, and writes playlist files to disk. Serve those with nginx and you have a working live streaming backend. For multiple renditions you run multiple outputs or use the <code>split</code> filter. In production, platforms wrap FFmpeg's libraries (libavcodec, libavformat) in their own orchestration with health checks and failover, but the encoding core is the same, you just need engineer and build around/on top of it.</p>
 <h2 id="where-the-money-goes">where the money goes</h2>
 <p>Encoding and transcoding is compute cost that scales linearly with active streams. More streamers means more encoder instances, and specialized hardware or GPU rentals aren't cheap. CDN bandwidth is the biggest variable cost and scales with viewers × bitrate × time, so a viral stream with 100,000 viewers can generate a terrifying bill in a few hours, which is why platforms cap bitrates or limit quality options. Storage for VODs adds up quietly as every saved stream is hours of multi-bitrate video, and Twitch keeps them for 14-60 days while YouTube keeps them forever. Ingest infrastructure is the global network of servers accepting RTMP connections, each location with its own hardware and bandwidth costs.</p>

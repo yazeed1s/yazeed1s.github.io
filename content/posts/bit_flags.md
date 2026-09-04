@@ -6,17 +6,11 @@ description = "A simple way to embed multiple boolean conditions in a single int
 tags = ["C", "bit manipulation", "systems programming"]
 +++
 
----
-
-Sometimes you need to track multiple related conditions and a struct of booleans works, but it gets clunky once you start checking combinations or passing state around.
-
-Bit flags offer a simpler pattern: pack everything into a single integer. The real win isn't memory usage, it's composability because you get a single value representing your entire state that you can pass, store, and compare in one go.
-
----
+Sometimes you need to track multiple related conditions, and a struct of booleans works fine until you start checking combinations or passing the state around, at which point it gets clunky. Bit flags are a simpler pattern for that, where you pack everything into a single integer, and the real win isn't memory usage but composability, since you end up with one value representing your entire state that you can pass, store, and compare in one go.
 
 ## the pattern
 
-Each bit represents one condition, and you use powers of 2 so they don't overlap:
+Each bit represents one condition and you use powers of 2 so they don't overlap:
 
 ```c
 typedef enum {
@@ -39,7 +33,7 @@ Bit position:    7   6   5   4   3   2   1   0
                                  D   C   B
 ```
 
-Set with `|=`, clear with `&= ~`, check with `&`:
+You set with `|=`, clear with `&= ~`, and check with `&`:
 
 ```c
 flags |= FLAG_A;           /* set */
@@ -50,11 +44,9 @@ if (flags & FLAG_A) {...}  /* check */
 if ((flags & (FLAG_A | FLAG_B)) == (FLAG_A | FLAG_B)) {...}
 ```
 
----
-
 ## example: monitor state changes
 
-In my window manager, I track what changed when monitors are plugged in or unplugged:
+In my window manager I track what changed when monitors are plugged in or unplugged:
 
 ```c
 typedef enum {
@@ -100,7 +92,7 @@ Final:
                       L       C
 ```
 
-One integer captures CONNECTED + LAYOUT. Now I can handle both:
+One integer captures CONNECTED plus LAYOUT, so now I can handle both:
 
 ```c
 void handle_monitor_changes(void) {
@@ -117,9 +109,9 @@ void handle_monitor_changes(void) {
 
 With a single integer I can track and respond to any combination of events.
 
-## Another example: Red-Black Tree
+## another example: red-black tree
 
-A while back I implemented a red-black tree. To validate the tree invariants, I used bit flags to track which rules were violated:
+A while back I implemented a red-black tree, and to validate the tree invariants I used bit flags to track which rules were violated:
 
 ```c
 /* Red-black tree rules:
@@ -168,43 +160,21 @@ if (v == RB_VALID) {
 
 One return value, multiple possible problems, which is cleaner than an array of error codes or a struct with boolean fields.
 
----
-
 ## why uint32_t, not uint8_t
 
-You might think: "I only have 4 flags. Why not `uint8_t`?"
-
-Integer promotion. In C, bitwise operations promote smaller types to `int`:
+The obvious question is why not `uint8_t` when you only have 4 flags, and the answer is integer promotion, because in C bitwise operations promote smaller types to `int`:
 
 ```c
 uint8_t flags = 0xFF;
 if (~flags == 0) { ... }  /* false! ~flags is 0xFFFFFF00, not 0x00 */
 ```
 
-The comparison happens at `int` width before truncation. This is easy to write and hard to debug.
-
-Shifts have their own footguns too: the shift happens after integer promotions, and shifting by >= the width of the promoted type is undefined behavior (e.g., `1U << 32` on a system where `unsigned int` is 32-bit).
-
-If you really want `uint8_t` you can store it as `uint8_t` and be explicit about casts in your bit-twiddling, but in most code `uint32_t` is the boring option: it fits in a register, avoids promotion surprises, and gives you room for 32 flags.
-
----
+The comparison happens at `int` width before truncation, which is easy to write and hard to debug. Shifts have their own footguns since the shift also happens after integer promotion, and shifting by more than or equal to the width of the promoted type is undefined behavior, for example `1U << 32` on a system where `unsigned int` is 32-bit. If you really want `uint8_t` you can store it as `uint8_t` and be explicit about casts in your bit-twiddling, but in most code `uint32_t` is the boring choice that fits in a register, avoids the promotion surprises, and gives you room for 32 flags.
 
 ## why not just use bools
 
-A `bool` in C is typically 1 byte, not 1 bit, and arrays and structs of bools don't pack bits either since each element takes a full byte. Memory savings only matter when you have many flags (5+).
-
-But memory isn't the point, the point is that bit flags compose. A single integer can represent "connected AND layout changed" or "disconnected OR error" and you can pass that combined state to a function, store it, or compare it in one operation.
-
----
+A `bool` in C is typically 1 byte and not 1 bit, and arrays and structs of bools don't pack bits either since each element takes a full byte, so the memory savings only really matter when you have many flags, say 5 or more. But memory isn't the point, the point is that bit flags compose, so a single integer can represent "connected AND layout changed" or "disconnected OR error" and you can pass that combined state to a function, store it, or compare it in one operation.
 
 ## when bit flags hurt
 
-Bit flags aren't always better:
-
-- **Readability.** `flags & FLAG_A` isn't as obvious as `state.is_connected` at first glance. If the code isn't systems-level or performance-sensitive, the clarity cost may not be worth it.
-
-- **Debugging.** Printing `0x0A` is less helpful than printing `"connected=true, layout=true"`. You'll want helper functions to decode flags when debugging.
-
-- **Overkill for few flags.** If you have 2-3 independent conditions and never combine them, a struct of bools is simpler.
-
-The pattern shines when state composition matters (events, options, validation results, capability bits). It's worse when conditions are truly independent and never need to travel together.
+Bit flags aren't always better. Readability takes a hit because `flags & FLAG_A` isn't as obvious as `state.is_connected` at a glance, so if the code isn't systems-level or performance-sensitive the clarity cost might not be worth it. Debugging gets harder too since printing `0x0A` is less helpful than printing `"connected=true, layout=true"`, and you'll want helper functions to decode flags when something goes wrong. And it's overkill for few flags, so if you have 2-3 independent conditions that never combine, a struct of bools is simpler. The pattern shines when state composition matters, like events, options, validation results, or capability bits, and it's worse when conditions are truly independent and never need to travel together.

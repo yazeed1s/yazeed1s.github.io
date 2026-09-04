@@ -12,9 +12,9 @@
 />
 <link rel="canonical" href="https://yazeed1s.github.io/posts/my-monitor-was-dying/" />
 
-<title>My monitor was dying | Yazeed&#x27;s Blog</title>
-<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
-<meta property="og:title" content="My monitor was dying | Yazeed&#x27;s Blog" />
+<title>My monitor was dying | Yazeed&#39;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#39;s Blog" />
+<meta property="og:title" content="My monitor was dying | Yazeed&#39;s Blog" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://yazeed1s.github.io/posts/my-monitor-was-dying/" />
 <meta property="og:description" content="debugging what looked like panel failure, turned out to be a shadow from polybar crossing monitor boundaries." />
@@ -23,10 +23,12 @@
 <meta name="twitter:title" content="My monitor was dying" />
 <meta name="twitter:description" content="debugging what looked like panel failure, turned out to be a shadow from polybar crossing monitor boundaries." />
 
-    <link rel="icon" href="&#x2F;favicon.ico" />
+    <link rel="icon" href="/favicon.ico" />
     
     <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
     <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+    <link id="giallo-light" rel="stylesheet" href="https://yazeed1s.github.io/giallo-light.css" />
+    <link id="giallo-dark" rel="stylesheet" href="https://yazeed1s.github.io/giallo-dark.css" />
 
            
     
@@ -39,7 +41,7 @@
     
     <style>
         :root {
-            --nav-basis: 25%;
+            --nav-basis: 25.0%;
             --light-bg: #eae6deff;
             --light-text: #1a1410;
             --light-text-muted: #1a1410;
@@ -68,10 +70,14 @@
             var m = matchMedia("(prefers-color-scheme:dark)"),
                 t = localStorage.theme || (m.matches ? "dark" : "light"),
                 h = document.documentElement,
-                c = document.getElementById("tc");
+                c = document.getElementById("tc"),
+                gl = document.getElementById("giallo-light"),
+                gd = document.getElementById("giallo-dark");
             h.className = t;
             function u() {
                 c.content = getComputedStyle(h).getPropertyValue("--tc");
+                gl.disabled = t !== "light";
+                gd.disabled = t !== "dark";
             }
             u();
             window.T = function () {
@@ -94,7 +100,7 @@
 
     <header id="site-header">
         <div>
-            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#39;s Blog</strong></a></span>
             <nav>
                 <a href="https://yazeed1s.github.io/" >Home</a>
                 <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
@@ -106,7 +112,9 @@
                         return false;
                     " class="theme" aria-label="Toggle theme" title="Toggle theme">
 <svg><use href="#light"/></svg>
-<svg><use href="#asleep"/></svg></a>
+
+<svg><use href="#asleep"/></svg>
+</a>
         </div>
     </header>
     <hr class="site-sep" />
@@ -122,13 +130,11 @@
             <span class="post-tags">
                 <span class="post-tags-label">Tags: </span>
                 
-                <a href="https://yazeed1s.github.io/tags/linux">Linux</a><span
+                <a href="https://yazeed1s.github.io/tags/linux">linux</a><span
                     class="tag-comma">,</span> 
                 <a href="https://yazeed1s.github.io/tags/x11">x11</a><span
                     class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/picom">Picom</a><span
-                    class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/debugging">Debugging</a>
+                <a href="https://yazeed1s.github.io/tags/debugging">debugging</a>
             </span>
             
         </div>
@@ -154,10 +160,10 @@
 <p>When Firefox or any bright window was near that corner of the screen, the shadow overlay looked exactly like panel dimming.</p>
 <h2 id="why-the-shadow-crossed-monitors">why the shadow crossed monitors</h2>
 <p>X11 treats the entire desktop as one big coordinate space. Monitors are just rectangles positioned within it:</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="shellscript"><span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">$</span><span style="color: light-dark(#4A6934, #CB8B8B);"> xrandr</span><span style="color: light-dark(#784367, #CA9D7D);"> -</span><span style="color: light-dark(#784367, #CA9D7D);">-listmonitors</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);">Monitors:</span><span style="color: light-dark(#784367, #CA9D7D);"> 2</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);"> 0:</span><span style="color: light-dark(#4A6934, #CB8B8B);"> +</span><span style="color: light-dark(#7D4242, #D4D4C0);">*</span><span style="color: light-dark(#4A6934, #CB8B8B);">eDP</span><span style="color: light-dark(#4A6934, #CB8B8B);"> 1920/302x1200/189+0+0</span><span style="color: light-dark(#4A6934, #CB8B8B);">  eDP</span></span>
-<span class="giallo-l"><span style="color: light-dark(#3C6362, #A2BD90);"> 1:</span><span style="color: light-dark(#4A6934, #CB8B8B);"> +DisplayPort-0</span><span style="color: light-dark(#4A6934, #CB8B8B);"> 2560/597x1440/336+1920+0</span><span style="color: light-dark(#4A6934, #CB8B8B);">  DisplayPort-0</span></span></code></pre>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="shellscript"><span class="giallo-l"><span class="z-l-2 z-d-3">$</span><span class="z-l-3 z-d-6"> xrandr</span><span class="z-l-4 z-d-5"> -</span><span class="z-l-4 z-d-5">-listmonitors</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-3">Monitors:</span><span class="z-l-4 z-d-5"> 2</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-3"> 0:</span><span class="z-l-3 z-d-6"> +</span><span class="z-l-6">*</span><span class="z-l-3 z-d-6">eDP</span><span class="z-l-3 z-d-6"> 1920/302x1200/189+0+0</span><span class="z-l-3 z-d-6">  eDP</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-3"> 1:</span><span class="z-l-3 z-d-6"> +DisplayPort-0</span><span class="z-l-3 z-d-6"> 2560/597x1440/336+1920+0</span><span class="z-l-3 z-d-6">  DisplayPort-0</span></span></code></pre>
 <p>My laptop screen is at x=0. The external monitor starts at x=1920.</p>
 <p>Polybar sits at the top of the laptop screen. Its shadow extends past its bounds. If that extension reaches x=1920, it bleeds into the top-left corner of the external monitor.</p>
 <p>Shadows and blur effects don't know about monitor boundaries. They just work in global pixel coordinates. That's where my "hardware defect" was.</p>

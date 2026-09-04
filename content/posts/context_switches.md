@@ -14,7 +14,7 @@ CPUs don't multitask on their own, they execute one instruction stream at a time
 
 ## what gets saved
 
-A process's execution state lives in CPU registers, and when the OS switches away from a process it needs to save all of them: general purpose registers (rax, rbx, rcx on x86-64), the instruction pointer (rip, which says where execution was), the stack pointer (rsp), flags register, floating point and SIMD registers (SSE, AVX), and the memory mappings reference (CR3 on x86, which points to the page tables).
+A process's execution state lives in CPU registers, and when the OS switches away from a process it needs to save all of them, so the general purpose registers (rax, rbx, rcx on x86-64), the instruction pointer (rip, which says where execution was), the stack pointer (rsp), the flags register, the floating point and SIMD registers (SSE, AVX), and the memory mappings reference (CR3 on x86, which points to the page tables).
 
 All of this gets saved to the process's kernel data structure (the task_struct on Linux), and the incoming process's saved state gets loaded into the CPU registers. The CPU then continues executing from wherever the new process left off.
 
@@ -37,21 +37,15 @@ The key thing is that the process doesn't know. It saved no state, it called no 
 
 ## the cost
 
-Context switches aren't free. The direct cost is saving and restoring register state, which is maybe a few hundred nanoseconds. But the indirect cost is worse: the TLB gets flushed (partially or fully) because the new process has different page tables, so the first memory accesses after the switch take page table walks instead of TLB hits. The CPU caches (L1, L2) are now full of the old process's data, and the new process suffers cache misses until it warms them up. Branch predictors trained on the old process's code are useless for the new process.
-
-These indirect costs can add up to several microseconds of effective penalty, and on workloads with many short-lived operations it can matter a lot.
+Context switches aren't free. The direct cost is saving and restoring register state, which is maybe a few hundred nanoseconds, but the indirect cost is worse, because the TLB gets flushed partially or fully since the new process has different page tables, so the first memory accesses after the switch take page table walks instead of TLB hits, and the CPU caches are now full of the old process's data so the new process suffers cache misses until it warms them up, and the branch predictors trained on the old process's code are useless for the new one. These indirect costs can add up to several microseconds of effective penalty, and on workloads with many short-lived operations it can matter a lot.
 
 ## thread switches vs process switches
 
-Threads within the same process share address space, so switching between them doesn't require changing CR3 or flushing the TLB. That makes thread switches cheaper: you still save/restore registers, but you skip the expensive page table swap and TLB invalidation.
-
-This is one reason why multi-threaded servers outperform multi-process ones for high-concurrency workloads, fewer and cheaper context switches.
+Threads within the same process share address space, so switching between them doesn't require changing CR3 or flushing the TLB, which makes thread switches cheaper, since you still save and restore registers but skip the expensive page table swap and TLB invalidation. This is one reason multi-threaded servers outperform multi-process ones for high-concurrency workloads, the context switches are fewer and cheaper.
 
 ## voluntary vs involuntary
 
-A **voluntary** context switch happens when a process can't continue: it calls `read()` and waits for disk, calls `sleep()`, waits on a mutex, or does any blocking operation. The process is saying "I have nothing to do, give the CPU to someone else."
-
-An **involuntary** context switch happens when the scheduler preempts the process because its time slice expired (the timer interrupt fires and the scheduler decides it's someone else's turn), a higher-priority process becomes runnable, or load balancing moves the process to another core. You can see both types in `/proc/<pid>/status` under `voluntary_ctxt_switches` and `nonvoluntary_ctxt_switches`.
+A **voluntary** context switch happens when a process can't continue, so it calls `read()` and waits for disk, calls `sleep()`, waits on a mutex, or does any blocking operation, and it's basically the process saying it has nothing to do so give the CPU to someone else. An **involuntary** context switch happens when the scheduler preempts the process because its time slice expired and the timer interrupt fired and the scheduler decided it's someone else's turn, or a higher-priority process became runnable, or load balancing moved the process to another core. You can see both types in `/proc/<pid>/status` under `voluntary_ctxt_switches` and `nonvoluntary_ctxt_switches`.
 
 ## what triggers a switch
 

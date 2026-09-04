@@ -1,2 +1,3 @@
-{% import "macros/images.html" as images -%} {{ images::image(path=page.path,
-src=src, alt=alt, class=class | default(value="") ) }}
+{% component image_original(src, alt, page = null, class = "") %}
+{{<images.image path={page.path} src alt class />}}
+{% endcomponent image_original %}

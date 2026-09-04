@@ -24,7 +24,7 @@ A file descriptor is an integer index into a per-process table of open files. Wh
 
 Each process has its own file descriptor table, so fd 5 in one process is completely unrelated to fd 5 in another. The file descriptor carries the current read/write position, flags (like `O_NONBLOCK`), and a reference to the underlying inode.
 
-File descriptors aren't just for files on disk: they represent pipes, sockets, eventfd, timerfd, signalfd, epoll instances, and even directories. The "everything is a file" philosophy means one interface for many types of I/O.
+File descriptors aren't just for files on disk, they also represent pipes, sockets, eventfd, timerfd, signalfd, epoll instances, and even directories, and the "everything is a file" philosophy means one interface for many types of I/O.
 
 There's a per-process limit on open file descriptors (check with `ulimit -n`, default often 1024) and a system-wide limit. Leaking file descriptors is a common bug, especially in long-running services that open connections and forget to close them.
 
@@ -32,7 +32,7 @@ You can see all open file descriptors for a process in `/proc/<pid>/fd/`, where 
 
 ## signals
 
-Each process has a signal disposition table describing what happens for each signal. The default action depends on the signal: `SIGTERM` terminates, `SIGSTOP` suspends, `SIGCHLD` is ignored by default. You can override most defaults with signal handlers, except for `SIGKILL` and `SIGSTOP` which can't be caught or ignored.
+Each process has a signal disposition table describing what happens for each signal, and the default action depends on the signal, so `SIGTERM` terminates, `SIGSTOP` suspends, and `SIGCHLD` is ignored by default. You can override most defaults with signal handlers, except for `SIGKILL` and `SIGSTOP` which can't be caught or ignored.
 
 A process also has a signal mask that blocks specific signals from being delivered (they queue up until unblocked), and a set of pending signals that have been sent but not yet handled.
 
@@ -40,7 +40,7 @@ Signal handling is per-process (signal disposition) but delivery can target spec
 
 ## credentials
 
-Every process has a set of UIDs and GIDs that determine what it can access. There are three sets: **real** (who actually started the process), **effective** (what's checked for access), and **saved** (the previous effective, so you can drop and regain privileges).
+Every process has a set of UIDs and GIDs that determine what it can access, and there are three sets, the real one being who actually started the process, the effective one being what's checked for access, and the saved one being the previous effective so you can drop and regain privileges.
 
 Usually real and effective are the same, but setuid programs differ. When you run `passwd`, the file has the setuid bit set, so the effective UID becomes root (owner of the file) while the real UID stays yours. The process can access `/etc/shadow` because effective UID is root, but the program knows who actually called it through the real UID.
 
@@ -48,21 +48,19 @@ Groups work the same way, and there's also a supplementary group list for all th
 
 ## scheduling context
 
-The kernel tracks scheduling metadata for each process: its priority (nice value from -20 to 19, and real-time priority if applicable), which scheduling class it belongs to (CFS for normal processes, FIFO or round-robin for real-time), how much CPU time it has consumed, when it last ran, and which CPU it ran on.
+The kernel tracks scheduling metadata for each process, so its priority (nice value from -20 to 19, and real-time priority if applicable), which scheduling class it belongs to (CFS for normal processes, FIFO or round-robin for real-time), how much CPU time it has consumed, when it last ran, and which CPU it ran on.
 
-CFS (Completely Fair Scheduler) on Linux uses a virtual runtime to track how much CPU time a process has received relative to others, and it always picks the process with the lowest virtual runtime to run next. The nice value adjusts the weight: a lower nice value means more weight, which means the virtual runtime advances more slowly, which means more CPU time.
+CFS (Completely Fair Scheduler) on Linux uses a virtual runtime to track how much CPU time a process has received relative to others, and it always picks the process with the lowest virtual runtime to run next. The nice value adjusts the weight, so a lower nice value means more weight, which means the virtual runtime advances more slowly, which means more CPU time.
 
 ## namespaces and cgroups
 
-In containerized environments, processes also own namespace memberships and cgroup associations. Namespaces give a process an isolated view of system resources: PID namespace makes it think its PID is 1, network namespace gives it a separate network stack, mount namespace gives it a different filesystem view.
-
-Cgroups limit how much resource a process (or group of processes) can use: CPU quota, memory limit, I/O bandwidth, and number of PIDs. These are the building blocks of containers.
+In containerized environments processes also own namespace memberships and cgroup associations. Namespaces give a process an isolated view of system resources, so the PID namespace makes it think its PID is 1, the network namespace gives it a separate network stack, and the mount namespace gives it a different filesystem view. Cgroups limit how much resource a process or group of processes can use, so CPU quota, memory limit, I/O bandwidth, and number of PIDs, and these are the building blocks of containers.
 
 ## the task_struct
 
-Internally, the kernel represents all of this in a single structure called `task_struct`, which on Linux is a large struct (several kilobytes) containing or pointing to everything described above: the memory descriptor for address space, the files struct for file descriptors, the signal handler table, credentials, scheduling state, namespace pointers, cgroup references, and many other fields.
+Internally the kernel represents all of this in a single structure called `task_struct`, which on Linux is a large struct of several kilobytes containing or pointing to everything described above, so the memory descriptor for address space, the files struct for file descriptors, the signal handler table, credentials, scheduling state, namespace pointers, cgroup references, and many other fields.
 
-Every running thread has a `task_struct`. A single-threaded process has one. A multi-threaded process has one per thread, and they share the memory descriptor, file table, and signal handlers through pointers to the same structures.
+Every running thread has a `task_struct`, so a single-threaded process has one and a multi-threaded process has one per thread, and they share the memory descriptor, file table, and signal handlers through pointers to the same structures.
 
 ## notes
 

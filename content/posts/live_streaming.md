@@ -22,9 +22,9 @@ OBS can use x264 in software (runs on CPU, good quality, eats cores) or hardware
 
 You also pick a preset (faster = less CPU = worse compression), a bitrate, resolution, and framerate. The encoder has a hard real-time deadline as it must finish each frame before the next one arrives at 16ms intervals for 60fps. If it can't keep up, frames get dropped and you see that in the stream.
 
-## RTMP: getting the stream out
+## RTMP, getting the stream out
 
-OBS connects to the platform's ingest server over RTMP, which is a protocol Adobe built for Flash in the early 2000s. Flash died but RTMP stuck around because it does one specific thing well: push a continuous audio/video stream to a server over TCP with minimal framing overhead. OBS does a handshake, authenticates with your stream key, and starts sending FLV-wrapped H.264 and AAC.
+OBS connects to the platform's ingest server over RTMP, which is a protocol Adobe built for Flash in the early 2000s. Flash died but RTMP stuck around because it does one specific thing well, which is pushing a continuous audio/video stream to a server over TCP with minimal framing overhead. OBS does a handshake, authenticates with your stream key, and starts sending FLV-wrapped H.264 and AAC.
 
 > RTMP doesn't natively support newer codecs like HEVC or AV1 (there are vendor extensions but nothing standardized), and being TCP-only means any packet loss causes head-of-line blocking. Despite that, it's still the default for ingest everywhere because SRT and RIST just haven't reached the same adoption level.
 
@@ -34,13 +34,13 @@ Upload bandwidth is a real constraint. Pushing 6 Mbps of video plus audio means 
 
 Once the ingest server has the RTMP stream, the platform transcodes it into multiple quality levels so viewers on different connections can watch. This is called an ABR ladder (adaptive bitrate). A typical setup is source at 1080p60/6Mbps, then 720p60 at 3 Mbps, 480p30 at 1.5 Mbps, and maybe 360p30 at 600 kbps. Each of those is a separate encoder instance running in parallel, so that's four encodes per stream.
 
-FFmpeg is the standard tool for this, you can feed it a single RTMP ingest and it transcodes into multiple renditions simultaneously, each one produces its own HLS playlist. Smaller platforms literally just run FFmpeg behind Nginx-RTMP and call it a day. At scale though, CPU-based encoding gets too expensive, so giants like Twitch and YouTube use custom FPGA-based encoders and ASICs.
+FFmpeg is the standard tool for this, you can feed it a single RTMP ingest and it transcodes into multiple renditions simultaneously, and each one produces its own HLS playlist. Smaller platforms literally just run FFmpeg behind Nginx-RTMP and call it a day, but at scale CPU-based encoding gets too expensive, so giants like Twitch and YouTube use custom FPGA-based encoders and ASICs.
 
-> Twitch doesn't give transcoding to every streamer by default, only partners and affiliates get guaranteed transcode. The reason is straightforward: tens of thousands of concurrent streams × four encoder instances each is an enormous amount of compute, and specialized encoding hardware is a major capital expense on top of the electricity to run it.
+> Twitch doesn't give transcoding to every streamer by default, only partners and affiliates get guaranteed transcode. The reason is straightforward, tens of thousands of concurrent streams times four encoder instances each is an enormous amount of compute, and specialized encoding hardware is a major capital expense on top of the electricity to run it.
 
-## HLS: how viewers get the stream
+## HLS, how viewers get the stream
 
-HLS (HTTP Live Streaming) is how the video actually reaches viewers. The idea is simple, break the continuous video into small segment files (2-6 seconds each), and then write a playlist (`.m3u8`) listing the available segments, and let the player download them one by one over plain HTTP.
+HLS (HTTP Live Streaming) is how the video actually reaches viewers. The idea is simple, you break the continuous video into small segment files of 2-6 seconds each, write a playlist (`.m3u8`) listing the available segments, and let the player download them one by one over plain HTTP.
 
 ```
 #EXTM3U
@@ -54,17 +54,15 @@ HLS (HTTP Live Streaming) is how the video actually reaches viewers. The idea is
 
 The player does adaptive bitrate switching, like if bandwidth drops it falls to a lower rendition automatically, if bandwidth recovers it steps back up, and switches happen at segment boundaries to avoid visual artifacts.
 
-The tradeoff tho is latency. The player has to buffer at least a segment or two before it starts playing, so with 4-second segments and 2 buffered, you're at 8 seconds of delay before you even account for anything else in the pipeline. That's the fundamental reason HLS streams have higher latency than something like a WebRTC call.
+The tradeoff tho is latency, since the player has to buffer at least a segment or two before it starts playing, so with 4-second segments and 2 buffered you're at 8 seconds of delay before you even account for anything else in the pipeline, and that's the fundamental reason HLS streams have higher latency than something like a WebRTC call.
 
 HLS was created by Apple, I think.
 
 > Apple introduced Low-Latency HLS which uses partial segments (sub-second chunks) to bring latency closer to 2-3 seconds, and Twitch uses a proprietary low-latency HLS variant. These help but they add real complexity to both server and player implementations.
 
-## CDN: distribution
+## CDN, distribution
 
-One server can't push a stream to 50,000 viewers, the bandwidth alone would be 200 Gbps, which is absurd for a single origin. So the origin generates HLS segments and edge servers around the world and cache them close to viewers. A viewer in Tokyo pulls from a Tokyo edge, not from a datacenter in Virginia.
-
-CDN cost is bandwidth. Providers charge per GB transferred. A stream at 4 Mbps to 10,000 viewers for 3 hours works out to roughly 54 TB of data:
+One server can't push a stream to 50,000 viewers, the bandwidth alone would be 200 Gbps, which is absurd for a single origin, so the origin generates HLS segments and edge servers around the world cache them close to viewers, and a viewer in Tokyo pulls from a Tokyo edge rather than from a datacenter in Virginia. CDN cost is bandwidth and providers charge per GB transferred, so a stream at 4 Mbps to 10,000 viewers for 3 hours works out to roughly 54 TB of data:
 
 ```
 4 Mbps × 10,000 × 10,800 seconds ≈ 54 TB
@@ -72,15 +70,13 @@ CDN cost is bandwidth. Providers charge per GB transferred. A stream at 4 Mbps t
 
 Even at bulk pricing, that's expensive. Twitch and YouTube operate their own edge networks partly to keep these costs under control. Smaller platforms pay CloudFront or Fastly or Akamai rates, and the bandwidth bill is usually their single largest expense.
 
-## WebRTC: the low-latency option
+## WebRTC, the low-latency option
 
-WebRTC uses UDP, skips segmentation entirely, and achieves sub-second latency. It was designed for video calls though, not broadcast, and the scaling model reflects that. A 4-person video call is peer-to-peer, everyone sends to everyone. Each one sends to the other three, so 4 people × 3 connections = 12 connections total. That doesn't work for thousands of viewers.
-
-You can put an SFU (Selective Forwarding Unit) in the middle: the streamer sends one stream to the server and the server forwards it to every viewer. But each viewer connection is stateful, it needs DTLS handshake, SRTP encryption state, per-connection bandwidth estimation, RTCP feedback. At 10,000 viewers that's 10,000 concurrent stateful connections with active feedback loops, which is a fundamentally different scaling challenge than HLS where viewers just download files over stateless HTTP and CDN caching handles the rest.
+WebRTC uses UDP, skips segmentation entirely, and achieves sub-second latency, but it was designed for video calls rather than broadcast and the scaling model reflects that. A 4-person video call is peer-to-peer where everyone sends to everyone, so each one sends to the other three and you get 12 connections total, which doesn't work for thousands of viewers. You can put an SFU (Selective Forwarding Unit) in the middle so the streamer sends one stream to the server and the server forwards it to every viewer, but each viewer connection is stateful and needs a DTLS handshake, SRTP encryption state, per-connection bandwidth estimation, and RTCP feedback, so at 10,000 viewers that's 10,000 concurrent stateful connections with active feedback loops, which is a fundamentally different scaling challenge than HLS where viewers just download files over stateless HTTP and CDN caching handles the rest.
 
 > Some platforms use WebRTC for the first mile (streamer to server, low latency) and HLS for the last mile (server to viewers, scales with CDN). A few like Millicast do full WebRTC end-to-end with large SFU clusters, but the per-viewer infrastructure cost is much higher than HLS.
 
-## FFmpeg: the glue
+## FFmpeg, the glue
 
 FFmpeg shows up at almost every stage. A minimal ingest-to-HLS pipeline is one command:
 
@@ -92,7 +88,7 @@ ffmpeg -i rtmp://localhost/live/stream_key \
   /var/www/stream/playlist.m3u8
 ```
 
-That takes an RTMP stream, re-encodes it to H.264 at 3 Mbps, outputs HLS segments of 4 seconds each, and writes playlist files to disk. Serve those with nginx and you have a working live streaming backend. For multiple renditions you run multiple outputs or use the `split` filter. In production, platforms wrap FFmpeg's libraries (libavcodec, libavformat) in their own orchestration with health checks and failover, but the encoding core is the same, you just need engineer and build around/on top of it.
+That takes an RTMP stream, re-encodes it to H.264 at 3 Mbps, outputs HLS segments of 4 seconds each, and writes playlist files to disk, and if you serve those with nginx you have a working live streaming backend. For multiple renditions you run multiple outputs or use the `split` filter. In production platforms wrap FFmpeg's libraries like libavcodec and libavformat in their own orchestration with health checks and failover, but the encoding core is the same, you just build around it.
 
 ## where the money goes
 
@@ -102,7 +98,7 @@ The economics are hard for anyone competing with Twitch (Amazon infrastructure),
 
 ## the latency budget
 
-Where the delay actually lives:
+Where the delay actually lives, roughly:
 
 | Stage                      | Typical latency   |
 | -------------------------- | ----------------- |
