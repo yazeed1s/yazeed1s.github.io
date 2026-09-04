@@ -1,6 +1,6 @@
 +++
 title = "The Three Queues Hiding Inside a Channel"
-date = 2026-09-04
+date = 2026-08-12
 description = "The mental model I actually use for Go channels, not a pipe but three queues and a lock, plus the gotchas that fall out of it."
 [taxonomies]
 tags = ["go", "concurrency", "systems programming"]
