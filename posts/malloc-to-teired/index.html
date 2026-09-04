@@ -12,9 +12,9 @@
 />
 <link rel="canonical" href="https://yazeed1s.github.io/posts/malloc-to-teired/" />
 
-<title>Should malloc Know About Tiered Memory? | Yazeed&#x27;s Blog</title>
-<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
-<meta property="og:title" content="Should malloc Know About Tiered Memory? | Yazeed&#x27;s Blog" />
+<title>Should malloc Know About Tiered Memory? | Yazeed&#39;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#39;s Blog" />
+<meta property="og:title" content="Should malloc Know About Tiered Memory? | Yazeed&#39;s Blog" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://yazeed1s.github.io/posts/malloc-to-teired/" />
 <meta property="og:description" content="glibc malloc was designed for uniform DRAM. Tiered memory changes the rules." />
@@ -23,10 +23,12 @@
 <meta name="twitter:title" content="Should malloc Know About Tiered Memory?" />
 <meta name="twitter:description" content="glibc malloc was designed for uniform DRAM. Tiered memory changes the rules." />
 
-    <link rel="icon" href="&#x2F;favicon.ico" />
+    <link rel="icon" href="/favicon.ico" />
     
     <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
     <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+    <link id="giallo-light" rel="stylesheet" href="https://yazeed1s.github.io/giallo-light.css" />
+    <link id="giallo-dark" rel="stylesheet" href="https://yazeed1s.github.io/giallo-dark.css" />
 
            
     
@@ -39,7 +41,7 @@
     
     <style>
         :root {
-            --nav-basis: 25%;
+            --nav-basis: 25.0%;
             --light-bg: #eae6deff;
             --light-text: #1a1410;
             --light-text-muted: #1a1410;
@@ -68,10 +70,14 @@
             var m = matchMedia("(prefers-color-scheme:dark)"),
                 t = localStorage.theme || (m.matches ? "dark" : "light"),
                 h = document.documentElement,
-                c = document.getElementById("tc");
+                c = document.getElementById("tc"),
+                gl = document.getElementById("giallo-light"),
+                gd = document.getElementById("giallo-dark");
             h.className = t;
             function u() {
                 c.content = getComputedStyle(h).getPropertyValue("--tc");
+                gl.disabled = t !== "light";
+                gd.disabled = t !== "dark";
             }
             u();
             window.T = function () {
@@ -94,7 +100,7 @@
 
     <header id="site-header">
         <div>
-            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#39;s Blog</strong></a></span>
             <nav>
                 <a href="https://yazeed1s.github.io/" >Home</a>
                 <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
@@ -106,7 +112,9 @@
                         return false;
                     " class="theme" aria-label="Toggle theme" title="Toggle theme">
 <svg><use href="#light"/></svg>
-<svg><use href="#asleep"/></svg></a>
+
+<svg><use href="#asleep"/></svg>
+</a>
         </div>
     </header>
     <hr class="site-sep" />
@@ -131,42 +139,28 @@
             
         </div>
     </header>
-     <p>When you call <code>malloc()</code>, the allocator gives you a pointer. It doesn't know or care whether the physical page behind it sits in fast local DRAM or slower CXL-attached memory. From user space, memory still looks flat. But it isn't anymore. Machines now have 2–3x latency differences between memory tiers, and the allocator is completely blind to that.</p>
-<h2 id="how-glibc-malloc-sees-the-world">how glibc malloc sees the world</h2>
-<p>glibc's allocator (ptmalloc2) was designed in a mostly uniform DRAM world. It manages arenas, splits and coalesces chunks, decides when to use <code>brk</code> and when to use <code>mmap</code>, and tries to reduce lock contention between threads. But it doesn't care about which NUMA node backs an allocation unless the application explicitly asks for it. In the common case, it just requests virtual memory and leaves physical placement to the kernel.</p>
-<p>So from the allocator's perspective, memory is virtual address space. It doesn't know whether the physical pages will come from local DRAM, remote NUMA, CXL-attached memory, or something else. That blindness was perfectly reasonable when latency differences were small and mostly about bandwidth balancing. The allocator could afford to ignore placement because the hardware was close to uniform.</p>
-<h2 id="what-tiered-memory-changes">what tiered memory changes</h2>
-<p>In tiered memory systems, the kernel often treats slow memory as another NUMA node. It may demote cold pages to slow memory and promote hot pages back to fast DRAM. Research systems like TPP migrate pages based on observed access frequency, and Memtis tries to improve classification by looking at access distribution and even splitting huge pages when access inside them is skewed.</p>
-<p>But the pattern is always the same: allocate first, observe later, migrate if needed. The allocator places data somewhere, the kernel watches page faults or samples accesses, then corrects the placement. We're always reacting.</p>
-<p>Migration isn't free. It involves copying 4KB pages, updating page tables, invalidating TLB entries, and potentially disturbing caches. Work like M5 shows that misclassification and migration overhead can actually hurt performance if not handled carefully. So you're paying a correction cost because the initial allocation was blind. I keep wondering how much of this cost could be avoided if the allocator had any information at all about what's hot.</p>
-<h2 id="the-allocator-knows-nothing-about-temperature">the allocator knows nothing about temperature</h2>
-<p>Consider a simple program:</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>hot_table </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#3C6362, #A2BD90);"> malloc</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #CA9D7D);">1</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> &lt;&lt;</span><span style="color: light-dark(#784367, #CA9D7D);"> 20</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">   //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> frequently accessed</span></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>log_buffer </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#3C6362, #A2BD90);"> malloc</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #CA9D7D);">1</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> &lt;&lt;</span><span style="color: light-dark(#784367, #CA9D7D);"> 20</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">  //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> rarely accessed</span></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span>archive </span><span style="color: light-dark(#4B4B48, #CB8B8B);">=</span><span style="color: light-dark(#3C6362, #A2BD90);"> malloc</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #CA9D7D);">100</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> &lt;&lt;</span><span style="color: light-dark(#784367, #CA9D7D);"> 20</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;">   //</span><span style="color: light-dark(#7A7D7A, #7F7C77);font-style: italic;"> mostly cold</span></span></code></pre>
-<p>From glibc's perspective, these are identical calls. Same API, same path. But their temperature is completely different. The allocator has no way to express or detect that difference.</p>
-<p>The application often already knows which data is critical. A database knows its buffer pool is hot. A web server knows which structures sit in the request path. A compiler knows which tables are heavily reused. Yet we force the kernel to guess using access bits and heuristics.</p>
-<p>That naturally leads to the question: are we solving the problem too late?</p>
-<h2 id="should-malloc-become-tier-aware">should malloc become tier-aware?</h2>
-<p>One idea, not that exotic: let the allocator express intent.</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="c"><span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#3C6362, #A2BD90);">malloc_hot</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">size_t</span><span style="color: light-dark(#7D4242, #D4D4C0);"> size</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span>
-<span class="giallo-l"><span style="color: light-dark(#784367, #D4B399);">void</span><span style="color: light-dark(#4B4B48, #CB8B8B);"> *</span><span style="color: light-dark(#3C6362, #A2BD90);">malloc_cold</span><span style="color: light-dark(#4B4B48, #7F7C77);">(</span><span style="color: light-dark(#784367, #D4B399);">size_t</span><span style="color: light-dark(#7D4242, #D4D4C0);"> size</span><span style="color: light-dark(#4B4B48, #7F7C77);">)</span><span style="color: light-dark(#4B4B48, #7F7C77);">;</span></span></code></pre>
-<p>Internally, <code>malloc_hot()</code> could bind memory to the fast NUMA node using mechanisms that already exist, like <code>mbind()</code> or <code>set_mempolicy()</code>. <code>malloc_cold()</code> could allocate directly on the slow tier. Instead of allocate -&gt; detect -&gt; migrate, you'd allocate correctly from the start.</p>
-<p>This avoids some migration entirely. Fewer TLB shootdowns, less page copying. Placement becomes a proactive decision rather than a reactive correction.</p>
-<p>But now the deeper question comes up.</p>
-<h2 id="is-os-transparency-still-sacred">is OS transparency still sacred?</h2>
-<p>Virtual memory was designed to hide physical placement. That abstraction is powerful because developers don't need to care where bytes live. They just allocate and use.</p>
-<p>Tiered memory challenges that. When latency differences become large enough, placement starts to matter again.</p>
-<p>You can keep full transparency. The kernel observes access patterns and tries to infer temperature. Developers stay insulated. The system grows more complex internally, with more sampling and migration.</p>
-<p>Or you can leak some abstraction. Let developers label allocations as hot or cold. Trust applications to express intent, and let the allocator participate in placement.</p>
-<p>I honestly don't know which is better. The second approach sounds cleaner until you think about what happens when developers misclassify. What if everything gets labeled "fast"? Do you override their hints? Ignore them? Once you expose placement, you also expose responsibility, and most application developers probably don't want that.</p>
-<h2 id="huge-pages-make-it-worse">huge pages make it worse</h2>
-<p>Memtis shows that access inside a 2MB huge page can be highly skewed. Promoting an entire huge page to fast memory because a small region is hot wastes precious capacity. The allocator doesn't know how its allocations align with huge pages. The kernel may split or merge them later.</p>
-<p>So page size, allocation strategy, and tier placement are all interacting and I'm not sure anyone has a clean model for how they should interact. The original layering between allocator and kernel assumed these things were independent. They're not anymore.</p>
-<h2 id="a-possible-middle-ground">a possible middle ground</h2>
-<p>I don't think we should abandon OS transparency completely. It's still valuable, especially for most applications that don't care about deep performance tuning. But maybe transparency should become adjustable.</p>
-<p>By default, memory stays abstract. The kernel handles tiering. But for performance-critical systems, the allocator could expose controlled hints, and the kernel could enforce limits so that misclassification doesn't destabilize things.</p>
-<p>I don't know if this would hold up in real systems. It depends on how well the kernel can override bad hints, and on whether developers will bother annotating allocations. My guess is most people ignore it and a small group gets real value out of it.</p>
+     <p>This started as a side thought during advanced systems class, we were talking about OS transparency in general and I kept coming back to malloc specifically afterward, because it's the one abstraction I interact with the most and never actually question. So this is me chewing on it after the fact, not a fully formed argument.</p>
+<p>When you call <code>malloc()</code>, the allocator gives you a pointer. It doesn't know or care whether the physical page behind it sits in fast local DRAM or slower CXL-attached memory, and it does not even care if hugepages are enabled or not, and from user space memory still looks completely flat, one address space, no notion of near or far. Except it isn't flat anymore, not really. Machines now have 2-3x latency differences between memory tiers and the allocator is completely blind to all of it.</p>
+<p>glibc's allocator (ptmalloc2) was built for a mostly uniform DRAM world. It manages arenas, splits and coalesces chunks, decides when to use <code>brk</code> vs <code>mmap</code>, worries about lock contention between threads, all of that. What it does not worry about is which NUMA node ends up backing an allocation, unless you explicitly ask it to. In the common path it just requests virtual memory and leaves the physical placement decision entirely to the kernel. Memory, from the allocator's point of view, is virtual address space and nothing else, it has no idea if the physical pages come from local DRAM, remote NUMA, CXL, or somewhere weirder. That was fine when latency gaps were small and mostly a bandwidth-balancing story, and it's not really fine anymore.</p>
+<p>Tiered memory systems now treat slow memory as basically another NUMA node, demoting cold pages down and promoting hot ones back up when they get busy again. TPP migrates based on observed access frequency, and Memtis goes further and looks at access distribution, even splitting huge pages when the access pattern inside one is skewed. But notice the pattern is always the same shape, you allocate first, observe later, and migrate if needed, so we're always reacting.</p>
+<p>And migration is not free, not even close, since you're copying 4KB pages, updating page tables, invalidating TLB entries, and maybe disturbing caches on top of it. M5's work shows misclassification and migration overhead can actively hurt performance if you're not careful with it. So you're paying a correction tax because the initial allocation was made blind. I keep wondering how much of that tax disappears if the allocator just knew <em>something</em> about what's hot before it even placed the memory.</p>
+<p>take this:</p>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-4 z-d-8">void</span><span class="z-d-6"> *</span><span>hot_table </span><span class="z-d-6">=</span><span class="z-l-2 z-d-3"> malloc</span><span class="z-d-1">(</span><span class="z-l-4 z-d-5">1</span><span class="z-d-6"> &lt;&lt;</span><span class="z-l-4 z-d-5"> 20</span><span class="z-d-1">)</span><span class="z-d-1">;</span><span class="z-l-5 z-l-i z-d-1 z-d-i">   //</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> frequently accessed</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">void</span><span class="z-d-6"> *</span><span>log_buffer </span><span class="z-d-6">=</span><span class="z-l-2 z-d-3"> malloc</span><span class="z-d-1">(</span><span class="z-l-4 z-d-5">1</span><span class="z-d-6"> &lt;&lt;</span><span class="z-l-4 z-d-5"> 20</span><span class="z-d-1">)</span><span class="z-d-1">;</span><span class="z-l-5 z-l-i z-d-1 z-d-i">  //</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> rarely accessed</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">void</span><span class="z-d-6"> *</span><span>archive </span><span class="z-d-6">=</span><span class="z-l-2 z-d-3"> malloc</span><span class="z-d-1">(</span><span class="z-l-4 z-d-5">100</span><span class="z-d-6"> &lt;&lt;</span><span class="z-l-4 z-d-5"> 20</span><span class="z-d-1">)</span><span class="z-d-1">;</span><span class="z-l-5 z-l-i z-d-1 z-d-i">   //</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> mostly cold</span></span></code></pre>
+<p>identical calls as far as glibc is concerned. same api, same path, no distinction whatsoever. but the temperature of these three allocations is wildly different and the allocator has zero way to express or even detect that. the application usually already knows this stuff though. a database knows its buffer pool is hot. a web server knows which structures sit in the request path. a compiler knows which tables get reused constantly. and yet we throw all of that away and make the kernel re-derive it from access bits and sampling, from scratch, every time.</p>
+<p>so are we solving this problem too late in the pipeline? maybe.</p>
+<p>one idea, not that exotic honestly, is to let the allocator take intent as input.</p>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-4 z-d-8">void</span><span class="z-d-6"> *</span><span class="z-l-2 z-d-3">malloc_hot</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">size_t</span><span class="z-l-6"> size</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">void</span><span class="z-d-6"> *</span><span class="z-l-2 z-d-3">malloc_cold</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">size_t</span><span class="z-l-6"> size</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span></code></pre>
+<p><code>malloc_hot()</code> could bind to the fast NUMA node using stuff that already exists like <code>mbind()</code> and <code>set_mempolicy()</code>, nothing new needed under the hood, and <code>malloc_cold()</code> allocates straight onto the slow tier. Instead of allocate then detect then migrate you just allocate correctly the first time, which skips a bunch of migration outright, means fewer TLB shootdowns and less copying, and makes placement something you decide instead of something that gets corrected later.</p>
+<p>which brings up the actual question underneath all of this. is OS transparency still sacred here?</p>
+<p>virtual memory exists specifically to hide physical placement, that's the whole point of it, developers don't need to know or care where their bytes physically live, they just allocate and use. tiered memory pokes at that. once the latency gap gets big enough placement starts mattering again whether we like it or not.</p>
+<p>you could keep full transparency, kernel infers temperature from access patterns, developers stay fully insulated, and the system just grows more internal complexity to deal with it, more sampling, more migration machinery. or you leak some of the abstraction, let developers label things hot or cold and trust them, let the allocator actually participate in placement decisions.</p>
+<p>I genuinely don't know which is better. the second one sounds cleaner right up until you think about what happens when people misclassify things. what happens when everyone just labels everything "fast" because why not. do you override the hint? ignore it silently? once you expose placement you also hand out responsibility for it, and I don't think most application developers actually want that responsibility, even the ones who complain about performance.</p>
+<p>huge pages make this whole thing worse, by the way, almost forgot to mention it. Memtis shows access inside a single 2MB huge page can be extremely skewed, so promoting the entire page because a tiny sliver of it is hot wastes a lot of fast-tier capacity for nothing. the allocator has no idea how its own allocations line up against huge page boundaries, and the kernel might split or merge those pages on you later anyway. page size, allocation strategy, and tier placement are all tangled together now and I don't think anyone has a clean model for how they're supposed to interact. the old layering assumed these were independent concerns. they are not, not anymore.</p>
+<p>I don't think transparency should get abandoned entirely, it's still genuinely valuable for the vast majority of applications that don't care about squeezing out this kind of performance. but maybe it doesn't have to be all-or-nothing. default stays abstract, kernel handles it like today, and for the performance-critical stuff the allocator exposes controlled hints while the kernel keeps some override power so a bad hint doesn't destabilize the whole system.</p>
+<p>no idea if this actually holds up outside of my head. depends a lot on how well the kernel can override a bad hint without it being a mess, and on whether anyone would actually bother annotating their allocations in the first place. my guess, and it's just a guess, most people ignore it and a small group of people building databases or whatever get real value out of it.</p>
   
 </article>
 </main>

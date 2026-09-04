@@ -12,9 +12,9 @@
 />
 <link rel="canonical" href="https://yazeed1s.github.io/posts/interrupts-traps/" />
 
-<title>Interrupts, Traps, and the Kernel Boundary | Yazeed&#x27;s Blog</title>
-<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
-<meta property="og:title" content="Interrupts, Traps, and the Kernel Boundary | Yazeed&#x27;s Blog" />
+<title>Interrupts, Traps, and the Kernel Boundary | Yazeed&#39;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#39;s Blog" />
+<meta property="og:title" content="Interrupts, Traps, and the Kernel Boundary | Yazeed&#39;s Blog" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://yazeed1s.github.io/posts/interrupts-traps/" />
 <meta property="og:description" content="How the CPU switches between user and kernel mode, and what triggers those switches." />
@@ -23,10 +23,12 @@
 <meta name="twitter:title" content="Interrupts, Traps, and the Kernel Boundary" />
 <meta name="twitter:description" content="How the CPU switches between user and kernel mode, and what triggers those switches." />
 
-    <link rel="icon" href="&#x2F;favicon.ico" />
+    <link rel="icon" href="/favicon.ico" />
     
     <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
     <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+    <link id="giallo-light" rel="stylesheet" href="https://yazeed1s.github.io/giallo-light.css" />
+    <link id="giallo-dark" rel="stylesheet" href="https://yazeed1s.github.io/giallo-dark.css" />
 
            
     
@@ -39,7 +41,7 @@
     
     <style>
         :root {
-            --nav-basis: 25%;
+            --nav-basis: 25.0%;
             --light-bg: #eae6deff;
             --light-text: #1a1410;
             --light-text-muted: #1a1410;
@@ -68,10 +70,14 @@
             var m = matchMedia("(prefers-color-scheme:dark)"),
                 t = localStorage.theme || (m.matches ? "dark" : "light"),
                 h = document.documentElement,
-                c = document.getElementById("tc");
+                c = document.getElementById("tc"),
+                gl = document.getElementById("giallo-light"),
+                gd = document.getElementById("giallo-dark");
             h.className = t;
             function u() {
                 c.content = getComputedStyle(h).getPropertyValue("--tc");
+                gl.disabled = t !== "light";
+                gd.disabled = t !== "dark";
             }
             u();
             window.T = function () {
@@ -94,7 +100,7 @@
 
     <header id="site-header">
         <div>
-            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#39;s Blog</strong></a></span>
             <nav>
                 <a href="https://yazeed1s.github.io/" >Home</a>
                 <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
@@ -106,7 +112,9 @@
                         return false;
                     " class="theme" aria-label="Toggle theme" title="Toggle theme">
 <svg><use href="#light"/></svg>
-<svg><use href="#asleep"/></svg></a>
+
+<svg><use href="#asleep"/></svg>
+</a>
         </div>
     </header>
     <hr class="site-sep" />
@@ -133,17 +141,17 @@
     </header>
      <p>Your app might call a syscall, a packet might arrive on the network card, or the timer might fire; all of these interrupt normal execution, but they're not the same thing. The terminology gets confusing because people use interrupt, trap, and exception loosely.</p>
 <h2 id="user-space-vs-kernel-space">user space vs kernel space</h2>
-<p>First the basics: modern CPUs have privilege levels called rings on x86, where ring 0 is the most privileged (kernel) and ring 3 is least privileged (user applications).</p>
+<p>Starting from the basics, modern CPUs have privilege levels called rings on x86, where ring 0 is the most privileged (kernel) and ring 3 is the least privileged (user applications).</p>
 <p>Your application runs in ring 3 and can execute normal instructions, access its own memory, and do math, but it cannot access hardware directly, read/write arbitrary memory addresses, or execute privileged instructions (like changing page tables or disabling interrupts). The kernel runs in ring 0 and can do all of those things.</p>
 <p>When you call <code>read()</code> to read from a file, your code can't just talk to the disk controller, it has to ask the kernel. The CPU has to switch from ring 3 to ring 0, do the privileged work, then switch back.</p>
-<p>This switch is the kernel boundary, and crossing it costs you: register save/restore, privilege change, and sometimes cache disruption. That's why syscalls aren't free.</p>
+<p>This switch is the kernel boundary, and crossing it costs you a register save and restore, a privilege change, and sometimes cache disruption, which is why syscalls aren't free.</p>
 <h2 id="interrupts">interrupts</h2>
 <p>An interrupt is a signal from hardware that says "stop what you're doing, I need attention." Examples are a keyboard telling you a key was pressed, a network card saying a packet arrived, a timer saying your time slice is up, or a disk controller saying that read you asked for is done.</p>
 <p>Interrupts are asynchronous, they happen whenever the hardware needs attention regardless of what the CPU is currently doing. You could be in the middle of a for loop and suddenly an interrupt fires.</p>
 <p>When an interrupt happens, the CPU stops executing the current instruction stream, saves the current state (registers, instruction pointer, flags), looks up the interrupt handler in the Interrupt Descriptor Table (IDT), jumps to that handler (now in ring 0), the handler does its work, and then the handler returns and the CPU restores state and continues where it left off. The key thing is that the currently running process doesn't trigger this, it just happens to it.</p>
 <h2 id="traps">traps</h2>
-<p>A trap is a synchronous exception triggered by the currently running code, and it's intentional. The main example is syscalls: when you call <code>read()</code>, the C library eventually executes a special instruction (<code>syscall</code> on x86-64, <code>int 0x80</code> on older x86) that deliberately triggers a trap.</p>
-<pre class="giallo" style="color-scheme: light dark; color: light-dark(#4B4B48, #D4D4C0); background-color: light-dark(#D7D5C3, #212121);"><code data-lang="plain"><span class="giallo-l"><span>User code calls read()</span></span>
+<p>A trap is a synchronous exception triggered by the currently running code, and it's intentional, the main example being syscalls, where when you call <code>read()</code> the C library eventually executes a special instruction (<code>syscall</code> on x86-64, <code>int 0x80</code> on older x86) that deliberately triggers a trap.</p>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="plain"><span class="giallo-l"><span>User code calls read()</span></span>
 <span class="giallo-l"><span>  -&gt; libc wrapper</span></span>
 <span class="giallo-l"><span>    -&gt; syscall instruction (trap into kernel)</span></span>
 <span class="giallo-l"><span>      -&gt; kernel syscall handler</span></span>
@@ -151,17 +159,16 @@
 <p>The difference from interrupts is that you asked for this, the code executing triggered it, and it happens at a specific point in your instruction stream, not randomly.</p>
 <p>Other traps and exceptions include page faults (you accessed memory that isn't mapped, which could be a bug or could be demand paging doing its job), division by zero (arithmetic error), invalid opcode (tried to execute garbage), and breakpoint traps (int 3 for debuggers). Some of these are errors that kill your process (division by zero), and some are handled so execution continues (page fault loads the page and then your load instruction retries).</p>
 <h2 id="the-naming-confusion">the naming confusion</h2>
-<p>Different sources use these terms differently. Here's how I think about it: <strong>interrupt</strong> means external, async, from hardware. <strong>Trap</strong> means internal, sync, intentional (syscalls). <strong>Exception</strong> means internal, sync, usually an error (page fault, div by zero). <strong>Fault</strong> is an exception that can be corrected (page fault) where the instruction retries. <strong>Abort</strong> is an unrecoverable error.</p>
+<p>Different sources use these terms differently, and the way I think about it is that an interrupt is external, async, and from hardware, a trap is internal, sync, and intentional like a syscall, an exception is internal, sync, and usually an error like a page fault or div by zero, a fault is an exception that can be corrected where the instruction retries, and an abort is an unrecoverable error.</p>
 <p>Some people use "exception" as the umbrella term for everything, some use "interrupt" for everything, and the Intel manual has its own definitions. It's messy. What matters is understanding whether the trigger is external (hardware) or internal (executing code), and whether it's expected (syscall) or unexpected (error).</p>
 <h2 id="the-interrupt-descriptor-table">the interrupt descriptor table</h2>
 <p>The CPU needs to know where to jump for each interrupt or exception, and this is stored in the IDT, a table in memory that the kernel sets up at boot. Each entry has a handler address, what privilege level can trigger it, and a gate type (interrupt gate, trap gate).</p>
 <p>For hardware interrupts, the entries point to kernel interrupt handlers, and for the syscall trap, it points to the syscall entry point. When an interrupt fires, the CPU uses the interrupt number as an index into the IDT, checks privilege, switches to ring 0 if needed, and jumps to the handler address.</p>
 <h2 id="hardware-interrupts-in-more-detail">hardware interrupts in more detail</h2>
 <p>When a device needs attention, it signals an interrupt request (IRQ), and on modern systems this goes through an interrupt controller (APIC). The kernel has to acknowledge the interrupt, figure out which device caused it, call the right driver's handler, and tell the interrupt controller we're done. Handling needs to be fast because interrupts are disabled (or that IRQ is masked) while you're in the handler, and if you take too long you miss other interrupts.</p>
-<p>Linux splits this into top half and bottom half: the <strong>top half</strong> runs in interrupt context, does the minimum work, and schedules the bottom half. The <strong>bottom half</strong> runs later with interrupts enabled and does the real work (softirqs, tasklets, workqueues). For example, a network card interrupt's top half grabs the packet from hardware, queues it, and schedules the bottom half, which then processes the packet up the network stack.</p>
+<p>Linux splits this into a top half and a bottom half, where the top half runs in interrupt context, does the minimum work, and schedules the bottom half, and the bottom half runs later with interrupts enabled and does the real work through softirqs, tasklets, and workqueues. A network card interrupt's top half grabs the packet from hardware, queues it, and schedules the bottom half, which then processes the packet up the network stack.</p>
 <h2 id="syscall-cost">syscall cost</h2>
-<p>Crossing the kernel boundary isn't free. You pay for saving and restoring registers, switching stacks (user stack to kernel stack), TLB and cache effects, and Spectre mitigations on modern kernels (KPTI, retpolines).</p>
-<p>On a modern system, a syscall might take a few hundred nanoseconds, which doesn't sound like much, but if you're doing thousands per second it adds up. That cost is why people use batching (fewer syscalls, more work per call), io_uring (submit many I/O requests with one syscall), and mmap (access files without read() syscalls).</p>
+<p>Crossing the kernel boundary isn't free, since you pay for saving and restoring registers, switching from the user stack to the kernel stack, TLB and cache effects, and Spectre mitigations on modern kernels like KPTI and retpolines. On a modern system a syscall might take a few hundred nanoseconds, which doesn't sound like much, but if you're doing thousands per second it adds up, and that cost is why people use batching to do more work per call, io_uring to submit many I/O requests with one syscall, and mmap to access files without read() syscalls at all.</p>
 <h2 id="notes">notes</h2>
 <ul>
 <li>On x86-64, <code>syscall</code>/<code>sysret</code> are faster than the old <code>int 0x80</code> method</li>

@@ -12,9 +12,9 @@
 />
 <link rel="canonical" href="https://yazeed1s.github.io/tags/spatial-data-structures/" />
 
-<title>spatial data structures | Yazeed&#x27;s Blog</title>
-<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
-<meta property="og:title" content="spatial data structures | Yazeed&#x27;s Blog" />
+<title>spatial data structures | Yazeed&#39;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#39;s Blog" />
+<meta property="og:title" content="spatial data structures | Yazeed&#39;s Blog" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://yazeed1s.github.io/tags/spatial-data-structures/" />
 <meta property="og:description" content="Notes on systems and low-level software." />
@@ -23,10 +23,12 @@
 <meta name="twitter:title" content="spatial data structures" />
 <meta name="twitter:description" content="Notes on systems and low-level software." />
 
-    <link rel="icon" href="&#x2F;favicon.ico" />
+    <link rel="icon" href="/favicon.ico" />
     
     <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
     <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+    <link id="giallo-light" rel="stylesheet" href="https://yazeed1s.github.io/giallo-light.css" />
+    <link id="giallo-dark" rel="stylesheet" href="https://yazeed1s.github.io/giallo-dark.css" />
 
            
     
@@ -39,7 +41,7 @@
     
     <style>
         :root {
-            --nav-basis: 25%;
+            --nav-basis: 25.0%;
             --light-bg: #eae6deff;
             --light-text: #1a1410;
             --light-text-muted: #1a1410;
@@ -68,10 +70,14 @@
             var m = matchMedia("(prefers-color-scheme:dark)"),
                 t = localStorage.theme || (m.matches ? "dark" : "light"),
                 h = document.documentElement,
-                c = document.getElementById("tc");
+                c = document.getElementById("tc"),
+                gl = document.getElementById("giallo-light"),
+                gd = document.getElementById("giallo-dark");
             h.className = t;
             function u() {
                 c.content = getComputedStyle(h).getPropertyValue("--tc");
+                gl.disabled = t !== "light";
+                gd.disabled = t !== "dark";
             }
             u();
             window.T = function () {
@@ -94,7 +100,7 @@
 
     <header id="site-header">
         <div>
-            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#39;s Blog</strong></a></span>
             <nav>
                 <a href="https://yazeed1s.github.io/" >Home</a>
                 <a href="https://yazeed1s.github.io/posts/" >Posts</a>
@@ -106,7 +112,9 @@
                         return false;
                     " class="theme" aria-label="Toggle theme" title="Toggle theme">
 <svg><use href="#light"/></svg>
-<svg><use href="#asleep"/></svg></a>
+
+<svg><use href="#asleep"/></svg>
+</a>
         </div>
     </header>
     <hr class="site-sep" />

@@ -12,9 +12,9 @@
 />
 <link rel="canonical" href="https://yazeed1s.github.io/posts/memory-disaggregation/" />
 
-<title>Memory Disaggregation | Yazeed&#x27;s Blog</title>
-<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
-<meta property="og:title" content="Memory Disaggregation | Yazeed&#x27;s Blog" />
+<title>Memory Disaggregation | Yazeed&#39;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#39;s Blog" />
+<meta property="og:title" content="Memory Disaggregation | Yazeed&#39;s Blog" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://yazeed1s.github.io/posts/memory-disaggregation/" />
 <meta property="og:description" content="What memory disaggregation is and why people are talking about it now." />
@@ -23,10 +23,12 @@
 <meta name="twitter:title" content="Memory Disaggregation" />
 <meta name="twitter:description" content="What memory disaggregation is and why people are talking about it now." />
 
-    <link rel="icon" href="&#x2F;favicon.ico" />
+    <link rel="icon" href="/favicon.ico" />
     
     <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
     <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+    <link id="giallo-light" rel="stylesheet" href="https://yazeed1s.github.io/giallo-light.css" />
+    <link id="giallo-dark" rel="stylesheet" href="https://yazeed1s.github.io/giallo-dark.css" />
 
            
     
@@ -39,7 +41,7 @@
     
     <style>
         :root {
-            --nav-basis: 25%;
+            --nav-basis: 25.0%;
             --light-bg: #eae6deff;
             --light-text: #1a1410;
             --light-text-muted: #1a1410;
@@ -68,10 +70,14 @@
             var m = matchMedia("(prefers-color-scheme:dark)"),
                 t = localStorage.theme || (m.matches ? "dark" : "light"),
                 h = document.documentElement,
-                c = document.getElementById("tc");
+                c = document.getElementById("tc"),
+                gl = document.getElementById("giallo-light"),
+                gd = document.getElementById("giallo-dark");
             h.className = t;
             function u() {
                 c.content = getComputedStyle(h).getPropertyValue("--tc");
+                gl.disabled = t !== "light";
+                gd.disabled = t !== "dark";
             }
             u();
             window.T = function () {
@@ -94,7 +100,7 @@
 
     <header id="site-header">
         <div>
-            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#39;s Blog</strong></a></span>
             <nav>
                 <a href="https://yazeed1s.github.io/" >Home</a>
                 <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
@@ -106,7 +112,9 @@
                         return false;
                     " class="theme" aria-label="Toggle theme" title="Toggle theme">
 <svg><use href="#light"/></svg>
-<svg><use href="#asleep"/></svg></a>
+
+<svg><use href="#asleep"/></svg>
+</a>
         </div>
     </header>
     <hr class="site-sep" />
@@ -132,20 +140,18 @@
      <p>Memory is expensive, and in some clusters it's half the server cost while a lot of it sits idle. Over 70% of the time more than half of aggregate cluster memory is unused, yet some machines are paging to disk because they ran out.</p>
 <p>Memory disaggregation is the idea that you pull memory out of servers, pool it, and let machines use what they need. A VMware Research paper I read recently asks why this hasn't happened already, and their answer is that the economics were bad but tolerable and the technology didn't exist, but now both are changing.</p>
 <h2 id="the-basic-idea">the basic idea</h2>
-<p>Traditional servers bundle CPU, memory, and storage into one box. Need more RAM? Buy a bigger box or add DIMMs if you haven't hit the motherboard limit. Don't use all your RAM? It sits idle and you can't share it.</p>
+<p>Traditional servers bundle CPU, memory, and storage into one box, so if you need more RAM you buy a bigger box or add DIMMs if you haven't hit the motherboard limit, and if you don't use all your RAM it just sits idle and you can't share it.</p>
 <p>Memory disaggregation pulls memory out into separate pools that multiple servers can access, similar to how we went from local storage to SAN/NAS but for memory instead.</p>
-<p>This gives you two things: capacity expansion where a server can use more memory than it physically contains by reaching into the pool (similar to what Infiniswap does but with hardware support instead of software paging tricks), and data sharing where pool memory can be mapped into multiple hosts at once so they can load/store to the same bytes without serializing everything into messages. You still need software to handle ownership and synchronization and failures, but the access itself looks like memory, not network messages.</p>
+<p>This gives you two things. One is capacity expansion, where a server can use more memory than it physically contains by reaching into the pool, similar to what Infiniswap does but with hardware support instead of software paging tricks. The other is data sharing, where pool memory can be mapped into multiple hosts at once so they can load/store to the same bytes without serializing everything into messages. You still need software to handle ownership and synchronization and failures, but the access itself looks like memory rather than network messages.</p>
 <h2 id="why-is-this-coming-up-now">why is this coming up now</h2>
-<p>The economics are getting painful because memory is like 50% of server cost and 37% of TCO, three companies control DRAM production, and demand is exploding from data centers and ML and in-memory databases. And here's the frustrating part: clusters waste a lot of memory where over 70% of the time more than half of aggregate memory sits unused while some machines are paging to disk because they ran out.</p>
+<p>The economics are getting painful because memory is like 50% of server cost and 37% of TCO, three companies control DRAM production, and demand is exploding from data centers and ML and in-memory databases. And the frustrating part is that clusters waste a lot of memory, so over 70% of the time more than half of aggregate memory sits unused while some machines are paging to disk because they ran out.</p>
 <p>The technology also finally exists since RDMA gives single-digit microsecond latencies, but the bigger thing is CXL which gives you cache-coherent load/store access over PCIe, plus there's a roadmap toward switches and pooling and shared memory fabrics. The pool can even use cheaper denser slower DRAM since it's already the "slow tier" compared to local DIMMs anyway.</p>
 <h2 id="what-i-found-interesting">what I found interesting</h2>
 <p>This isn't only about capacity because most remote-memory systems like Infiniswap focus on paging to remote RAM, which helps but stays limited. CXL is aiming for memory that still behaves like memory with load/store access to a larger pool, and with the right fabric features you can even map the same bytes into multiple hosts, which is very different from shipping pages around.</p>
-<p>The OS problems are hard though, and the paper mostly focuses on what's still unsolved: memory allocation at scale, scheduling with memory locality, pointer sharing across servers, failure handling for "optional" memory, and security for hot-swappable pools, all of which need fundamental rethinking.</p>
-<p>The timeline matches what happened with storage disaggregation: start small with a few hosts per pool, add switches for rack-scale, then push the fabric boundary outward. Whether it ends up being "CXL over something" or something else is open, but the trajectory rhymes with how storage disaggregation went.</p>
+<p>The OS problems are hard though, and the paper mostly focuses on what's still unsolved, so memory allocation at scale, scheduling with memory locality, pointer sharing across servers, failure handling for "optional" memory, and security for hot-swappable pools, all of which need fundamental rethinking.</p>
+<p>The timeline matches what happened with storage disaggregation, where you start small with a few hosts per pool, add switches for rack-scale, then push the fabric boundary outward. Whether it ends up being "CXL over something" or something else is open, but the trajectory rhymes with how storage disaggregation went.</p>
 <h2 id="where-it-fits-and-where-it-doesn-t">where it fits and where it doesn't</h2>
-<p>Good for data-intensive workloads like Spark or Ray or distributed DBs that spend cycles serializing and copying, working sets that barely fit in local memory, clusters with memory imbalance, and places where memory is already 50%+ of server cost.</p>
-<p>Bad for workloads that already fit in local memory (you're just adding latency for no reason), latency-sensitive apps that can't handle hundreds of extra nanoseconds, and traditional apps that don't share data across processes anyway.</p>
-<p>Pool memory is slower than local (hundreds of ns vs ~100ns) but still way faster than SSD or disk. For workloads that currently page to disk this could be big, but for workloads that don't page at all adding a slower tier might just make things worse.</p>
+<p>It's good for data-intensive workloads like Spark or Ray or distributed DBs that spend cycles serializing and copying, working sets that barely fit in local memory, clusters with memory imbalance, and places where memory is already 50%+ of server cost. It's bad for workloads that already fit in local memory since you're just adding latency for no reason, latency-sensitive apps that can't handle hundreds of extra nanoseconds, and traditional apps that don't share data across processes anyway. Pool memory is slower than local, hundreds of ns versus ~100ns, but still way faster than SSD or disk, so for workloads that currently page to disk this could be big, but for workloads that don't page at all adding a slower tier might just make things worse.</p>
 <h2 id="notes">notes</h2>
 <ul>
 <li>Paper: <a rel="external" href="https://dl.acm.org/doi/10.1145/3606557.3606563">Aguilera et al., "Memory disaggregation: why now and what are the challenges", ACM SIGOPS, 2023</a></li>

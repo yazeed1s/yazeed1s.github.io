@@ -5,28 +5,30 @@
 <meta charset="UTF-8" />
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="description" content="A collection of projects I&#x27;ve worked on" />
+<meta name="description" content="A collection of projects I&#39;ve worked on" />
 <meta
     name="keywords"
     content="yazeed, blog, alharthi, yaz, yazeed1s"
 />
 <link rel="canonical" href="https://yazeed1s.github.io/projects/" />
 
-<title>Projects | Yazeed&#x27;s Blog</title>
-<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
-<meta property="og:title" content="Projects | Yazeed&#x27;s Blog" />
+<title>Projects | Yazeed&#39;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#39;s Blog" />
+<meta property="og:title" content="Projects | Yazeed&#39;s Blog" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://yazeed1s.github.io/projects/" />
-<meta property="og:description" content="A collection of projects I&#x27;ve worked on" />
+<meta property="og:description" content="A collection of projects I&#39;ve worked on" />
 
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="Projects" />
-<meta name="twitter:description" content="A collection of projects I&#x27;ve worked on" />
+<meta name="twitter:description" content="A collection of projects I&#39;ve worked on" />
 
-    <link rel="icon" href="&#x2F;favicon.ico" />
+    <link rel="icon" href="/favicon.ico" />
     
     <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
     <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+    <link id="giallo-light" rel="stylesheet" href="https://yazeed1s.github.io/giallo-light.css" />
+    <link id="giallo-dark" rel="stylesheet" href="https://yazeed1s.github.io/giallo-dark.css" />
 
            
     
@@ -39,7 +41,7 @@
     
     <style>
         :root {
-            --nav-basis: 25%;
+            --nav-basis: 25.0%;
             --light-bg: #eae6deff;
             --light-text: #1a1410;
             --light-text-muted: #1a1410;
@@ -68,10 +70,14 @@
             var m = matchMedia("(prefers-color-scheme:dark)"),
                 t = localStorage.theme || (m.matches ? "dark" : "light"),
                 h = document.documentElement,
-                c = document.getElementById("tc");
+                c = document.getElementById("tc"),
+                gl = document.getElementById("giallo-light"),
+                gd = document.getElementById("giallo-dark");
             h.className = t;
             function u() {
                 c.content = getComputedStyle(h).getPropertyValue("--tc");
+                gl.disabled = t !== "light";
+                gd.disabled = t !== "dark";
             }
             u();
             window.T = function () {
@@ -94,7 +100,7 @@
 
     <header id="site-header">
         <div>
-            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#39;s Blog</strong></a></span>
             <nav>
                 <a href="https://yazeed1s.github.io/" >Home</a>
                 <a href="https://yazeed1s.github.io/posts/" >Posts</a>
@@ -106,7 +112,9 @@
                         return false;
                     " class="theme" aria-label="Toggle theme" title="Toggle theme">
 <svg><use href="#light"/></svg>
-<svg><use href="#asleep"/></svg></a>
+
+<svg><use href="#asleep"/></svg>
+</a>
         </div>
     </header>
     <hr class="site-sep" />
@@ -119,7 +127,7 @@
                 >#</span
             >
             <h2>
-                <a href="https:&#x2F;&#x2F;github.com&#x2F;Yazeed1s&#x2F;zwm"
+                <a href="https://github.com/Yazeed1s/zwm"
                     >zwm</a
                 >
             </h2>
@@ -132,30 +140,30 @@
         <p class="project-meta s">
             2024–Present  ·  Active
         </p>
-        <p>Tiling window manager for X11. Uses a BSP tree for layouts, supports multiple modes (master&#x2F;stack&#x2F;grid), per-monitor workspaces, and drag-and-drop. Written in C with XCB. Runs at around 2 MB.</p>
+        <p>Tiling window manager for X11. Uses a BSP tree for layouts, supports multiple modes (master/stack/grid), per-monitor workspaces, and drag-and-drop. Written in C with XCB. Runs at around 2 MB.</p>
         <ul class="tags">
             <li>
-                #<a href="https://yazeed1s.github.io/tags-c"
+                #<a href="https://yazeed1s.github.io/tags/c"
                     >C</a
                 >
             </li>
             <li>
-                #<a href="https://yazeed1s.github.io/tags-x11"
+                #<a href="https://yazeed1s.github.io/tags/x11"
                     >X11</a
                 >
             </li>
             <li>
-                #<a href="https://yazeed1s.github.io/tags-tiling-wm"
+                #<a href="https://yazeed1s.github.io/tags/tiling-wm"
                     >tiling WM</a
                 >
             </li>
             <li>
-                #<a href="https://yazeed1s.github.io/tags-bsp"
+                #<a href="https://yazeed1s.github.io/tags/bsp"
                     >BSP</a
                 >
             </li>
             <li>
-                #<a href="https://yazeed1s.github.io/tags-xcb"
+                #<a href="https://yazeed1s.github.io/tags/xcb"
                     >XCB</a
                 >
             </li>
@@ -169,7 +177,7 @@
                 >#</span
             >
             <h2>
-                <a href="https:&#x2F;&#x2F;github.com&#x2F;Yazeed1s&#x2F;sqlweb"
+                <a href="https://github.com/Yazeed1s/sqlweb"
                     >sqlweb</a
                 >
             </h2>
@@ -182,30 +190,30 @@
         <p class="project-meta s">
             2023–Present  ·  Active
         </p>
-        <p>Web-based SQL client. Has an editor, schema export, CSV&#x2F;JSON export, and editable cells. Connects to PostgreSQL, MySQL, and SQLite (local or remote). Small binary, low memory.</p>
+        <p>Web-based SQL client. Has an editor, schema export, CSV/JSON export, and editable cells. Connects to PostgreSQL, MySQL, and SQLite (local or remote). Small binary, low memory.</p>
         <ul class="tags">
             <li>
-                #<a href="https://yazeed1s.github.io/tags-go"
+                #<a href="https://yazeed1s.github.io/tags/go"
                     >Go</a
                 >
             </li>
             <li>
-                #<a href="https://yazeed1s.github.io/tags-postgresql"
+                #<a href="https://yazeed1s.github.io/tags/postgresql"
                     >PostgreSQL</a
                 >
             </li>
             <li>
-                #<a href="https://yazeed1s.github.io/tags-mysql"
+                #<a href="https://yazeed1s.github.io/tags/mysql"
                     >MySQL</a
                 >
             </li>
             <li>
-                #<a href="https://yazeed1s.github.io/tags-sqlite"
+                #<a href="https://yazeed1s.github.io/tags/sqlite"
                     >SQLite</a
                 >
             </li>
             <li>
-                #<a href="https://yazeed1s.github.io/tags-web"
+                #<a href="https://yazeed1s.github.io/tags/web"
                     >Web</a
                 >
             </li>
@@ -219,7 +227,7 @@
                 >#</span
             >
             <h2>
-                <a href="https:&#x2F;&#x2F;github.com&#x2F;Yazeed1s&#x2F;strimo"
+                <a href="https://github.com/Yazeed1s/strimo"
                     >Strimo</a
                 >
             </h2>
@@ -232,35 +240,35 @@
         <p class="project-meta s">
             2024–Present  ·  Active
         </p>
-        <p>Streaming platform (like Twitch). Go backend with CQRS, outbox&#x2F;inbox for reliability, NATS for messaging, Redis for presence tracking, PostgreSQL for storage, and a SvelteKit frontend.</p>
+        <p>Streaming platform (like Twitch). Go backend with CQRS, outbox/inbox for reliability, NATS for messaging, Redis for presence tracking, PostgreSQL for storage, and a SvelteKit frontend.</p>
         <ul class="tags">
             <li>
-                #<a href="https://yazeed1s.github.io/tags-go"
+                #<a href="https://yazeed1s.github.io/tags/go"
                     >Go</a
                 >
             </li>
             <li>
-                #<a href="https://yazeed1s.github.io/tags-sveltekit"
+                #<a href="https://yazeed1s.github.io/tags/sveltekit"
                     >SvelteKit</a
                 >
             </li>
             <li>
-                #<a href="https://yazeed1s.github.io/tags-postgresql"
+                #<a href="https://yazeed1s.github.io/tags/postgresql"
                     >PostgreSQL</a
                 >
             </li>
             <li>
-                #<a href="https://yazeed1s.github.io/tags-nats"
+                #<a href="https://yazeed1s.github.io/tags/nats"
                     >NATS</a
                 >
             </li>
             <li>
-                #<a href="https://yazeed1s.github.io/tags-redis"
+                #<a href="https://yazeed1s.github.io/tags/redis"
                     >Redis</a
                 >
             </li>
             <li>
-                #<a href="https://yazeed1s.github.io/tags-streaming"
+                #<a href="https://yazeed1s.github.io/tags/streaming"
                     >Streaming</a
                 >
             </li>

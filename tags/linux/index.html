@@ -12,9 +12,9 @@
 />
 <link rel="canonical" href="https://yazeed1s.github.io/tags/linux/" />
 
-<title>linux | Yazeed&#x27;s Blog</title>
-<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
-<meta property="og:title" content="linux | Yazeed&#x27;s Blog" />
+<title>linux | Yazeed&#39;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#39;s Blog" />
+<meta property="og:title" content="linux | Yazeed&#39;s Blog" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://yazeed1s.github.io/tags/linux/" />
 <meta property="og:description" content="Notes on systems and low-level software." />
@@ -23,10 +23,12 @@
 <meta name="twitter:title" content="linux" />
 <meta name="twitter:description" content="Notes on systems and low-level software." />
 
-    <link rel="icon" href="&#x2F;favicon.ico" />
+    <link rel="icon" href="/favicon.ico" />
     
     <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
     <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+    <link id="giallo-light" rel="stylesheet" href="https://yazeed1s.github.io/giallo-light.css" />
+    <link id="giallo-dark" rel="stylesheet" href="https://yazeed1s.github.io/giallo-dark.css" />
 
            
     
@@ -39,7 +41,7 @@
     
     <style>
         :root {
-            --nav-basis: 25%;
+            --nav-basis: 25.0%;
             --light-bg: #eae6deff;
             --light-text: #1a1410;
             --light-text-muted: #1a1410;
@@ -68,10 +70,14 @@
             var m = matchMedia("(prefers-color-scheme:dark)"),
                 t = localStorage.theme || (m.matches ? "dark" : "light"),
                 h = document.documentElement,
-                c = document.getElementById("tc");
+                c = document.getElementById("tc"),
+                gl = document.getElementById("giallo-light"),
+                gd = document.getElementById("giallo-dark");
             h.className = t;
             function u() {
                 c.content = getComputedStyle(h).getPropertyValue("--tc");
+                gl.disabled = t !== "light";
+                gd.disabled = t !== "dark";
             }
             u();
             window.T = function () {
@@ -94,7 +100,7 @@
 
     <header id="site-header">
         <div>
-            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#39;s Blog</strong></a></span>
             <nav>
                 <a href="https://yazeed1s.github.io/" >Home</a>
                 <a href="https://yazeed1s.github.io/posts/" >Posts</a>
@@ -106,57 +112,14 @@
                         return false;
                     " class="theme" aria-label="Toggle theme" title="Toggle theme">
 <svg><use href="#light"/></svg>
-<svg><use href="#asleep"/></svg></a>
+
+<svg><use href="#asleep"/></svg>
+</a>
         </div>
     </header>
     <hr class="site-sep" />
     <main id="main">
 <h1>Tags: Linux</h1>
-
-<h2>2026</h2>
-<ul class="p">
-    
-    <li>
-        <time datetime="2026-02-16"
-            >16 Feb</time
-        >
-        <a href="https://yazeed1s.github.io/posts/malloc-to-teired/">Should malloc Know About Tiered Memory?</a> 
-    </li>
-    
-    <li>
-        <time datetime="2026-02-08"
-            >08 Feb</time
-        >
-        <a href="https://yazeed1s.github.io/posts/swap-to-tiered/">From Swap to Tiered Memory: Same Idea, Different Scale</a> 
-    </li>
-    
-</ul>
-
-<h2>2025</h2>
-<ul class="p">
-    
-    <li>
-        <time datetime="2025-12-12"
-            >12 Dec</time
-        >
-        <a href="https://yazeed1s.github.io/posts/my-monitor-was-dying/">My monitor was dying</a> 
-    </li>
-    
-    <li>
-        <time datetime="2025-10-19"
-            >19 Oct</time
-        >
-        <a href="https://yazeed1s.github.io/posts/what-a-process-owns/">What a Process Owns</a> 
-    </li>
-    
-    <li>
-        <time datetime="2025-02-18"
-            >18 Feb</time
-        >
-        <a href="https://yazeed1s.github.io/posts/interrupts-traps/">Interrupts, Traps, and the Kernel Boundary</a> 
-    </li>
-    
-</ul>
 
 <h2>2024</h2>
 <ul class="p">
@@ -198,6 +161,25 @@
     
 </ul>
 
+<h2>2026</h2>
+<ul class="p">
+    
+    <li>
+        <time datetime="2026-02-16"
+            >16 Feb</time
+        >
+        <a href="https://yazeed1s.github.io/posts/malloc-to-teired/">Should malloc Know About Tiered Memory?</a> 
+    </li>
+    
+    <li>
+        <time datetime="2026-02-08"
+            >08 Feb</time
+        >
+        <a href="https://yazeed1s.github.io/posts/swap-to-tiered/">From Swap to Tiered Memory: Same Idea, Different Scale</a> 
+    </li>
+    
+</ul>
+
 <h2>2023</h2>
 <ul class="p">
     
@@ -206,6 +188,32 @@
             >17 Dec</time
         >
         <a href="https://yazeed1s.github.io/posts/force-memory-cleanup/">Signal Handlers for Cleanup in C Programs</a> 
+    </li>
+    
+</ul>
+
+<h2>2025</h2>
+<ul class="p">
+    
+    <li>
+        <time datetime="2025-12-12"
+            >12 Dec</time
+        >
+        <a href="https://yazeed1s.github.io/posts/my-monitor-was-dying/">My monitor was dying</a> 
+    </li>
+    
+    <li>
+        <time datetime="2025-10-19"
+            >19 Oct</time
+        >
+        <a href="https://yazeed1s.github.io/posts/what-a-process-owns/">What a Process Owns</a> 
+    </li>
+    
+    <li>
+        <time datetime="2025-02-18"
+            >18 Feb</time
+        >
+        <a href="https://yazeed1s.github.io/posts/interrupts-traps/">Interrupts, Traps, and the Kernel Boundary</a> 
     </li>
     
 </ul>

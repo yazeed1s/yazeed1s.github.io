@@ -3,7 +3,7 @@ html {
     font-size: 0.95rem;
     line-height: 1.5;
     margin: auto;
-    max-width: 90ch;
+    max-width: 85ch;
     padding-top: 0.5rem;
     padding-right: 1em;
     padding-bottom: 3em;
@@ -18,7 +18,7 @@ img {
 }
 
 img:not([src$=".svg"]),
-article > div,
+article>div,
 blockquote,
 pre {
     border-radius: 0.4rem;
@@ -59,8 +59,8 @@ p {
 p,
 ul,
 ol,
-article > footer,
-article > header {
+article>footer,
+article>header {
     margin: 0 0 0.6rem;
 }
 
@@ -91,7 +91,7 @@ code {
     font-variant-ligatures: none;
 }
 
-blockquote > *:last-child {
+blockquote>*:last-child {
     margin-bottom: 0;
 }
 
@@ -141,11 +141,11 @@ html a:hover {
     color: var(--accent-hover);
 }
 
-html header > div > span > a {
+html header>div>span>a {
     text-decoration: none;
 }
 
-html header > div > span > a:hover {
+html header>div>span>a:hover {
     text-decoration: underline;
 }
 
@@ -175,9 +175,9 @@ html i {
     color: var(--italic);
 }
 
-article > img,
-article > p > img,
-article > div {
+article>img,
+article>p>img,
+article>div {
     display: block;
     margin-bottom: 1.5rem;
     width: 100%;
@@ -284,7 +284,7 @@ header strong {
     padding-bottom: 0;
 }
 
-#site-header > div {
+#site-header>div {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -331,6 +331,7 @@ header strong {
     color: var(--muted);
     margin-right: 0.35rem;
 }
+
 .site-icon {
     width: 2.25rem;
     height: 2.25rem;
@@ -355,15 +356,15 @@ header strong {
     margin-right: 1rem;
 }
 
-body > footer {
+body>footer {
     display: flex;
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 0.5rem;
 }
 
-body > footer img,
-body > footer svg {
+body>footer img,
+body>footer svg {
     width: 1em;
     height: 1em;
     vertical-align: -0.125em;
@@ -532,45 +533,59 @@ html.light .z-comment {
     color: #6a737d;
     font-style: italic;
 }
+
 html.light .z-keyword {
     color: #d73a49;
 }
+
 html.light .z-string {
     color: #22863a;
 }
+
 html.light .z-number {
     color: #005cc5;
 }
+
 html.light .z-function {
     color: #6f42c1;
 }
+
 html.light .z-type {
     color: #005cc5;
 }
+
 html.light .z-constant {
     color: #005cc5;
 }
+
 html.light .z-variable {
     color: #e36209;
 }
+
 html.light .z-attribute {
     color: #6f42c1;
 }
+
 html.light .z-tag {
     color: #22863a;
 }
+
 html.light .z-operator {
     color: #d73a49;
 }
+
 html.light .z-punctuation {
     color: #24292e;
 }
+
 html.light .z-builtin {
     color: #6f42c1;
 }
+
 html.light .z-label {
     color: #005cc5;
 }
+
 html.light .z-namespace {
     color: #e36209;
 }
@@ -579,45 +594,59 @@ html.dark .z-comment {
     color: #8b949e;
     font-style: italic;
 }
+
 html.dark .z-keyword {
     color: #ff7b72;
 }
+
 html.dark .z-string {
     color: #a5d6ff;
 }
+
 html.dark .z-number {
     color: #79c0ff;
 }
+
 html.dark .z-function {
     color: #d2a8ff;
 }
+
 html.dark .z-type {
     color: #79c0ff;
 }
+
 html.dark .z-constant {
     color: #79c0ff;
 }
+
 html.dark .z-variable {
     color: #ffa657;
 }
+
 html.dark .z-attribute {
     color: #d2a8ff;
 }
+
 html.dark .z-tag {
     color: #7ee787;
 }
+
 html.dark .z-operator {
     color: #ff7b72;
 }
+
 html.dark .z-punctuation {
     color: #c9d1d9;
 }
+
 html.dark .z-builtin {
     color: #d2a8ff;
 }
+
 html.dark .z-label {
     color: #79c0ff;
 }
+
 html.dark .z-namespace {
     color: #ffa657;
 }
@@ -630,15 +659,15 @@ html.dark footer svg {
 }
 
 html.light pre,
-html.light article > img,
-html.light article > p > img {
+html.light article>img,
+html.light article>p>img {
     background: var(--code-bg) !important;
     color-scheme: light !important;
 }
 
 html.dark pre,
-html.dark article > img,
-html.dark article > p > img {
+html.dark article>img,
+html.dark article>p>img {
     background: var(--code-bg) !important;
     color-scheme: dark !important;
 }
@@ -746,7 +775,7 @@ a:focus-visible {
         display: none;
     }
 
-    #site-header > div {
+    #site-header>div {
         flex-direction: column;
         align-items: flex-start;
         gap: 0.75rem;
@@ -803,7 +832,7 @@ a:focus-visible {
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     padding-bottom: 3px;
 }
 

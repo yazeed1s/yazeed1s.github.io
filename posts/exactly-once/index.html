@@ -12,9 +12,9 @@
 />
 <link rel="canonical" href="https://yazeed1s.github.io/posts/exactly-once/" />
 
-<title>Exactly-Once Is a Lie | Yazeed&#x27;s Blog</title>
-<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
-<meta property="og:title" content="Exactly-Once Is a Lie | Yazeed&#x27;s Blog" />
+<title>Exactly-Once Is a Lie | Yazeed&#39;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#39;s Blog" />
+<meta property="og:title" content="Exactly-Once Is a Lie | Yazeed&#39;s Blog" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://yazeed1s.github.io/posts/exactly-once/" />
 <meta property="og:description" content="What brokers actually give you when they say exactly-once." />
@@ -23,10 +23,12 @@
 <meta name="twitter:title" content="Exactly-Once Is a Lie" />
 <meta name="twitter:description" content="What brokers actually give you when they say exactly-once." />
 
-    <link rel="icon" href="&#x2F;favicon.ico" />
+    <link rel="icon" href="/favicon.ico" />
     
     <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
     <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+    <link id="giallo-light" rel="stylesheet" href="https://yazeed1s.github.io/giallo-light.css" />
+    <link id="giallo-dark" rel="stylesheet" href="https://yazeed1s.github.io/giallo-dark.css" />
 
            
     
@@ -39,7 +41,7 @@
     
     <style>
         :root {
-            --nav-basis: 25%;
+            --nav-basis: 25.0%;
             --light-bg: #eae6deff;
             --light-text: #1a1410;
             --light-text-muted: #1a1410;
@@ -68,10 +70,14 @@
             var m = matchMedia("(prefers-color-scheme:dark)"),
                 t = localStorage.theme || (m.matches ? "dark" : "light"),
                 h = document.documentElement,
-                c = document.getElementById("tc");
+                c = document.getElementById("tc"),
+                gl = document.getElementById("giallo-light"),
+                gd = document.getElementById("giallo-dark");
             h.className = t;
             function u() {
                 c.content = getComputedStyle(h).getPropertyValue("--tc");
+                gl.disabled = t !== "light";
+                gd.disabled = t !== "dark";
             }
             u();
             window.T = function () {
@@ -94,7 +100,7 @@
 
     <header id="site-header">
         <div>
-            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#39;s Blog</strong></a></span>
             <nav>
                 <a href="https://yazeed1s.github.io/" >Home</a>
                 <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
@@ -106,7 +112,9 @@
                         return false;
                     " class="theme" aria-label="Toggle theme" title="Toggle theme">
 <svg><use href="#light"/></svg>
-<svg><use href="#asleep"/></svg></a>
+
+<svg><use href="#asleep"/></svg>
+</a>
         </div>
     </header>
     <hr class="site-sep" />
@@ -134,24 +142,21 @@
      <p>Every message broker eventually puts "exactly-once" somewhere in its docs. Kafka has it, Pulsar claims it, NATS JetStream has a version of it, and it sounds like the thing you want: send a message, it arrives once, nobody worries.</p>
 <p>But exactly-once delivery doesn't exist. What exists is engineering around the fact that it doesn't.</p>
 <h2 id="what-can-actually-happen">what can actually happen</h2>
-<p>A producer sends a message to a broker, and there are three outcomes: the broker receives it, acknowledges, and the producer gets the ack (success); the broker receives it, acknowledges, but the ack is lost so the producer doesn't know it worked and retries, creating two copies; or the broker never receives it and the message is gone.</p>
+<p>A producer sends a message to a broker and there are three outcomes. The broker receives it, acknowledges, and the producer gets the ack, which is the success case. Or the broker receives it and acknowledges but the ack is lost, so the producer doesn't know it worked and retries, creating two copies. Or the broker never receives it and the message is gone.</p>
 <p>That's it, those are the options on an unreliable network. You can avoid case 3 by retrying, but retrying introduces case 2, and you cannot eliminate both. At the network level you get at-most-once (don't retry, accept losses) or at-least-once (retry, accept duplicates), and there's no third option that the network gives you for free.</p>
 <h2 id="what-kafka-actually-does">what Kafka actually does</h2>
 <p>Kafka advertises exactly-once semantics, but what it actually implements is two things working together.</p>
-<p><strong>Idempotent producer.</strong> Each producer gets an ID, and each message gets a sequence number. If the broker sees the same producer ID + sequence number twice, it drops the duplicate, which handles the lost-ack problem: the producer retries, the broker deduplicates. This only works within a single producer session though; if the producer crashes and restarts with a new ID, the deduplication state is gone.</p>
-<p><strong>Transactions.</strong> Kafka lets you wrap a consume-process-produce cycle in a transaction: read from input topic, do work, write to output topic, commit offsets, all atomically. If anything fails, everything rolls back.</p>
+<p>The first is the idempotent producer, where each producer gets an ID and each message gets a sequence number, so if the broker sees the same producer ID and sequence number twice it drops the duplicate, which handles the lost-ack problem because the producer retries and the broker deduplicates. This only works within a single producer session though, so if the producer crashes and restarts with a new ID the deduplication state is gone.</p>
+<p>The second is transactions, where Kafka lets you wrap a consume-process-produce cycle in a transaction so you read from the input topic, do work, write to the output topic, and commit offsets all atomically, and if anything fails everything rolls back.</p>
 <p>So Kafka doesn't deliver messages exactly once. It uses at-least-once delivery with deduplication and atomic commits to make the <em>processing</em> behave as if messages were delivered once, but the duplicates still happen at the transport layer and the broker just hides them.</p>
 <h2 id="delivery-vs-processing">delivery vs processing</h2>
-<p>These are different things. <strong>Exactly-once delivery</strong> would mean the network guarantees each message arrives once, and no system does this because the network is unreliable: acks get lost, connections drop, machines crash between receiving and acknowledging.</p>
-<p><strong>Exactly-once processing</strong> means the side effects of handling a message happen once, even if the message itself arrives more than once. That's achievable, but it requires work: deduplication, idempotency, transactions. It's not a delivery guarantee, it's an application-level property.</p>
+<p>These are different things. Exactly-once delivery would mean the network guarantees each message arrives once, and no system does this because the network is unreliable, acks get lost, connections drop, machines crash between receiving and acknowledging. Exactly-once processing means the side effects of handling a message happen once even if the message itself arrives more than once, and that's achievable but it takes work in the form of deduplication, idempotency, and transactions, so it's not a delivery guarantee, it's an application-level property.</p>
 <p>When brokers say "exactly-once" they mean the second thing, and they don't say that clearly.</p>
 <h2 id="the-broker-can-t-save-you-everywhere">the broker can't save you everywhere</h2>
 <p>Even with Kafka transactions, exactly-once only works within Kafka: read from Kafka, write to Kafka, commit. That's a closed system where Kafka controls both sides.</p>
-<p>The moment your consumer does something outside Kafka, the guarantee breaks. Write to a database? Send an HTTP request? Call an external API? Kafka doesn't know about those. If your consumer processes a message, writes to Postgres, then crashes before committing the Kafka offset, it'll reprocess on restart and Postgres gets the write twice.</p>
-<p>This is where the inbox pattern from my <a href="https://yazeed1s.github.io/posts/outbox-inbox-patterns/">outbox/inbox post</a> comes in: you need idempotency at your handler level, recording that you processed this message before doing the work, so if you see it again you skip it.</p>
-<p>The broker gives you tools, it doesn't give you a complete solution.</p>
+<p>The moment your consumer does something outside Kafka the guarantee breaks, since Kafka doesn't know about a write to a database, an HTTP request, or a call to an external API, so if your consumer processes a message, writes to Postgres, then crashes before committing the Kafka offset, it'll reprocess on restart and Postgres gets the write twice. This is where the inbox pattern from my <a href="https://yazeed1s.github.io/posts/outbox-inbox-patterns/">outbox/inbox post</a> comes in, where you need idempotency at your handler level, recording that you processed this message before doing the work, so if you see it again you skip it. The broker gives you tools, it doesn't give you a complete solution.</p>
 <h2 id="idempotency-is-always-your-problem">idempotency is always your problem</h2>
-<p>Regardless of what your broker promises, if your consumer has side effects you need to handle duplicates. Either make the operation naturally idempotent (SET is idempotent, INCREMENT is not), track processed message IDs and skip duplicates, or use transactions that span both the broker offset and your external state (hard, often impractical).</p>
+<p>Regardless of what your broker promises, if your consumer has side effects you need to handle duplicates, so you either make the operation naturally idempotent (SET is idempotent, INCREMENT is not), or track processed message IDs and skip duplicates, or use transactions that span both the broker offset and your external state, which is hard and often impractical.</p>
 <p>At-least-once delivery + idempotent handling gives you the effect of exactly-once, and that's what production systems actually do. The "exactly-once" label is marketing over a real but narrower mechanism.</p>
 <h2 id="notes">notes</h2>
 <ul>

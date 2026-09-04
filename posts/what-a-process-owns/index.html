@@ -12,9 +12,9 @@
 />
 <link rel="canonical" href="https://yazeed1s.github.io/posts/what-a-process-owns/" />
 
-<title>What a Process Owns | Yazeed&#x27;s Blog</title>
-<meta property="og:site_name" content="Yazeed&#x27;s Blog" />
-<meta property="og:title" content="What a Process Owns | Yazeed&#x27;s Blog" />
+<title>What a Process Owns | Yazeed&#39;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#39;s Blog" />
+<meta property="og:title" content="What a Process Owns | Yazeed&#39;s Blog" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://yazeed1s.github.io/posts/what-a-process-owns/" />
 <meta property="og:description" content="Everything a process has: address space, file descriptors, signals, credentials, and scheduling context." />
@@ -23,10 +23,12 @@
 <meta name="twitter:title" content="What a Process Owns" />
 <meta name="twitter:description" content="Everything a process has: address space, file descriptors, signals, credentials, and scheduling context." />
 
-    <link rel="icon" href="&#x2F;favicon.ico" />
+    <link rel="icon" href="/favicon.ico" />
     
     <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
     <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+    <link id="giallo-light" rel="stylesheet" href="https://yazeed1s.github.io/giallo-light.css" />
+    <link id="giallo-dark" rel="stylesheet" href="https://yazeed1s.github.io/giallo-dark.css" />
 
            
     
@@ -39,7 +41,7 @@
     
     <style>
         :root {
-            --nav-basis: 25%;
+            --nav-basis: 25.0%;
             --light-bg: #eae6deff;
             --light-text: #1a1410;
             --light-text-muted: #1a1410;
@@ -68,10 +70,14 @@
             var m = matchMedia("(prefers-color-scheme:dark)"),
                 t = localStorage.theme || (m.matches ? "dark" : "light"),
                 h = document.documentElement,
-                c = document.getElementById("tc");
+                c = document.getElementById("tc"),
+                gl = document.getElementById("giallo-light"),
+                gd = document.getElementById("giallo-dark");
             h.className = t;
             function u() {
                 c.content = getComputedStyle(h).getPropertyValue("--tc");
+                gl.disabled = t !== "light";
+                gd.disabled = t !== "dark";
             }
             u();
             window.T = function () {
@@ -94,7 +100,7 @@
 
     <header id="site-header">
         <div>
-            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#x27;s Blog</strong></a></span>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#39;s Blog</strong></a></span>
             <nav>
                 <a href="https://yazeed1s.github.io/" >Home</a>
                 <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
@@ -106,7 +112,9 @@
                         return false;
                     " class="theme" aria-label="Toggle theme" title="Toggle theme">
 <svg><use href="#light"/></svg>
-<svg><use href="#asleep"/></svg></a>
+
+<svg><use href="#asleep"/></svg>
+</a>
         </div>
     </header>
     <hr class="site-sep" />
@@ -140,26 +148,25 @@
 <h2 id="file-descriptors">file descriptors</h2>
 <p>A file descriptor is an integer index into a per-process table of open files. When you call <code>open()</code>, the kernel creates an entry pointing to the underlying file object and returns the lowest available integer, which is why <code>stdin</code> is 0, <code>stdout</code> is 1, and <code>stderr</code> is 2 (they're opened first).</p>
 <p>Each process has its own file descriptor table, so fd 5 in one process is completely unrelated to fd 5 in another. The file descriptor carries the current read/write position, flags (like <code>O_NONBLOCK</code>), and a reference to the underlying inode.</p>
-<p>File descriptors aren't just for files on disk: they represent pipes, sockets, eventfd, timerfd, signalfd, epoll instances, and even directories. The "everything is a file" philosophy means one interface for many types of I/O.</p>
+<p>File descriptors aren't just for files on disk, they also represent pipes, sockets, eventfd, timerfd, signalfd, epoll instances, and even directories, and the "everything is a file" philosophy means one interface for many types of I/O.</p>
 <p>There's a per-process limit on open file descriptors (check with <code>ulimit -n</code>, default often 1024) and a system-wide limit. Leaking file descriptors is a common bug, especially in long-running services that open connections and forget to close them.</p>
 <p>You can see all open file descriptors for a process in <code>/proc/&lt;pid&gt;/fd/</code>, where each entry is a symlink to the actual file, socket, or pipe.</p>
 <h2 id="signals">signals</h2>
-<p>Each process has a signal disposition table describing what happens for each signal. The default action depends on the signal: <code>SIGTERM</code> terminates, <code>SIGSTOP</code> suspends, <code>SIGCHLD</code> is ignored by default. You can override most defaults with signal handlers, except for <code>SIGKILL</code> and <code>SIGSTOP</code> which can't be caught or ignored.</p>
+<p>Each process has a signal disposition table describing what happens for each signal, and the default action depends on the signal, so <code>SIGTERM</code> terminates, <code>SIGSTOP</code> suspends, and <code>SIGCHLD</code> is ignored by default. You can override most defaults with signal handlers, except for <code>SIGKILL</code> and <code>SIGSTOP</code> which can't be caught or ignored.</p>
 <p>A process also has a signal mask that blocks specific signals from being delivered (they queue up until unblocked), and a set of pending signals that have been sent but not yet handled.</p>
 <p>Signal handling is per-process (signal disposition) but delivery can target specific threads. <code>kill(pid, sig)</code> sends to the process, <code>pthread_kill(tid, sig)</code> targets a thread.</p>
 <h2 id="credentials">credentials</h2>
-<p>Every process has a set of UIDs and GIDs that determine what it can access. There are three sets: <strong>real</strong> (who actually started the process), <strong>effective</strong> (what's checked for access), and <strong>saved</strong> (the previous effective, so you can drop and regain privileges).</p>
+<p>Every process has a set of UIDs and GIDs that determine what it can access, and there are three sets, the real one being who actually started the process, the effective one being what's checked for access, and the saved one being the previous effective so you can drop and regain privileges.</p>
 <p>Usually real and effective are the same, but setuid programs differ. When you run <code>passwd</code>, the file has the setuid bit set, so the effective UID becomes root (owner of the file) while the real UID stays yours. The process can access <code>/etc/shadow</code> because effective UID is root, but the program knows who actually called it through the real UID.</p>
 <p>Groups work the same way, and there's also a supplementary group list for all the groups you belong to. All of this is stored in the process's credential structure in the kernel.</p>
 <h2 id="scheduling-context">scheduling context</h2>
-<p>The kernel tracks scheduling metadata for each process: its priority (nice value from -20 to 19, and real-time priority if applicable), which scheduling class it belongs to (CFS for normal processes, FIFO or round-robin for real-time), how much CPU time it has consumed, when it last ran, and which CPU it ran on.</p>
-<p>CFS (Completely Fair Scheduler) on Linux uses a virtual runtime to track how much CPU time a process has received relative to others, and it always picks the process with the lowest virtual runtime to run next. The nice value adjusts the weight: a lower nice value means more weight, which means the virtual runtime advances more slowly, which means more CPU time.</p>
+<p>The kernel tracks scheduling metadata for each process, so its priority (nice value from -20 to 19, and real-time priority if applicable), which scheduling class it belongs to (CFS for normal processes, FIFO or round-robin for real-time), how much CPU time it has consumed, when it last ran, and which CPU it ran on.</p>
+<p>CFS (Completely Fair Scheduler) on Linux uses a virtual runtime to track how much CPU time a process has received relative to others, and it always picks the process with the lowest virtual runtime to run next. The nice value adjusts the weight, so a lower nice value means more weight, which means the virtual runtime advances more slowly, which means more CPU time.</p>
 <h2 id="namespaces-and-cgroups">namespaces and cgroups</h2>
-<p>In containerized environments, processes also own namespace memberships and cgroup associations. Namespaces give a process an isolated view of system resources: PID namespace makes it think its PID is 1, network namespace gives it a separate network stack, mount namespace gives it a different filesystem view.</p>
-<p>Cgroups limit how much resource a process (or group of processes) can use: CPU quota, memory limit, I/O bandwidth, and number of PIDs. These are the building blocks of containers.</p>
+<p>In containerized environments processes also own namespace memberships and cgroup associations. Namespaces give a process an isolated view of system resources, so the PID namespace makes it think its PID is 1, the network namespace gives it a separate network stack, and the mount namespace gives it a different filesystem view. Cgroups limit how much resource a process or group of processes can use, so CPU quota, memory limit, I/O bandwidth, and number of PIDs, and these are the building blocks of containers.</p>
 <h2 id="the-task-struct">the task_struct</h2>
-<p>Internally, the kernel represents all of this in a single structure called <code>task_struct</code>, which on Linux is a large struct (several kilobytes) containing or pointing to everything described above: the memory descriptor for address space, the files struct for file descriptors, the signal handler table, credentials, scheduling state, namespace pointers, cgroup references, and many other fields.</p>
-<p>Every running thread has a <code>task_struct</code>. A single-threaded process has one. A multi-threaded process has one per thread, and they share the memory descriptor, file table, and signal handlers through pointers to the same structures.</p>
+<p>Internally the kernel represents all of this in a single structure called <code>task_struct</code>, which on Linux is a large struct of several kilobytes containing or pointing to everything described above, so the memory descriptor for address space, the files struct for file descriptors, the signal handler table, credentials, scheduling state, namespace pointers, cgroup references, and many other fields.</p>
+<p>Every running thread has a <code>task_struct</code>, so a single-threaded process has one and a multi-threaded process has one per thread, and they share the memory descriptor, file table, and signal handlers through pointers to the same structures.</p>
 <h2 id="notes">notes</h2>
 <ul>
 <li><code>/proc/&lt;pid&gt;/status</code> gives a summary of most of these: UIDs, GIDs, threads, memory usage, signal masks, context switch counts</li>
