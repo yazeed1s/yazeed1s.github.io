@@ -483,9 +483,9 @@ nav svg {
 }
 
 .project-image {
-    max-width: 200px;
-    aspect-ratio: 1;
-    object-fit: cover;
+    max-width: 240px;
+    max-height: 200px;
+    object-fit: contain;
     float: right;
     margin: 0 0 1.5rem 1.5rem;
     border-radius: 0.4rem;

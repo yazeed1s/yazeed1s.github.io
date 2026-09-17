@@ -48,6 +48,25 @@ status = "Active"
 tags = ["Go", "FFmpeg", "SvelteKit", "PostgreSQL", "NATS", "Redis", "Streaming"]
 
 [[projects]]
+title = "SQLView"
+# emoji = "#"
+description = "Desktop client for databases, data-source agnostic across relational, document, and key-value stores (e.g. PostgreSQL, MongoDB, Redis). Wails app with a Go backend and Svelte frontend, one workspace with a visual query builder, live schema diagrams, server-pushed-down charts, and safe row editing."
+url = "https://sqlview.dev"
+image = "hero-editor.png"
+date = "2025–Present"
+status = "Active"
+tags = [
+    "Go",
+    "Wails",
+    "Svelte",
+    "PostgreSQL",
+    "MySQL",
+    "SQLite",
+    "MongoDB",
+    "Redis",
+]
+
+[[projects]]
 title = "oflv"
 # emoji = "#"
 description = "Small FLV parser, written in Odin mostly to try the language out. Walks the file header and tag stream, validates each tag against its PreviousTagSize, and picks apart AVC video payloads down to the SPS/PPS in the AVCDecoderConfigurationRecord. Has an ffmpeg helper to generate test files on the fly."
@@ -55,6 +74,7 @@ url = "https://github.com/yazeed1s/oflv"
 date = "2026"
 status = "Archived"
 tags = ["Odin", "FLV", "Parsing"]
+
 
 [[projects]]
 title = "sqlweb"
