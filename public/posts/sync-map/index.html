@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Why not just guard a plain map with a mutex? Go&#39;s own docs answer that directly, and the two exceptions they carve out explain the whole design." />
+<meta
+    name="keywords"
+    content="yazeed, blog, alharthi, yaz, yazeed1s"
+/>
+<link rel="canonical" href="https://yazeed1s.github.io/posts/sync-map/" />
+
+<title>sync.Map, and the Question I Should&#39;ve Asked First | Yazeed&#39;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#39;s Blog" />
+<meta property="og:title" content="sync.Map, and the Question I Should&#39;ve Asked First | Yazeed&#39;s Blog" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://yazeed1s.github.io/posts/sync-map/" />
+<meta property="og:description" content="Why not just guard a plain map with a mutex? Go&#39;s own docs answer that directly, and the two exceptions they carve out explain the whole design." />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="sync.Map, and the Question I Should&#39;ve Asked First" />
+<meta name="twitter:description" content="Why not just guard a plain map with a mutex? Go&#39;s own docs answer that directly, and the two exceptions they carve out explain the whole design." />
+
+    <link rel="icon" href="/favicon.ico" />
+    
+    <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
+    <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+    <link id="giallo-light" rel="stylesheet" href="https://yazeed1s.github.io/giallo-light.css" />
+    <link id="giallo-dark" rel="stylesheet" href="https://yazeed1s.github.io/giallo-dark.css" />
+
+           
+    
+    
+    
+
+          
+    
+    
+    
+    <style>
+        :root {
+            --nav-basis: 25.0%;
+            --light-bg: #eae6deff;
+            --light-text: #1a1410;
+            --light-text-muted: #1a1410;
+            --light-accent: #9E4440;
+            --light-accent-hover: #7A3533;
+            --light-code-bg: #e1ded6ff;
+            --light-border: #abaaaaff;
+            --light-bold: #1a1410;
+            --light-italic: #1a1410;
+            --light-headers: #1a1410;
+            --dark-bg: #303132;
+            --dark-text: #bebbb9ff;
+            --dark-text-muted: #d5d2cf;
+            --dark-accent: #e57665;
+            --dark-accent-hover: #888885;
+            --dark-code-bg: #282829;
+            --dark-border: #524f4c;
+            --dark-bold: #d5d2cf;
+            --dark-italic: #d5d2cf;
+            --dark-headers: #d5d2cf;
+        }
+    </style>
+    <meta name="theme-color" id="tc" />
+    <script>
+        (function () {
+            var m = matchMedia("(prefers-color-scheme:dark)"),
+                t = localStorage.theme || (m.matches ? "dark" : "light"),
+                h = document.documentElement,
+                c = document.getElementById("tc"),
+                gl = document.getElementById("giallo-light"),
+                gd = document.getElementById("giallo-dark");
+            h.className = t;
+            function u() {
+                c.content = getComputedStyle(h).getPropertyValue("--tc");
+                gl.disabled = t !== "light";
+                gd.disabled = t !== "dark";
+            }
+            u();
+            window.T = function () {
+                t = t === "dark" ? "light" : "dark";
+                localStorage.theme = t;
+                h.className = t;
+                u();
+            };
+        })();
+    </script>
+    
+</head>
+
+<body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><symbol id="light" viewBox="0 0 32 32"><rect x="15" y="2" width="2" height="5"/><rect x="21.6675" y="6.8536" width="4.958" height="1.9998" transform="translate(1.5191 19.3744) rotate(-45)"/><rect x="25" y="15" width="5" height="2"/><rect x="23.1466" y="21.6675" width="1.9998" height="4.958" transform="translate(-10.0018 24.1465) rotate(-45)"/><rect x="15" y="25" width="2" height="5"/><rect x="5.3745" y="23.1466" width="4.958" height="1.9998" transform="translate(-14.7739 12.6256) rotate(-45)"/><rect x="2" y="15" width="5" height="2"/><rect x="6.8536" y="5.3745" width="1.9998" height="4.958" transform="translate(-3.253 7.8535) rotate(-45)"/><path d="M16,12a4,4,0,1,1-4,4,4.0045,4.0045,0,0,1,4-4m0-2a6,6,0,1,0,6,6,6,6,0,0,0-6-6Z"/></symbol>
+<symbol id="asleep" viewBox="0 0 32 32"><path d="M13.5025,5.4136A15.0755,15.0755,0,0,0,25.096,23.6082a11.1134,11.1134,0,0,1-7.9749,3.3893c-.1385,0-.2782.0051-.4178,0A11.0944,11.0944,0,0,1,13.5025,5.4136M14.98,3a1.0024,1.0024,0,0,0-.1746.0156A13.0959,13.0959,0,0,0,16.63,28.9973c.1641.006.3282,0,.4909,0a13.0724,13.0724,0,0,0,10.702-5.5556,1.0094,1.0094,0,0,0-.7833-1.5644A13.08,13.08,0,0,1,15.8892,4.38,1.0149,1.0149,0,0,0,14.98,3Z"/></symbol>
+<symbol id="rss" viewBox="0 0 32 32"><path d="M8,18c-3.3,0-6,2.7-6,6s2.7,6,6,6s6-2.7,6-6C14,20.7,11.3,18,8,18z M8,28c-2.2,0-4-1.8-4-4s1.8-4,4-4s4,1.8,4,4C12,26.2,10.2,28,8,28z"/><path d="M30,24h-2C28,13,19,4,8,4V2C20.1,2,30,11.9,30,24z"/><path d="M22,24h-2c0-6.6-5.4-12-12-12v-2C15.7,10,22,16.3,22,24z"/></symbol>
+</svg>
+
+    <header id="site-header">
+        <div>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#39;s Blog</strong></a></span>
+            <nav>
+                <a href="https://yazeed1s.github.io/" >Home</a>
+                <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
+                <a href="https://yazeed1s.github.io/projects/" >Projects</a>
+                <a href="https://yazeed1s.github.io/tags/" >Tags</a>
+                </nav>
+            <a href="#" onclick="
+                        T();
+                        return false;
+                    " class="theme" aria-label="Toggle theme" title="Toggle theme">
+<svg><use href="#light"/></svg>
+
+<svg><use href="#asleep"/></svg>
+</a>
+        </div>
+    </header>
+    <hr class="site-sep" />
+    <main id="main">
+<article>
+    <header>
+        <h1>sync.Map, and the Question I Should&#39;ve Asked First</h1>
+        <div class="post-meta">
+            <time datetime="2026-09-04">04 Sep 2026</time>
+            
+            <span>Why not just guard a plain map with a mutex? Go&#39;s own docs answer that directly, and the two exceptions they carve out explain the whole design.</span>
+             
+            <span class="post-tags">
+                <span class="post-tags-label">Tags: </span>
+                
+                <a href="https://yazeed1s.github.io/tags/go">go</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/concurrency">concurrency</a>
+            </span>
+            
+        </div>
+    </header>
+     <p>First time I ran into <code>sync.Map</code> I didn't reach for it, I just kept using a plain <code>map</code> behind a <code>sync.Mutex</code> like always, mostly because that shape is one I already trust and <code>sync.Map</code> felt like one more thing to learn for no obvious reason. It sat in the back of my head for a while as "the concurrent map I'm apparently not using," which is an annoying thing to leave unresolved.</p>
+<p>What I found is that <code>sync.Map</code> isn't a general-purpose replacement for map-plus-mutex at all, it's a narrow optimization for two specific access patterns, and the standard library says so plainly in its own doc comment, not as an implication I'm reading into it.</p>
+<h2 id="what-a-plain-map-won-t-survive">what a plain map won't survive</h2>
+<p>Start with the problem <code>sync.Map</code> exists to fix. A regular Go map isn't safe under concurrent access, and it's not a silent kind of unsafe either, the runtime detects it and kills the whole program.</p>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="go"><span class="giallo-l"><span class="z-l-6">m</span><span class="z-d-6"> :=</span><span class="z-l-2 z-d-3"> make</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">map</span><span class="z-d-1">[</span><span class="z-l-4 z-d-8">string</span><span class="z-d-1">]</span><span class="z-l-4 z-d-8">int</span><span class="z-d-1">)</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">go</span><span class="z-l-4 z-d-8"> func</span><span class="z-d-1">(</span><span class="z-d-1">)</span><span class="z-d-1"> {</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">    for</span><span class="z-d-1"> {</span></span>
+<span class="giallo-l"><span class="z-l-6">        m</span><span class="z-d-1">[</span><span class="z-d-1">&quot;</span><span class="z-l-3 z-d-6">thing</span><span class="z-d-1">&quot;</span><span class="z-d-1">]</span><span class="z-d-6"> =</span><span class="z-l-4 z-d-5"> 1</span></span>
+<span class="giallo-l"><span class="z-d-1">    }</span></span>
+<span class="giallo-l"><span class="z-d-1">}</span><span class="z-d-1">(</span><span class="z-d-1">)</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">go</span><span class="z-l-4 z-d-8"> func</span><span class="z-d-1">(</span><span class="z-d-1">)</span><span class="z-d-1"> {</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">    for</span><span class="z-d-1"> {</span></span>
+<span class="giallo-l"><span class="z-l-6">        fmt</span><span class="z-d-1">.</span><span class="z-l-2 z-d-3">Println</span><span class="z-d-1">(</span><span class="z-l-6">m</span><span class="z-d-1">[</span><span class="z-d-1">&quot;</span><span class="z-l-3 z-d-6">thing</span><span class="z-d-1">&quot;</span><span class="z-d-1">]</span><span class="z-d-1">)</span></span>
+<span class="giallo-l"><span class="z-d-1">    }</span></span>
+<span class="giallo-l"><span class="z-d-1">}</span><span class="z-d-1">(</span><span class="z-d-1">)</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">select</span><span class="z-d-1"> {</span><span class="z-d-1">}</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span class="z-l-5 z-l-i z-d-1 z-d-i">//</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> fatal error: concurrent map read and map write</span></span></code></pre>
+<p>That's not a <code>panic</code> you can <code>recover</code> from, it's a fatal error, the process is going down. And it's not only read-vs-write that trips it, just ranging over a map while another goroutine writes to it triggers the same fatal error. So something has to guard concurrent access, either a mutex you manage yourself or a type built to handle it internally.</p>
+<h2 id="the-pitch-and-the-very-next-sentence">the pitch, and the very next sentence</h2>
+<p><code>sync.Map</code> bills itself as a map "safe for concurrent use by multiple goroutines without additional locking or coordination." Using it looks exactly like a regular map:</p>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="go"><span class="giallo-l"><span class="z-l-4 z-d-8">var</span><span class="z-l-6"> m</span><span class="z-l-7 z-d-4"> sync</span><span class="z-d-1">.</span><span class="z-l-7 z-d-4">Map</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span class="z-l-6">m</span><span class="z-d-1">.</span><span class="z-l-2 z-d-3">Store</span><span class="z-d-1">(</span><span class="z-d-1">&quot;</span><span class="z-l-3 z-d-6">foo</span><span class="z-d-1">&quot;</span><span class="z-d-1">,</span><span class="z-d-1"> &quot;</span><span class="z-l-3 z-d-6">bar</span><span class="z-d-1">&quot;</span><span class="z-d-1">)</span></span>
+<span class="giallo-l"><span class="z-l-6">value</span><span class="z-d-1">,</span><span class="z-l-6"> ok</span><span class="z-d-6"> :=</span><span class="z-l-6"> m</span><span class="z-d-1">.</span><span class="z-l-2 z-d-3">Load</span><span class="z-d-1">(</span><span class="z-d-1">&quot;</span><span class="z-l-3 z-d-6">foo</span><span class="z-d-1">&quot;</span><span class="z-d-1">)</span></span>
+<span class="giallo-l"><span class="z-l-6">fmt</span><span class="z-d-1">.</span><span class="z-l-2 z-d-3">Println</span><span class="z-d-1">(</span><span class="z-l-6">value</span><span class="z-d-1">,</span><span class="z-l-6"> ok</span><span class="z-d-1">)</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> //</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> foo true</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span class="z-l-6">m</span><span class="z-d-1">.</span><span class="z-l-2 z-d-3">Delete</span><span class="z-d-1">(</span><span class="z-d-1">&quot;</span><span class="z-l-3 z-d-6">foo</span><span class="z-d-1">&quot;</span><span class="z-d-1">)</span></span>
+<span class="giallo-l"><span class="z-l-6">value</span><span class="z-d-1">,</span><span class="z-l-6"> ok</span><span class="z-d-6"> =</span><span class="z-l-6"> m</span><span class="z-d-1">.</span><span class="z-l-2 z-d-3">Load</span><span class="z-d-1">(</span><span class="z-d-1">&quot;</span><span class="z-l-3 z-d-6">foo</span><span class="z-d-1">&quot;</span><span class="z-d-1">)</span></span>
+<span class="giallo-l"><span class="z-l-6">fmt</span><span class="z-d-1">.</span><span class="z-l-2 z-d-3">Println</span><span class="z-d-1">(</span><span class="z-l-6">value</span><span class="z-d-1">,</span><span class="z-l-6"> ok</span><span class="z-d-1">)</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> //</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> &lt;nil&gt; false</span></span></code></pre>
+<p>No mutex in sight, no <code>recover</code>, nothing crashes under concurrent load. So far it does look like the drop-in fix. Then the same doc comment turns around and says most code should use a plain map with its own locking instead, for better type safety, right there in the sentence after the pitch. That's the standard library naming its own type and then telling you not to reach for it by default.</p>
+<h2 id="the-two-shapes-it-s-actually-for">the two shapes it's actually for</h2>
+<p>The doc doesn't leave "most code" vague, it names exactly two access patterns where <code>sync.Map</code> wins.</p>
+<p>The first is a cache that only grows. A key gets written once, maybe the first time it's computed, and after that it's read constantly and never written again. A memoized function's results, or a config value loaded at startup and read on every request afterward, both fit this shape.</p>
+<p>The second is a map split across goroutines by key rather than by lock. Several goroutines are all touching the same <code>sync.Map</code>, but goroutine A only ever reads and writes keys <code>"a1"</code>, <code>"a2"</code>, <code>"a3"</code>, while goroutine B only ever touches <code>"b1"</code>, <code>"b2"</code>. Nobody's actually contending for the same entry, even though they're technically sharing one map.</p>
+<p>Outside those two shapes, a mutex-guarded map is the better call, in the standard library's own words.</p>
+<h2 id="why-those-two-shapes-specifically">why those two shapes specifically</h2>
+<p>None of that reasoning is in the doc comment, you have to look at how the type used to be built to see why those two cases are the special ones, and once I did it stopped feeling arbitrary.</p>
+<p>For a long time, up through Go 1.23, <code>sync.Map</code> kept two maps internally, not one. A read-only map you could load from with no lock at all, and a dirty map behind an actual mutex for anything the read map didn't have yet. A lookup that missed the read map fell back to locking and checking the dirty map, and that counted as a miss. Once enough misses piled up to justify the cost, the dirty map got copied over and promoted into a new read map, and the cycle started again.</p>
+<p>Once you see that structure, the two blessed shapes stop being a random list. Write-once-read-forever means a key needs the slow, locked path exactly once, then every read after that hits the lock-free map for good. Disjoint keys means goroutines aren't colliding on the same entries in the first place, so the contention a shared mutex would create barely happens here either. Outside those two shapes you're paying for two maps and a promotion scheme and getting nothing back for it, a single map behind a single mutex does the same job with less machinery.</p>
+<h2 id="the-design-didn-t-stay-put">the design didn't stay put</h2>
+<p>What I didn't expect digging into this is that the two-map design had a real cost of its own, one the Go team went back and fixed instead of just documenting around. Go 1.24 replaced the internals with a hash-trie map, specifically to remove what the release notes called ramp-up time, the old design needed a string of misses before a key's reads actually became lock-free, so there was a cold-start tax built into the exact fast path people picked <code>sync.Map</code> for in the first place. Go 1.24 shipped it behind a fallback you could opt out of if it broke something, and by Go 1.26 that fallback is gone and the hash-trie is just the implementation, full stop.</p>
+<p>So the read-only-plus-dirty-map design in the previous section is history at this point, not current behavior. I still think it's worth knowing, it's the reason the two access patterns in the docs are the ones they are, and that reasoning didn't change just because the data structure underneath did.</p>
+<h2 id="so-back-to-the-mutex">so, back to the mutex</h2>
+<p>Which loops back to the actual question. For nearly everything I'd reach for a concurrent map to do, a mutex around a plain map wins outright, and the standard library says so plainly, better type safety being the exact phrase it uses. <code>sync.Map</code> still takes <code>any</code> and returns <code>any</code> on every call, so you're type-asserting on every access no matter what Go version you're on, where <code>map[string]int</code> guarded by a mutex just never makes you do that. It also has no <code>Len()</code>, and <code>Range</code> doesn't lock the whole map for the duration, so a range over a <code>sync.Map</code> being modified concurrently isn't guaranteed to see a consistent snapshot, which is a real cost if you need one.</p>
+<p><code>sync.Map</code> only pays off once you can point at your access pattern and say it's one of the two specific shapes ahead of time. If you can't, you're not who it was built for, and reaching for it because the name starts with "sync" and sounds like the safe default is exactly the assumption the doc comment is trying to talk you out of.</p>
+<h2 id="notes">notes</h2>
+<ul>
+<li><code>Load</code>, <code>Store</code>, and <code>Delete</code> are documented as amortized constant time, amortized is doing real work in that sentence, individual calls can be slower, the promotion/rebalancing underneath is what makes the average hold</li>
+<li>like every other sync primitive, a <code>sync.Map</code> must not be copied after it's been used, copying it copies the internal state and the safety guarantee just quietly stops applying</li>
+<li>the zero value works with no setup at all, that part is genuinely nicer than mutex-plus-map, where you have to remember to initialize both pieces yourself</li>
+<li><code>LoadOrStore</code>, <code>LoadAndDelete</code>, <code>Swap</code>, <code>CompareAndSwap</code>, and <code>CompareAndDelete</code> exist because those are exactly the operations that would otherwise force you to hold your own mutex across two separate map operations, that's the one place <code>sync.Map</code> hands you something rolling your own doesn't give for free</li>
+<li><code>CompareAndSwap</code>, <code>CompareAndDelete</code>, and <code>Swap</code> only landed in Go 1.20, <code>Clear</code> in Go 1.23, so a lot of code written before that had to fake these with <code>LoadOrStore</code> and a loop</li>
+</ul>
+  
+</article>
+</main>
+    <hr class="site-sep bottom-sep" />
+    <footer class="s">
+        
+    </footer>
+    
+
+    <script>
+        document.querySelectorAll("article img[srcset]").forEach((i) => {
+            if (i.closest("a")) return;
+            i.style.cursor = "pointer";
+            i.onclick = () => {
+                let d = document.createElement("div"),
+                    s = i.srcset.split(",").pop().trim().split(" ")[0];
+                d.className = "lb";
+                d.innerHTML = '<img src="' + s + '">';
+                document.body.style.overflow = "hidden";
+                d.onclick = () => {
+                    d.remove();
+                    document.body.style.overflow = "";
+                };
+                document.body.appendChild(d);
+            };
+        });
+    </script>
+    
+<button id="scroll-to-top" aria-label="Scroll to top" title="Scroll to top">↑</button>
+<script>
+    (function() {
+        var btn = document.getElementById("scroll-to-top");
+        if (btn) {
+            window.addEventListener("scroll", function() {
+                if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                    btn.classList.add("show");
+                } else {
+                    btn.classList.remove("show");
+                }
+            });
+            btn.addEventListener("click", function() {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        }
+    })();
+</script>
+</body>
+
+</html>

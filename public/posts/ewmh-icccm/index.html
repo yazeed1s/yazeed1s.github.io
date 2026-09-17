@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="The two specs that define how X11 window managers communicate with clients." />
+<meta
+    name="keywords"
+    content="yazeed, blog, alharthi, yaz, yazeed1s"
+/>
+<link rel="canonical" href="https://yazeed1s.github.io/posts/ewmh-icccm/" />
+
+<title>EWMH and ICCCM: What a WM Actually Needs to Implement | Yazeed&#39;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#39;s Blog" />
+<meta property="og:title" content="EWMH and ICCCM: What a WM Actually Needs to Implement | Yazeed&#39;s Blog" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://yazeed1s.github.io/posts/ewmh-icccm/" />
+<meta property="og:description" content="The two specs that define how X11 window managers communicate with clients." />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="EWMH and ICCCM: What a WM Actually Needs to Implement" />
+<meta name="twitter:description" content="The two specs that define how X11 window managers communicate with clients." />
+
+    <link rel="icon" href="/favicon.ico" />
+    
+    <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
+    <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+    <link id="giallo-light" rel="stylesheet" href="https://yazeed1s.github.io/giallo-light.css" />
+    <link id="giallo-dark" rel="stylesheet" href="https://yazeed1s.github.io/giallo-dark.css" />
+
+           
+    
+    
+    
+
+          
+    
+    
+    
+    <style>
+        :root {
+            --nav-basis: 25.0%;
+            --light-bg: #eae6deff;
+            --light-text: #1a1410;
+            --light-text-muted: #1a1410;
+            --light-accent: #9E4440;
+            --light-accent-hover: #7A3533;
+            --light-code-bg: #e1ded6ff;
+            --light-border: #abaaaaff;
+            --light-bold: #1a1410;
+            --light-italic: #1a1410;
+            --light-headers: #1a1410;
+            --dark-bg: #303132;
+            --dark-text: #bebbb9ff;
+            --dark-text-muted: #d5d2cf;
+            --dark-accent: #e57665;
+            --dark-accent-hover: #888885;
+            --dark-code-bg: #282829;
+            --dark-border: #524f4c;
+            --dark-bold: #d5d2cf;
+            --dark-italic: #d5d2cf;
+            --dark-headers: #d5d2cf;
+        }
+    </style>
+    <meta name="theme-color" id="tc" />
+    <script>
+        (function () {
+            var m = matchMedia("(prefers-color-scheme:dark)"),
+                t = localStorage.theme || (m.matches ? "dark" : "light"),
+                h = document.documentElement,
+                c = document.getElementById("tc"),
+                gl = document.getElementById("giallo-light"),
+                gd = document.getElementById("giallo-dark");
+            h.className = t;
+            function u() {
+                c.content = getComputedStyle(h).getPropertyValue("--tc");
+                gl.disabled = t !== "light";
+                gd.disabled = t !== "dark";
+            }
+            u();
+            window.T = function () {
+                t = t === "dark" ? "light" : "dark";
+                localStorage.theme = t;
+                h.className = t;
+                u();
+            };
+        })();
+    </script>
+    
+</head>
+
+<body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><symbol id="light" viewBox="0 0 32 32"><rect x="15" y="2" width="2" height="5"/><rect x="21.6675" y="6.8536" width="4.958" height="1.9998" transform="translate(1.5191 19.3744) rotate(-45)"/><rect x="25" y="15" width="5" height="2"/><rect x="23.1466" y="21.6675" width="1.9998" height="4.958" transform="translate(-10.0018 24.1465) rotate(-45)"/><rect x="15" y="25" width="2" height="5"/><rect x="5.3745" y="23.1466" width="4.958" height="1.9998" transform="translate(-14.7739 12.6256) rotate(-45)"/><rect x="2" y="15" width="5" height="2"/><rect x="6.8536" y="5.3745" width="1.9998" height="4.958" transform="translate(-3.253 7.8535) rotate(-45)"/><path d="M16,12a4,4,0,1,1-4,4,4.0045,4.0045,0,0,1,4-4m0-2a6,6,0,1,0,6,6,6,6,0,0,0-6-6Z"/></symbol>
+<symbol id="asleep" viewBox="0 0 32 32"><path d="M13.5025,5.4136A15.0755,15.0755,0,0,0,25.096,23.6082a11.1134,11.1134,0,0,1-7.9749,3.3893c-.1385,0-.2782.0051-.4178,0A11.0944,11.0944,0,0,1,13.5025,5.4136M14.98,3a1.0024,1.0024,0,0,0-.1746.0156A13.0959,13.0959,0,0,0,16.63,28.9973c.1641.006.3282,0,.4909,0a13.0724,13.0724,0,0,0,10.702-5.5556,1.0094,1.0094,0,0,0-.7833-1.5644A13.08,13.08,0,0,1,15.8892,4.38,1.0149,1.0149,0,0,0,14.98,3Z"/></symbol>
+<symbol id="rss" viewBox="0 0 32 32"><path d="M8,18c-3.3,0-6,2.7-6,6s2.7,6,6,6s6-2.7,6-6C14,20.7,11.3,18,8,18z M8,28c-2.2,0-4-1.8-4-4s1.8-4,4-4s4,1.8,4,4C12,26.2,10.2,28,8,28z"/><path d="M30,24h-2C28,13,19,4,8,4V2C20.1,2,30,11.9,30,24z"/><path d="M22,24h-2c0-6.6-5.4-12-12-12v-2C15.7,10,22,16.3,22,24z"/></symbol>
+</svg>
+
+    <header id="site-header">
+        <div>
+            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#39;s Blog</strong></a></span>
+            <nav>
+                <a href="https://yazeed1s.github.io/" >Home</a>
+                <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
+                <a href="https://yazeed1s.github.io/projects/" >Projects</a>
+                <a href="https://yazeed1s.github.io/tags/" >Tags</a>
+                </nav>
+            <a href="#" onclick="
+                        T();
+                        return false;
+                    " class="theme" aria-label="Toggle theme" title="Toggle theme">
+<svg><use href="#light"/></svg>
+
+<svg><use href="#asleep"/></svg>
+</a>
+        </div>
+    </header>
+    <hr class="site-sep" />
+    <main id="main">
+<article>
+    <header>
+        <h1>EWMH and ICCCM: What a WM Actually Needs to Implement</h1>
+        <div class="post-meta">
+            <time datetime="2024-06-02">02 Jun 2024</time>
+            
+            <span>The two specs that define how X11 window managers communicate with clients.</span>
+             
+            <span class="post-tags">
+                <span class="post-tags-label">Tags: </span>
+                
+                <a href="https://yazeed1s.github.io/tags/linux">linux</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/x11">x11</a><span
+                    class="tag-comma">,</span> 
+                <a href="https://yazeed1s.github.io/tags/window-manager">window manager</a>
+            </span>
+            
+        </div>
+    </header>
+     <p>EWMH and ICCCM are the two specs that define how window managers and clients talk to each other through properties on windows, atoms, and message formats. Without them every app would need to know specifically how to talk to your particular WM, and with them apps can just assume standard behavior. Every WM implements some subset of these, and here's what actually matters.</p>
+<h2 id="icccm-the-old-one">ICCCM: the old one</h2>
+<p>ICCCM is the Inter-Client Communication Conventions Manual from 1988 and it covers the basics, so <code>WM_NAME</code> holds the window title, <code>WM_CLASS</code> holds the instance name and class name that you match windows to rules with, <code>WM_HINTS</code> carries the input focus model and icon and initial state, <code>WM_NORMAL_HINTS</code> carries size hints like min/max size and aspect ratio and resize increments, <code>WM_PROTOCOLS</code> lists which protocols the client supports such as <code>WM_DELETE_WINDOW</code>, and <code>WM_STATE</code> is the current state (normal, iconic, withdrawn).</p>
+<p>Of those the ones that actually matter for a basic WM are a smaller set. <code>WM_DELETE_WINDOW</code> is the one where, if the client lists it in <code>WM_PROTOCOLS</code>, you send a ClientMessage instead of killing the window so the app can save unsaved work before it closes. <code>WM_TAKE_FOCUS</code> is for apps that handle focus themselves, where you send a ClientMessage when you want to focus the window and the app focuses its own input field. <code>WM_NORMAL_HINTS</code> is size hints again, and some apps set a minimum size or a fixed aspect ratio, so a tiling WM can mostly ignore this but floating windows should respect it. <code>WM_STATE</code> is something you're supposed to set on managed windows because some apps check it, with <code>NormalState</code> for visible, <code>IconicState</code> for minimized, and <code>WithdrawnState</code> for not managed. <code>WM_CLASS</code> is critical for window rules since the class name tells you what app this is, which is what you use to auto-float dialogs or send certain apps to specific desktops.</p>
+<p>ICCCM is showing its age tho, it doesn't know about multiple desktops, fullscreen, maximized state, struts (docking bars), or window types, and that's what EWMH adds.</p>
+<h2 id="ewmh-the-modern-one">EWMH: the modern one</h2>
+<p>EWMH is the Extended Window Manager Hints and it's what most modern apps and WMs actually use.</p>
+<h3 id="root-window-properties">root window properties</h3>
+<p>These go on the root window and describe the overall WM and desktop state. <code>_NET_SUPPORTED</code> is the list of EWMH atoms you support, which apps check to know what features work. <code>_NET_CLIENT_LIST</code> is all managed windows and <code>_NET_CLIENT_LIST_STACKING</code> is the same thing in stacking order from bottom to top, and pagers and taskbars use both. <code>_NET_CURRENT_DESKTOP</code> is which desktop is active, <code>_NET_NUMBER_OF_DESKTOPS</code> is how many exist, and <code>_NET_DESKTOP_NAMES</code> is their names. <code>_NET_ACTIVE_WINDOW</code> is the currently focused window. <code>_NET_SUPPORTING_WM_CHECK</code> points to a child window with <code>_NET_WM_NAME</code> set to the WM name, and apps use it to detect whether a compliant WM is running at all.</p>
+<h3 id="client-window-properties">client window properties</h3>
+<p>Apps set these on their own windows. <code>_NET_WM_NAME</code> is the UTF-8 window title and you should prefer it over <code>WM_NAME</code>. <code>_NET_WM_WINDOW_TYPE</code> says what kind of window it is, with <code>_NET_WM_WINDOW_TYPE_NORMAL</code> for a regular app window, <code>_DOCK</code> for panels and bars like polybar, <code>_DIALOG</code> for dialogs, <code>_SPLASH</code> for splash screens, <code>_UTILITY</code> for toolbars and palettes, and <code>_NOTIFICATION</code> for notification popups. This is how you know to auto-float dialogs or keep docks above other windows, and getting it right makes a huge difference in how the WM feels.</p>
+<p><code>_NET_WM_STATE</code> is the set of current state flags, so <code>_NET_WM_STATE_FULLSCREEN</code> for fullscreen, <code>_MAXIMIZED_HORZ</code> and <code>_MAXIMIZED_VERT</code> for maximized, <code>_HIDDEN</code> for minimized, <code>_ABOVE</code> and <code>_BELOW</code> for always on top or bottom, and <code>_DEMANDS_ATTENTION</code> for the urgency hint. <code>_NET_WM_DESKTOP</code> is which desktop the window belongs to, where <code>0xFFFFFFFF</code> means sticky and visible on all of them. <code>_NET_WM_STRUT_PARTIAL</code> is reserved screen space that docks set to tell the WM not to tile windows in their area. <code>_NET_WM_PID</code> is the process ID, which is useful when you want to know which process owns a window.</p>
+<h3 id="client-messages">client messages</h3>
+<p>Apps send these to the WM to request things and the WM decides whether to honor them. <code>_NET_ACTIVE_WINDOW</code> requests focus for a window and pagers use it. <code>_NET_CLOSE_WINDOW</code> requests a close and taskbars use it. <code>_NET_WM_STATE</code> requests a state change like toggling fullscreen, and the message carries the action (add, remove, toggle) plus which state atoms. <code>_NET_CURRENT_DESKTOP</code> requests a desktop switch and <code>_NET_WM_DESKTOP</code> requests moving a window to a different desktop.</p>
+<h2 id="what-i-actually-implemented">what I actually implemented</h2>
+<p>For a tiling WM the spec is big but you don't need all of it. The parts that have to be there are <code>_NET_SUPPORTED</code> to advertise what you support, <code>_NET_SUPPORTING_WM_CHECK</code> to prove you're EWMH compliant, <code>_NET_CLIENT_LIST</code> because pagers need it, <code>_NET_CURRENT_DESKTOP</code> and <code>_NET_NUMBER_OF_DESKTOPS</code> for desktop switching, <code>_NET_ACTIVE_WINDOW</code> for focus tracking, <code>_NET_WM_STATE</code> handling and especially fullscreen, <code>_NET_WM_WINDOW_TYPE</code> to identify docks and dialogs and splashes, <code>_NET_WM_STRUT_PARTIAL</code> to respect space reserved by bars, and <code>WM_DELETE_WINDOW</code> to close windows properly.</p>
+<p>The nice-to-haves are <code>_NET_WM_NAME</code> for UTF-8 titles, <code>_NET_CLIENT_LIST_STACKING</code> for stacking-aware pagers, <code>_NET_DESKTOP_NAMES</code> for named workspaces, and <code>_NET_WM_DESKTOP</code> for moving windows between desktops. The things you can skip in a tiling WM are <code>_NET_WM_STATE_MAXIMIZED_*</code> since tiling windows are already maximized in a sense, and <code>_NET_WM_MOVERESIZE</code> for interactive resize and move, which isn't really relevant when everything tiles.</p>
+<h2 id="handling-state-changes">handling state changes</h2>
+<p>When an app sends a <code>_NET_WM_STATE</code> client message, <code>data.l[0]</code> is the action (0 remove, 1 add, 2 toggle), <code>data.l[1]</code> is the first state atom, and <code>data.l[2]</code> is an optional second state atom. So a fullscreen toggle comes out roughly like this:</p>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-4 z-d-8">if</span><span class="z-d-1"> (</span><span>action </span><span class="z-d-6">==</span><span> _NET_WM_STATE_TOGGLE</span><span class="z-d-1">)</span><span class="z-d-1"> {</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-8">    if</span><span class="z-d-1"> (</span><span class="z-l-2 z-d-3">is_fullscreen</span><span class="z-d-1">(</span><span>win</span><span class="z-d-1">)</span><span class="z-d-1">)</span><span class="z-d-1"> {</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-3">        unfullscreen</span><span class="z-d-1">(</span><span>win</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-d-1">    }</span><span class="z-l-4 z-d-8"> else</span><span class="z-d-1"> {</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-3">        fullscreen</span><span class="z-d-1">(</span><span>win</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-d-1">    }</span></span>
+<span class="giallo-l"><span class="z-d-1">}</span></span></code></pre>
+<p>You also need to update the property on the window afterwards so other apps like pagers and taskbars can see the current state.</p>
+<h2 id="the-annoying-parts">the annoying parts</h2>
+<p>Order matters, because some apps expect you to set properties in a specific order during the initial manage, and Java is notorious for this. UTF-8 is another one, since <code>_NET_WM_NAME</code> is UTF-8 but <code>WM_NAME</code> might be latin1 or something else entirely, so you have to handle both. Struts are per-monitor and <code>_NET_WM_STRUT_PARTIAL</code> has 12 values covering left, right, top, bottom, and a start and end for each, so a bar on the left side of monitor 2 has a specific left strut with start_y and end_y bounding its position. Desktop indices trip people up too, because apps expect 0-indexed desktops where <code>_NET_CURRENT_DESKTOP = 0</code> is the first one, and some early EWMH implementations got this wrong.</p>
+<h2 id="notes">notes</h2>
+<ul>
+<li>ICCCM: https://tronche.com/gui/x/icccm/</li>
+<li>EWMH: https://specifications.freedesktop.org/wm-spec/latest/</li>
+<li><code>xcb_ewmh.h</code> provides helpers for getting/setting these properties</li>
+<li>If something isn't working, check what you advertise in <code>_NET_SUPPORTED</code>, apps check this</li>
+<li>Run <code>xprop</code> on windows to see what properties they set, useful for debugging</li>
+</ul>
+  
+</article>
+</main>
+    <hr class="site-sep bottom-sep" />
+    <footer class="s">
+        
+    </footer>
+    
+
+    <script>
+        document.querySelectorAll("article img[srcset]").forEach((i) => {
+            if (i.closest("a")) return;
+            i.style.cursor = "pointer";
+            i.onclick = () => {
+                let d = document.createElement("div"),
+                    s = i.srcset.split(",").pop().trim().split(" ")[0];
+                d.className = "lb";
+                d.innerHTML = '<img src="' + s + '">';
+                document.body.style.overflow = "hidden";
+                d.onclick = () => {
+                    d.remove();
+                    document.body.style.overflow = "";
+                };
+                document.body.appendChild(d);
+            };
+        });
+    </script>
+    
+<button id="scroll-to-top" aria-label="Scroll to top" title="Scroll to top">↑</button>
+<script>
+    (function() {
+        var btn = document.getElementById("scroll-to-top");
+        if (btn) {
+            window.addEventListener("scroll", function() {
+                if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                    btn.classList.add("show");
+                } else {
+                    btn.classList.remove("show");
+                }
+            });
+            btn.addEventListener("click", function() {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        }
+    })();
+</script>
+</body>
+
+</html>
