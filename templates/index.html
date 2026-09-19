@@ -1,31 +1,13 @@
-{% extends "base.html" %} {% block content %} {% if config.extra.profile_picture
-%}
-<img
-    src="{{ config.extra.profile_picture }}"
-    alt="Profile picture"
-    class="profile-pic"
-/>
-{% endif %}
-<article class="hero">{{ section.content | safe }}</article>
-
-{% set posts_section = get_section(path="posts/_index.md") %}
-{% if posts_section.pages %}
+{% extends "base.html" %}
+{% block content %}
+{% if config.extra.profile_picture %}<img class="profile-pic" src="{{ get_url(path=config.extra.profile_picture) }}" alt="Profile picture" />{% endif %}
+<article class="home-intro prose">{{ section.content | safe }}</article>
+{% set posts = get_section(path="posts/_index.md") %}
+{% if posts.pages %}
 {% set count = config.extra.recent_posts_count | default(value=5) %}
-<section class="recent-posts">
-    <h2><span class="section-label">Recent</span></h2>
-    <ul class="p ledger">
-    {% for post in posts_section.pages[:count] %}
-        <li>
-            <a href="{{ post.permalink | safe }}">
-                <span class="ledger-title">{{ post.title }}</span>
-                <time datetime="{{ post.date }}">{{ post.date | date(format='%b %Y') }}</time>
-            </a>
-        </li>
-    {% endfor %}
-    </ul>
-    <a href="{{ get_url(path='posts/') | safe }}" class="all-posts-link">All posts →</a>
+<section class="recent" aria-labelledby="recent-title">
+    <div class="section-heading"><h2 id="recent-title">Recent</h2><a href="{{ posts.permalink | safe }}">All posts →</a></div>
+    {{<posts.list pages={posts.pages[:count]} years={false} />}}
 </section>
 {% endif %}
-
 {% endblock content %}
-

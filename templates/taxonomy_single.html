@@ -1,23 +1,9 @@
-{% extends "base.html" %} {% block content %}
+{% extends "base.html" %}
+{% block content %}
 <header class="section-header">
-    <h1><span class="section-label">{{ taxonomy.name }}</span>{{ term.name }}</h1>
+    <a class="back-link" href="{{ get_url(path=taxonomy.name ~ '/') | safe }}">← {{ taxonomy.name | capitalize }}</a>
+    <h1>{{ term.name }}</h1>
 </header>
-{% set sorted_pages = term.pages | sort(attribute="date") | reverse %}
-{% set_global cur_year = "" %}
-{% for post in sorted_pages %}
-{% set y = post.date | date(format="%Y") %}
-{% if y != cur_year %}
-{% if not loop.first %}</ul>{% endif %}
-<h2 class="year-heading">{{ y }}</h2>
-<ul class="p ledger">
-{% set_global cur_year = y %}
-{% endif %}
-<li>
-    <a href="{{ post.permalink | safe }}">
-        <span class="ledger-title">{{ post.title }}{% if post.draft %} <span class="s">(Draft)</span>{% endif %}</span>
-        <time datetime="{{ post.date }}">{{ post.date | date(format='%d %b') }}</time>
-    </a>
-    {{<hooks.posts_below_title page={post} />}}
-</li>
-{% if loop.last %}</ul>{% endif %}
-{% endfor %} {% endblock content %}
+{% set pages = term.pages | sort(attribute="date") | reverse %}
+{{<posts.list pages />}}
+{% endblock content %}

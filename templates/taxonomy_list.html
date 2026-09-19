@@ -1,14 +1,9 @@
-{% extends "base.html" %} {% block content %}
-<header class="section-header">
-    <h1>{{ taxonomy.name | capitalize }}</h1>
-</header>
-{% if terms %}
-<ul class="tag-list">
+{% extends "base.html" %}
+{% block content %}
+<header class="section-header"><h1>{{ taxonomy.name | capitalize }}</h1></header>
+<ul class="tag-index">
     {% for term in terms %}
-    <li>
-        <a href="{{ term.permalink | safe }}">{{ term.name }}</a>
-        <span class="count">{{ term.pages | length }}</span>
-    </li>
+    <li><a href="{{ term.permalink | safe }}">{{ term.name }}</a><span>{{ term.pages | length }} {% if term.pages | length == 1 %}post{% else %}posts{% endif %}</span></li>
     {% endfor %}
 </ul>
-{% endif %} {% endblock content %}
+{% endblock content %}

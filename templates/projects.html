@@ -1,43 +1,20 @@
-{% extends "base.html" -%} {% block content -%}
-<header class="section-header">
-    <h1>{{ section.title }}</h1>
-    {{ section.content | safe }}
-</header>
-{% set projects_data = load_data(path="content/" ~
-section.path ~ "projects.toml", required=false) -%} {% if projects_data and
-projects_data.projects -%}
+{% extends "base.html" %}
+{% block content %}
+<header class="section-header"><h1>{{ section.title }}</h1><div class="prose">{{ section.content | safe }}</div></header>
+{% set data = load_data(path="content/" ~ section.path ~ "projects.toml", required=false) %}
+{% if data and data.projects %}
 <div class="projects">
-    {% for project in projects_data.projects -%}
+    {% for project in data.projects %}
     <article class="project">
         <header>
-            {% if project.emoji %}<span class="project-emoji">{{ project.emoji }}</span>{% endif %}
-            <h2>
-                {% if project.url %}<a href="{{ project.url }}">{{ project.title }}</a>{% else %}{{ project.title }}{%
-                endif %}
-            </h2>
+            <h2>{% if project.emoji %}<span>{{ project.emoji }}</span> {% endif %}{% if project.url %}<a href="{{ project.url | safe }}">{{ project.title }}</a>{% else %}{{ project.title }}{% endif %}</h2>
+            <p class="project-meta">{% if project.date %}{{ project.date }}{% endif %}{% if project.date and project.status %} · {% endif %}{% if project.status %}{{ project.status }}{% endif %}</p>
         </header>
-        {% if project.image -%}
-        <img src="{{ get_url(path=section.path ~ project.image) }}" alt="{{ project.title }}" class="project-image" />
-        {% endif -%} {% if project.date or project.status -%}
-        <p class="project-meta s">
-            {% if project.date %}{{ project.date }}{% endif %} {% if
-            project.date and project.status %} · {% endif %} {% if
-            project.status %}{{ project.status }}{% endif %}
-        </p>
-        {% endif -%} {% if project.description -%}
-        <p>{{ project.description }}</p>
-        {% endif -%} {% if project.tags -%}
-        <ul class="tags">
-            {% for tag in project.tags -%}
-            <li>
-                <span class="tag-hash">#</span><a href="{{ get_url(path='tags/' ~ tag | slugify) }}">{{ tag }}</a>
-            </li>
-            {% endfor -%}
-        </ul>
-        {% endif -%}
+        {% if project.description %}<div class="prose"><p>{{ project.description }}</p></div>{% endif %}
+        {% if project.tags %}<ul class="tags" aria-label="Technologies">{% for tag in project.tags %}<li>{{ tag }}</li>{% endfor %}</ul>{% endif %}
+        {% if project.image %}{% set size = get_image_metadata(path="content/" ~ section.path ~ project.image) %}<a class="project-image" href="{{ get_url(path=section.path ~ project.image) | safe }}"><img src="{{ get_url(path=section.path ~ project.image) | safe }}" alt="{{ project.title }} image" width="{{ size.width }}" height="{{ size.height }}" loading="lazy" /></a>{% endif %}
     </article>
-    {% endfor -%}
+    {% endfor %}
 </div>
-{% else -%}
-<p>No projects found. Add a <code>projects.toml</code> file to this section.</p>
-{% endif -%} {% endblock content -%}
+{% else %}<p>No projects yet.</p>{% endif %}
+{% endblock content %}

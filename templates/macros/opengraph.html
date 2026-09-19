@@ -1,29 +1,28 @@
-{# OpenGraph and Twitter Card meta tags #}
-
 {% component social.og_preview(page = null, section = null, term = null, taxonomy = null, config = null, current_url = null) %}
 <title>{{<social.og_title page section term taxonomy config />}} | {{ config.title }}</title>
 <meta property="og:site_name" content="{{ config.title }}" />
-<meta property="og:title" content="{{<social.og_title page section term taxonomy config />}} | {{ config.title }}" />
-<meta property="og:type" content="website" />
+<meta property="og:title" content="{{<social.og_title page section term taxonomy config />}}" />
+<meta property="og:type" content="{% if page %}article{% else %}website{% endif %}" />
 <meta property="og:url" content="{{ current_url | safe }}" />
 <meta property="og:description" content="{{<social.og_description page section config />}}" />
+{% if page and page.date %}<meta property="article:published_time" content="{{ page.date }}" />{% endif %}
 {{<hooks.og_image_tags page />}}
-<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:card" content="{% if page and page.extra.og_preview_img %}summary_large_image{% else %}summary{% endif %}" />
 <meta name="twitter:title" content="{{<social.og_title page section term taxonomy config />}}" />
 <meta name="twitter:description" content="{{<social.og_description page section config />}}" />
 {% endcomponent social.og_preview %}
 
 {% component social.og_description(page = null, section = null, config = null) %}
-{%- if section and section.description -%} {{ section.description }} {%- elif page and page.summary
--%} {{ page.summary | striptags | truncate(length=200) }} {%- elif page and
-page.description -%} {{ page.description }} {%- else -%} {{ config.description
-}} {%- endif -%}
+{%- if page and page.description -%}{{ page.description }}
+{%- elif page and page.summary -%}{{ page.summary | striptags | truncate(length=160) }}
+{%- elif section and section.description -%}{{ section.description }}
+{%- else -%}{{ config.description }}{%- endif -%}
 {% endcomponent social.og_description %}
 
 {% component social.og_title(page = null, section = null, term = null, taxonomy = null, config = null) %}
-{%- if
-section and section.title -%} {{ section.title | striptags }} {%- elif page and
-page.title -%} {{ page.title | striptags }} {%- elif term and term.name -%} {{
-term.name | striptags }} {%- elif taxonomy and taxonomy.name -%} {{
-taxonomy.name | striptags }} {%- else -%} {{ config.title }} {%- endif -%}
+{%- if page and page.title -%}{{ page.title | striptags }}
+{%- elif term and term.name -%}{{ term.name | striptags }}
+{%- elif taxonomy and taxonomy.name -%}{{ taxonomy.name | capitalize }}
+{%- elif section and section.title -%}{{ section.title | striptags }}
+{%- else -%}{{ config.title }}{%- endif -%}
 {% endcomponent social.og_title %}

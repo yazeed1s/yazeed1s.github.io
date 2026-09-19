@@ -10,13 +10,13 @@ taxonomies = [{ name = "tags", feed = true }]
 [markdown.highlighting]
 style = "class"
 extra_themes = [
-  "themes/zenburn-custom-dark.json",
-  "themes/zenburn-custom-light.json",
+  "themes/technical-journal-dark.json",
+  "themes/technical-journal-light.json",
 ]
 # light_theme = "Gruvbox Material Light"
 # dark_theme = "Gruvbox Material Dark"
-light_theme = "Zenburn Custom Light"
-dark_theme = "Zenburn Custom Dark"
+light_theme = "Technical Journal Light"
+dark_theme = "Technical Journal Dark"
 
 [slugify]
 paths = "on"
@@ -53,28 +53,24 @@ menu_links = [
 ]
 
 
+# Page palettes. Syntax colours are configured under markdown.highlighting.
 [extra.colours.light]
-background = "#eef0f0"
-text_heading = "#1b1e21"
-body_text = "#444a4e"
-text_muted = "#757c82"
-heading_mark = "#a9b4b8"
-accent = "#c97d4a"
-bold = "#14171a"
-italic = "#4a5155"
-accent_hover = "#a3623a"
-code_bg = "#e6e8e6"
-border = "#d2d5d6"
+background = "#f5f5f3"
+text_heading = "#20242a"
+body_text = "#353a41"
+text_muted = "#656b74"
+accent = "#345fc0"
+border = "#d9dce0"
+code_bg = "#eceef0"
+selection = "#d9e3fc"
 
 [extra.colours.dark]
-background = "#111214ff"
-text_heading = "#e7e9ea"
-body_text = "#d6dcddff"
-text_muted = "#8b9198"
-heading_mark = "#5c6368"
-accent = "#e39c6f"
-bold = "#f1f2f2"
-italic = "#b9bec1"
-accent_hover = "#eeb389"
-code_bg = "#292e32"
-border = "#2c3033"
+# background = "#141619"
+background = "#121416"
+text_heading = "#eeeef0"
+body_text = "#ccd0d5"
+text_muted = "#989fa9"
+accent = "#92aff1"
+border = "#353940"
+code_bg = "#202329"
+selection = "#304675"

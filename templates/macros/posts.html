@@ -1,0 +1,18 @@
+{% component posts.list(pages, years = true) %}
+{% set_global year = "" %}
+{% for post in pages %}
+{% set post_year = post.date | date(format="%Y") %}
+{% if loop.first or (years and post_year != year) %}
+    {% if not loop.first %}</ul></section>{% endif %}
+    <section class="post-group"{% if years %} aria-label="Posts from {{ post_year }}"{% endif %}>
+    {% if years %}<h2 class="year-heading">{{ post_year }}</h2>{% endif %}
+    <ul class="post-list">
+    {% set_global year = post_year %}
+{% endif %}
+        <li>
+            <a href="{{ post.permalink | safe }}">{{ post.title }}{% if post.draft %} <span class="draft">(Draft)</span>{% endif %}</a>
+            <time datetime="{{ post.date }}">{{ post.date | date(format="%d %b %Y") }}</time>
+        </li>
+{% if loop.last %}</ul></section>{% endif %}
+{% endfor %}
+{% endcomponent posts.list %}

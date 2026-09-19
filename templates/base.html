@@ -1,190 +1,87 @@
 <!doctype html>
-<html lang="en">
-
+<html lang="{{ config.default_language }}">
 <head>
-    {%- block general_meta -%} {{<head.general_meta page section config current_url />}} {%- endblock
-    general_meta -%} {%- block og_preview -%} {{<social.og_preview page section term taxonomy config current_url />}} {%-
-    endblock og_preview -%} {% if config.extra.favicon %}
-    <link rel="icon" href="{{ config.extra.favicon }}" />
-    {% endif %}
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:ital,wght@0,400;0,500;0,600;1,400&display=swap"
-        rel="stylesheet" />
-    <link rel="stylesheet" href="{{ get_url(path='font.css', trailing_slash=false) }}" />
-    {% set nav_count = config.extra.menu_links | length -%} {% if nav_count
-    >= 6 -%} {% set_global items_per_row = ((nav_count + 1) / 2) | round -%}
-    {% else -%} {% set_global items_per_row = nav_count -%} {% endif -%} {%
-    set basis = (100 / items_per_row) | round -%}
-
-    <link rel="stylesheet" href="{{ get_url(path='css/base.css', trailing_slash=false) }}" />
-    <link id="giallo-light" rel="stylesheet" href="{{ get_url(path='giallo-light.css', trailing_slash=false) }}" />
-    <link id="giallo-dark" rel="stylesheet" href="{{ get_url(path='giallo-dark.css', trailing_slash=false) }}" />
-
-    {# Colour configuration with defaults #} {% set light_bg =
-    config.extra.colours.light.background | default(value="#FAF7F2") %} {%
-    set light_text_heading = config.extra.colours.light.text_heading |
-    default(value="#1a1a1a") %} {% set light_body_text =
-    config.extra.colours.light.body_text | default(value="#333333") %} {%
-    set light_text_muted =
-    config.extra.colours.light.text_muted | default(value="#6a6a6a") %} {%
-    set light_heading_mark = config.extra.colours.light.heading_mark |
-    default(value=light_text_muted) %} {%
-    set light_accent = config.extra.colours.light.accent |
-    default(value="#B85450") %} {% set light_accent_hover =
-    config.extra.colours.light.accent_hover | default(value="#7A3533") %} {%
-    set light_code_bg = config.extra.colours.light.code_bg |
-    default(value="#f0ebe3") %} {% set light_border =
-    config.extra.colours.light.border | default(value="#e0d9ce") %}
-    {% set light_bold = config.extra.colours.light.bold | default(value=light_text_heading) %}
-    {% set light_italic = config.extra.colours.light.italic | default(value=light_text_heading) %}
-
-    {% set
-    dark_bg = config.extra.colours.dark.background |
-    default(value="#141413") %} {% set dark_text_heading =
-    config.extra.colours.dark.text_heading | default(value="#e8e8e8") %} {% set
-    dark_body_text = config.extra.colours.dark.body_text |
-    default(value="#cfcfcf") %} {% set
-    dark_text_muted = config.extra.colours.dark.text_muted |
-    default(value="#a0a0a0") %} {% set dark_heading_mark =
-    config.extra.colours.dark.heading_mark | default(value=dark_text_muted) %} {%
-    set dark_accent =
-    config.extra.colours.dark.accent | default(value="#E07A5F") %} {% set
-    dark_accent_hover = config.extra.colours.dark.accent_hover |
-    default(value="#F4A594") %} {% set dark_code_bg =
-    config.extra.colours.dark.code_bg | default(value="#1e1e1d") %} {% set
-    dark_border = config.extra.colours.dark.border |
-    default(value="#2a2a29") %}
-    {% set dark_bold = config.extra.colours.dark.bold | default(value=dark_text_heading) %}
-    {% set dark_italic = config.extra.colours.dark.italic | default(value=dark_text_heading) %}
+    {% block general_meta %}{{<head.general_meta page section config current_url />}}{% endblock general_meta %}
+    {% block og_preview %}{{<social.og_preview page section term taxonomy config current_url />}}{% endblock og_preview %}
+    <meta name="color-scheme" content="light dark" />
+    {% if config.extra.favicon %}<link rel="icon" href="{{ get_url(path=config.extra.favicon) }}" />{% endif %}
+    <link rel="preload" href="{{ get_url(path='fonts/chivo-latin.woff2') }}" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="{{ get_url(path='font.css') }}" />
     <style>
         :root {
-            --nav-basis: {{basis}}%;
-            --light-bg: {{light_bg}};
-            --light-text-heading: {{light_text_heading}};
-            --light-body-text: {{light_body_text}};
-            --light-text-muted: {{light_text_muted}};
-            --light-heading-mark: {{light_heading_mark}};
-            --light-accent: {{light_accent}};
-            --light-accent-hover: {{light_accent_hover}};
-            --light-code-bg: {{light_code_bg}};
-            --light-border: {{light_border}};
-            --light-bold: {{light_bold}};
-            --light-italic: {{light_italic}};
-            --dark-bg: {{dark_bg}};
-            --dark-text-heading: {{dark_text_heading}};
-            --dark-body-text: {{dark_body_text}};
-            --dark-text-muted: {{dark_text_muted}};
-            --dark-heading-mark: {{dark_heading_mark}};
-            --dark-accent: {{dark_accent}};
-            --dark-accent-hover: {{dark_accent_hover}};
-            --dark-code-bg: {{dark_code_bg}};
-            --dark-border: {{dark_border}};
-            --dark-bold: {{dark_bold}};
-            --dark-italic: {{dark_italic}};
+            {% for mode, colours in config.extra.colours %}
+            {% for name, value in colours %}
+            --{{ mode }}-{{ name | replace(from="_", to="-") }}: {{ value }};
+            {% endfor %}
+            {% endfor %}
         }
     </style>
-    <meta name="theme-color" id="tc" />
+    <link rel="stylesheet" href="{{ get_url(path='css/base.css') }}" />
+    <link id="syntax-light" rel="stylesheet" href="{{ get_url(path='giallo-light.css') }}" media="(prefers-color-scheme: light)" />
+    <link id="syntax-dark" rel="stylesheet" href="{{ get_url(path='giallo-dark.css') }}" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="{{ config.extra.colours.light.background }}" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="{{ config.extra.colours.dark.background }}" media="(prefers-color-scheme: dark)" />
     <script>
-        (function () {
-            var m = matchMedia("(prefers-color-scheme:dark)"),
-                t = localStorage.theme || (m.matches ? "dark" : "light"),
-                h = document.documentElement,
-                c = document.getElementById("tc"),
-                gl = document.getElementById("giallo-light"),
-                gd = document.getElementById("giallo-dark");
-            h.className = t;
-            function u() {
-                c.content = getComputedStyle(h).getPropertyValue("--tc");
-                gl.disabled = t !== "light";
-                gd.disabled = t !== "dark";
+        (() => {
+            const root = document.documentElement;
+            const system = matchMedia('(prefers-color-scheme: dark)');
+            let preference;
+            try { preference = localStorage.getItem('theme'); } catch (_) {}
+            if (preference !== 'light' && preference !== 'dark') preference = null;
+            function apply() {
+                const theme = preference || (system.matches ? 'dark' : 'light');
+                if (preference) root.dataset.theme = preference;
+                else delete root.dataset.theme;
+                document.getElementById('syntax-light').media = theme === 'light' ? 'all' : 'not all';
+                document.getElementById('syntax-dark').media = theme === 'dark' ? 'all' : 'not all';
+                document.querySelectorAll('meta[name="theme-color"]').forEach(meta => {
+                    meta.content = getComputedStyle(root).getPropertyValue('--background').trim();
+                });
+                const button = document.getElementById('theme-toggle');
+                if (button) {
+                    button.hidden = false;
+                    button.setAttribute('aria-pressed', String(theme === 'dark'));
+                }
             }
-            u();
-            window.T = function () {
-                t = t === "dark" ? "light" : "dark";
-                localStorage.theme = t;
-                h.className = t;
-                u();
-            };
+            apply();
+            system.addEventListener('change', apply);
+            document.addEventListener('DOMContentLoaded', () => {
+                apply();
+                document.getElementById('theme-toggle').addEventListener('click', () => {
+                    preference = (preference || (system.matches ? 'dark' : 'light')) === 'dark' ? 'light' : 'dark';
+                    try { localStorage.setItem('theme', preference); } catch (_) {}
+                    apply();
+                });
+            });
         })();
     </script>
     {% block head_extra %}{% endblock head_extra %}
 </head>
-
-<body>
-    <a href="#main" class="skip-link">Skip to content</a>
-    {% if config.extra.inline_icons %}{{<icons.sprite config />}}{% endif %}
-    <header id="site-header">
-        <div>
-            <span class="header-brand">{% if config.extra.site_icon is defined %}{% if
-                config.extra.site_icon == "" or config.extra.site_icon ==
-                "quill.svg" %}<svg class="site-icon" viewBox="-116.42 -116.42 596.66 596.66"
-                    xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                    <defs>
-                        <mask id="m">
-                            <rect x="-116.42" y="-116.42" width="596.66" height="596.66" fill="white" />
-                            <path fill="black"
-                                transform="translate(181.91,181.91) scale(1.25) translate(-181.91,-181.91)"
-                                d="M358.872,0.841c-3.196-1.538-7.014-0.931-9.572,1.526c-19.515,18.728-53.141,46.415-102.511,71.961c-2.159,1.118-3.737,3.106-4.333,5.463c-4.028,15.908-11.933,33.271-23.492,51.607l-4.705,7.462l8.772-38.205c0.715-3.115-0.378-6.368-2.828-8.42c-2.451-2.052-5.846-2.556-8.786-1.303l-1.015,0.428C110.79,133.291,81.352,198.24,72.67,233.22c-3.013,12.141-4.516,24.163-4.465,35.738c0.02,4.466,0.272,8.722,0.75,12.705l-66.39,67.703c-3.211,3.273-3.246,8.505-0.078,11.822c1.667,1.745,3.904,2.629,6.149,2.629c2.02,0,4.045-0.717,5.664-2.164l182.428-163.851c0.896,0.059-103.874,109.806-102.925,109.806c14.22,0,33.863-6.555,56.804-18.95c30.935-16.717,65.508-42.37,99.979-74.185c2.832-2.612,3.551-6.805,1.753-10.213c-1.798-3.407-5.662-5.181-9.42-4.315l-21.363,4.904l7.465-4.706c20.835-13.136,40.313-21.511,57.891-24.897c1.901-0.367,3.622-1.372,4.875-2.849c41.348-48.75,58.853-96.919,66.256-128.743c2.69-11.567,4.579-23.134,5.607-34.38C363.972,5.742,362.069,2.379,358.872,0.841z" />
-                        </mask>
-                    </defs>
-                    <rect x="-116.42" y="-116.42" width="596.66" height="596.66" rx="298.33" fill="currentColor"
-                        mask="url(#m)" />
-                </svg>{% else %}<img src="{{ config.extra.site_icon }}" class="custom-icon" alt="" />{% endif %}{% endif
-                %}<a href="{{ config.base_url | safe }}"><strong><span style="color: var(--accent-hover);">~/</span>{{
-                        config.title }}</strong></a>{% if
-                config.extra.strapline %}<span class="desc">
-                    · {{ config.extra.strapline }}</span>{% endif %}</span>
-            <nav>
-                {% for menu_link in config.extra.menu_links -%} {% set link_url
-                = menu_link.url | replace(from="$BASE_URL", to=config.base_url)
-                -%} {% set current_url_slash = current_url ~ "/" -%} {% set
-                base_url_slash = config.base_url ~ "/" -%} {% set is_home =
-                link_url == config.base_url or link_url == base_url_slash -%} {%
-                set is_active = current_url == link_url or current_url_slash ==
-                link_url or (not is_home and current_url is
-                starting_with(pat=link_url)) -%}
-                <a href="{{ link_url | safe}}" {% if current_url and is_active %} class="active" {% endif
-                    %}>{{menu_link.name}}</a>
-                {% endfor -%}
-            </nav>
-            <a href="#" onclick="
-                        T();
-                        return false;
-                    " class="theme" aria-label="Toggle theme" title="Toggle theme">{% if config.extra.inline_icons %}{{<icons.icon
-                name="light.svg"/>}}{{<icons.icon
-                name="asleep.svg"/>}}{% else %}<img src="/icons/light.svg" alt="Light mode" /><img
-                    src="/icons/asleep.svg" alt="Dark mode" />{% endif
-                %}</a>
-        </div>
-    </header>
-    <hr class="site-sep" />
-    <main id="main">{% block content -%} {% endblock -%}</main>
-    <hr class="site-sep bottom-sep" />
-    <footer class="s">
-        {% if config.extra.footer_text %}<span>{{ config.extra.footer_text | safe }}</span>{% endif %}
-    </footer>
-    {% block body_end -%} {# Lightbox #}
-    <script>
-        document.querySelectorAll("article img[srcset]").forEach((i) => {
-            if (i.closest("a")) return;
-            i.style.cursor = "pointer";
-            i.onclick = () => {
-                let d = document.createElement("div"),
-                    s = i.srcset.split(",").pop().trim().split(" ")[0];
-                d.className = "lb";
-                d.innerHTML = '<img src="' + s + '">';
-                document.body.style.overflow = "hidden";
-                d.onclick = () => {
-                    d.remove();
-                    document.body.style.overflow = "";
-                };
-                document.body.appendChild(d);
-            };
-        });
-    </script>
-    {% endblock body_end -%}
+<body id="top">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div class="site-shell">
+        <header class="site-header">
+            <a class="site-name" href="{{ config.base_url | safe }}">{{ config.title }}</a>
+            <div class="navigation">
+                <nav aria-label="Main navigation">
+                    {% for item in config.extra.menu_links %}
+                    {% set url = item.url | replace(from="$BASE_URL", to=config.base_url) %}
+                    {% set home = url == config.base_url or url == config.base_url ~ "/" %}
+                    {% set active = current_url == url or (not home and current_url is starting_with(pat=url)) %}
+                    <a href="{{ url | safe }}"{% if active %} aria-current="{% if current_url == url %}page{% else %}location{% endif %}"{% endif %}>{{ item.name }}</a>
+                    {% endfor %}
+                </nav>
+                <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Dark mode" aria-pressed="false" hidden>
+                    <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M10 3a7 7 0 0 1 0 14Z" fill="currentColor"/></svg>
+                </button>
+            </div>
+        </header>
+        <main id="main" tabindex="-1">{% block content %}{% endblock content %}</main>
+        <footer class="site-footer">
+            <span>{% if config.extra.footer_text %}{{ config.extra.footer_text | safe }}{% else %}{{ config.description }}{% endif %}</span>
+            <a href="#top">Back to top ↑</a>
+        </footer>
+    </div>
+    {% block body_end %}{% endblock body_end %}
 </body>
-
 </html>
