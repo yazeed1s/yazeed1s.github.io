@@ -25,43 +25,48 @@
 
     <link rel="icon" href="/favicon.ico" />
     
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:ital,wght@0,400;0,500;0,600;1,400&display=swap"
+        rel="stylesheet" />
     <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
     <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
     <link id="giallo-light" rel="stylesheet" href="https://yazeed1s.github.io/giallo-light.css" />
     <link id="giallo-dark" rel="stylesheet" href="https://yazeed1s.github.io/giallo-dark.css" />
 
-           
-    
+             
     
     
 
-          
-    
+            
     
     
     <style>
         :root {
             --nav-basis: 25.0%;
-            --light-bg: #eae6deff;
-            --light-text: #1a1410;
-            --light-text-muted: #1a1410;
-            --light-accent: #9E4440;
-            --light-accent-hover: #7A3533;
-            --light-code-bg: #e1ded6ff;
-            --light-border: #abaaaaff;
-            --light-bold: #1a1410;
-            --light-italic: #1a1410;
-            --light-headers: #1a1410;
-            --dark-bg: #303132;
-            --dark-text: #bebbb9ff;
-            --dark-text-muted: #d5d2cf;
-            --dark-accent: #e57665;
-            --dark-accent-hover: #888885;
-            --dark-code-bg: #282829;
-            --dark-border: #524f4c;
-            --dark-bold: #d5d2cf;
-            --dark-italic: #d5d2cf;
-            --dark-headers: #d5d2cf;
+            --light-bg: #eef0f0;
+            --light-text-heading: #1b1e21;
+            --light-body-text: #444a4e;
+            --light-text-muted: #757c82;
+            --light-heading-mark: #a9b4b8;
+            --light-accent: #c97d4a;
+            --light-accent-hover: #a3623a;
+            --light-code-bg: #e6e8e6;
+            --light-border: #d2d5d6;
+            --light-bold: #14171a;
+            --light-italic: #4a5155;
+            --dark-bg: #111214ff;
+            --dark-text-heading: #e7e9ea;
+            --dark-body-text: #d6dcddff;
+            --dark-text-muted: #8b9198;
+            --dark-heading-mark: #5c6368;
+            --dark-accent: #e39c6f;
+            --dark-accent-hover: #eeb389;
+            --dark-code-bg: #292e32;
+            --dark-border: #2c3033;
+            --dark-bold: #f1f2f2;
+            --dark-italic: #b9bec1;
         }
     </style>
     <meta name="theme-color" id="tc" />
@@ -119,7 +124,7 @@
     </header>
     <hr class="site-sep" />
     <main id="main"> 
-<article><h1 id="hi-i-m-yazeed">Hi, I'm Yazeed.</h1>
+<article class="hero"><h1 id="hi-i-m-yazeed">Hi, I'm Yazeed.</h1>
 <p>Master's student in Computer Science at Virginia Tech. I work on systems stuff, mostly memory and OS-level things.</p>
 <p>I write about things I'm learning or debugging or trying to understand. Sometimes it's a paper I read, sometimes it's something I broke. Posts are rough and not always finished.</p>
 <p><strong>Links</strong></p>
@@ -132,35 +137,46 @@
 
 
 <section class="recent-posts">
-    <h2>Recent Posts</h2>
-    <ul class="p">
+    <h2><span class="section-label">Recent</span></h2>
+    <ul class="p ledger">
     
         <li>
-            <time datetime="2026-09-04">2026-09-04</time>
-            <a href="https://yazeed1s.github.io/posts/sync-map/">sync.Map, and the Question I Should&#39;ve Asked First</a>
+            <a href="https://yazeed1s.github.io/posts/sync-map/">
+                <span class="ledger-title">sync.Map, and the Question I Should&#39;ve Asked First</span>
+                <time datetime="2026-09-04">Sep 2026</time>
+            </a>
         </li>
     
         <li>
-            <time datetime="2026-08-12">2026-08-12</time>
-            <a href="https://yazeed1s.github.io/posts/go-channels/">The Three Queues Hiding Inside a Channel</a>
+            <a href="https://yazeed1s.github.io/posts/go-channels/">
+                <span class="ledger-title">The Three Queues Hiding Inside a Channel</span>
+                <time datetime="2026-08-12">Aug 2026</time>
+            </a>
         </li>
     
         <li>
-            <time datetime="2026-06-09">2026-06-09</time>
-            <a href="https://yazeed1s.github.io/posts/reading-binary-specs/">Reading Binary Specs</a>
+            <a href="https://yazeed1s.github.io/posts/reading-binary-specs/">
+                <span class="ledger-title">Reading Binary Specs</span>
+                <time datetime="2026-06-09">Jun 2026</time>
+            </a>
         </li>
     
         <li>
-            <time datetime="2026-02-16">2026-02-16</time>
-            <a href="https://yazeed1s.github.io/posts/malloc-to-teired/">Should malloc Know About Tiered Memory?</a>
+            <a href="https://yazeed1s.github.io/posts/malloc-to-teired/">
+                <span class="ledger-title">Should malloc Know About Tiered Memory?</span>
+                <time datetime="2026-02-16">Feb 2026</time>
+            </a>
         </li>
     
         <li>
-            <time datetime="2026-02-12">2026-02-12</time>
-            <a href="https://yazeed1s.github.io/posts/memory-teiring/">Tiered Memory</a>
+            <a href="https://yazeed1s.github.io/posts/memory-teiring/">
+                <span class="ledger-title">Tiered Memory</span>
+                <time datetime="2026-02-12">Feb 2026</time>
+            </a>
         </li>
     
     </ul>
+    <a href="https://yazeed1s.github.io/posts" class="all-posts-link">All posts →</a>
 </section>
 
 

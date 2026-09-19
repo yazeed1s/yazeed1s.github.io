@@ -25,43 +25,48 @@
 
     <link rel="icon" href="/favicon.ico" />
     
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:ital,wght@0,400;0,500;0,600;1,400&display=swap"
+        rel="stylesheet" />
     <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
     <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
     <link id="giallo-light" rel="stylesheet" href="https://yazeed1s.github.io/giallo-light.css" />
     <link id="giallo-dark" rel="stylesheet" href="https://yazeed1s.github.io/giallo-dark.css" />
 
-           
-    
+             
     
     
 
-          
-    
+            
     
     
     <style>
         :root {
             --nav-basis: 25.0%;
-            --light-bg: #eae6deff;
-            --light-text: #1a1410;
-            --light-text-muted: #1a1410;
-            --light-accent: #9E4440;
-            --light-accent-hover: #7A3533;
-            --light-code-bg: #e1ded6ff;
-            --light-border: #abaaaaff;
-            --light-bold: #1a1410;
-            --light-italic: #1a1410;
-            --light-headers: #1a1410;
-            --dark-bg: #303132;
-            --dark-text: #bebbb9ff;
-            --dark-text-muted: #d5d2cf;
-            --dark-accent: #e57665;
-            --dark-accent-hover: #888885;
-            --dark-code-bg: #282829;
-            --dark-border: #524f4c;
-            --dark-bold: #d5d2cf;
-            --dark-italic: #d5d2cf;
-            --dark-headers: #d5d2cf;
+            --light-bg: #eef0f0;
+            --light-text-heading: #1b1e21;
+            --light-body-text: #444a4e;
+            --light-text-muted: #757c82;
+            --light-heading-mark: #a9b4b8;
+            --light-accent: #c97d4a;
+            --light-accent-hover: #a3623a;
+            --light-code-bg: #e6e8e6;
+            --light-border: #d2d5d6;
+            --light-bold: #14171a;
+            --light-italic: #4a5155;
+            --dark-bg: #111214ff;
+            --dark-text-heading: #e7e9ea;
+            --dark-body-text: #d6dcddff;
+            --dark-text-muted: #8b9198;
+            --dark-heading-mark: #5c6368;
+            --dark-accent: #e39c6f;
+            --dark-accent-hover: #eeb389;
+            --dark-code-bg: #292e32;
+            --dark-border: #2c3033;
+            --dark-bold: #f1f2f2;
+            --dark-italic: #b9bec1;
         }
     </style>
     <meta name="theme-color" id="tc" />
@@ -119,26 +124,30 @@
     </header>
     <hr class="site-sep" />
     <main id="main">
-<article>
-    <header>
+<article class="post">
+    <header class="post-header">
         <h1>Signal Handlers for Cleanup in C Programs</h1>
+        
+        <p class="post-dek">When your program crashes, how do you run cleanup code?</p>
+        
         <div class="post-meta">
             <time datetime="2023-12-17">17 Dec 2023</time>
-            
-            <span>When your program crashes, how do you run cleanup code?</span>
-             
-            <span class="post-tags">
-                <span class="post-tags-label">Tags: </span>
-                
-                <a href="https://yazeed1s.github.io/tags/c">C</a><span
-                    class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/signals">signals</a><span
-                    class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/linux">linux</a>
-            </span>
-            
+            <span class="meta-sep">·</span>
+            <span>3 min read</span>
         </div>
+        
+        <ul class="tags">
+            
+            <li><a href="https://yazeed1s.github.io/tags/c">C</a></li>
+            
+            <li><a href="https://yazeed1s.github.io/tags/signals">signals</a></li>
+            
+            <li><a href="https://yazeed1s.github.io/tags/linux">linux</a></li>
+            
+        </ul>
+        
     </header>
+    <hr class="post-rule" />
      <p>In C, you put cleanup code at the end of <code>main()</code> to free your allocations, close your files, and so on. But what if your program crashes before reaching that code?</p>
 <h2 id="the-problem">the problem</h2>
 <p>Standard cleanup at the end of main only works if your program exits normally. If it crashes (a null pointer dereference, for example), the OS raises SIGSEGV and your program dies immediately, so your cleanup code never runs.</p>

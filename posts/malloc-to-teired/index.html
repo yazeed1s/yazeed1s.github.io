@@ -25,43 +25,48 @@
 
     <link rel="icon" href="/favicon.ico" />
     
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:ital,wght@0,400;0,500;0,600;1,400&display=swap"
+        rel="stylesheet" />
     <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
     <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
     <link id="giallo-light" rel="stylesheet" href="https://yazeed1s.github.io/giallo-light.css" />
     <link id="giallo-dark" rel="stylesheet" href="https://yazeed1s.github.io/giallo-dark.css" />
 
-           
-    
+             
     
     
 
-          
-    
+            
     
     
     <style>
         :root {
             --nav-basis: 25.0%;
-            --light-bg: #eae6deff;
-            --light-text: #1a1410;
-            --light-text-muted: #1a1410;
-            --light-accent: #9E4440;
-            --light-accent-hover: #7A3533;
-            --light-code-bg: #e1ded6ff;
-            --light-border: #abaaaaff;
-            --light-bold: #1a1410;
-            --light-italic: #1a1410;
-            --light-headers: #1a1410;
-            --dark-bg: #303132;
-            --dark-text: #bebbb9ff;
-            --dark-text-muted: #d5d2cf;
-            --dark-accent: #e57665;
-            --dark-accent-hover: #888885;
-            --dark-code-bg: #282829;
-            --dark-border: #524f4c;
-            --dark-bold: #d5d2cf;
-            --dark-italic: #d5d2cf;
-            --dark-headers: #d5d2cf;
+            --light-bg: #eef0f0;
+            --light-text-heading: #1b1e21;
+            --light-body-text: #444a4e;
+            --light-text-muted: #757c82;
+            --light-heading-mark: #a9b4b8;
+            --light-accent: #c97d4a;
+            --light-accent-hover: #a3623a;
+            --light-code-bg: #e6e8e6;
+            --light-border: #d2d5d6;
+            --light-bold: #14171a;
+            --light-italic: #4a5155;
+            --dark-bg: #111214ff;
+            --dark-text-heading: #e7e9ea;
+            --dark-body-text: #d6dcddff;
+            --dark-text-muted: #8b9198;
+            --dark-heading-mark: #5c6368;
+            --dark-accent: #e39c6f;
+            --dark-accent-hover: #eeb389;
+            --dark-code-bg: #292e32;
+            --dark-border: #2c3033;
+            --dark-bold: #f1f2f2;
+            --dark-italic: #b9bec1;
         }
     </style>
     <meta name="theme-color" id="tc" />
@@ -119,26 +124,30 @@
     </header>
     <hr class="site-sep" />
     <main id="main">
-<article>
-    <header>
+<article class="post">
+    <header class="post-header">
         <h1>Should malloc Know About Tiered Memory?</h1>
+        
+        <p class="post-dek">glibc malloc was designed for uniform DRAM. Tiered memory changes the rules.</p>
+        
         <div class="post-meta">
             <time datetime="2026-02-16">16 Feb 2026</time>
-            
-            <span>glibc malloc was designed for uniform DRAM. Tiered memory changes the rules.</span>
-             
-            <span class="post-tags">
-                <span class="post-tags-label">Tags: </span>
-                
-                <a href="https://yazeed1s.github.io/tags/os">OS</a><span
-                    class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/memory">memory</a><span
-                    class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/linux">linux</a>
-            </span>
-            
+            <span class="meta-sep">·</span>
+            <span>5 min read</span>
         </div>
+        
+        <ul class="tags">
+            
+            <li><a href="https://yazeed1s.github.io/tags/os">OS</a></li>
+            
+            <li><a href="https://yazeed1s.github.io/tags/memory">memory</a></li>
+            
+            <li><a href="https://yazeed1s.github.io/tags/linux">linux</a></li>
+            
+        </ul>
+        
     </header>
+    <hr class="post-rule" />
      <p>This started as a side thought during advanced systems class, we were talking about OS transparency in general and I kept coming back to malloc specifically afterward, because it's the one abstraction I interact with the most and never actually question. So this is me chewing on it after the fact, not a fully formed argument.</p>
 <p>When you call <code>malloc()</code>, the allocator gives you a pointer. It doesn't know or care whether the physical page behind it sits in fast local DRAM or slower CXL-attached memory, and it does not even care if hugepages are enabled or not, and from user space memory still looks completely flat, one address space, no notion of near or far. Except it isn't flat anymore, not really. Machines now have 2-3x latency differences between memory tiers and the allocator is completely blind to all of it.</p>
 <p>glibc's allocator (ptmalloc2) was built for a mostly uniform DRAM world. It manages arenas, splits and coalesces chunks, decides when to use <code>brk</code> vs <code>mmap</code>, worries about lock contention between threads, all of that. What it does not worry about is which NUMA node ends up backing an allocation, unless you explicitly ask it to. In the common path it just requests virtual memory and leaves the physical placement decision entirely to the kernel. Memory, from the allocator's point of view, is virtual address space and nothing else, it has no idea if the physical pages come from local DRAM, remote NUMA, CXL, or somewhere weirder. That was fine when latency gaps were small and mostly a bandwidth-balancing story, and it's not really fine anymore.</p>

@@ -25,43 +25,48 @@
 
     <link rel="icon" href="/favicon.ico" />
     
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:ital,wght@0,400;0,500;0,600;1,400&display=swap"
+        rel="stylesheet" />
     <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
     <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
     <link id="giallo-light" rel="stylesheet" href="https://yazeed1s.github.io/giallo-light.css" />
     <link id="giallo-dark" rel="stylesheet" href="https://yazeed1s.github.io/giallo-dark.css" />
 
-           
-    
+             
     
     
 
-          
-    
+            
     
     
     <style>
         :root {
             --nav-basis: 25.0%;
-            --light-bg: #eae6deff;
-            --light-text: #1a1410;
-            --light-text-muted: #1a1410;
-            --light-accent: #9E4440;
-            --light-accent-hover: #7A3533;
-            --light-code-bg: #e1ded6ff;
-            --light-border: #abaaaaff;
-            --light-bold: #1a1410;
-            --light-italic: #1a1410;
-            --light-headers: #1a1410;
-            --dark-bg: #303132;
-            --dark-text: #bebbb9ff;
-            --dark-text-muted: #d5d2cf;
-            --dark-accent: #e57665;
-            --dark-accent-hover: #888885;
-            --dark-code-bg: #282829;
-            --dark-border: #524f4c;
-            --dark-bold: #d5d2cf;
-            --dark-italic: #d5d2cf;
-            --dark-headers: #d5d2cf;
+            --light-bg: #eef0f0;
+            --light-text-heading: #1b1e21;
+            --light-body-text: #444a4e;
+            --light-text-muted: #757c82;
+            --light-heading-mark: #a9b4b8;
+            --light-accent: #c97d4a;
+            --light-accent-hover: #a3623a;
+            --light-code-bg: #e6e8e6;
+            --light-border: #d2d5d6;
+            --light-bold: #14171a;
+            --light-italic: #4a5155;
+            --dark-bg: #111214ff;
+            --dark-text-heading: #e7e9ea;
+            --dark-body-text: #d6dcddff;
+            --dark-text-muted: #8b9198;
+            --dark-heading-mark: #5c6368;
+            --dark-accent: #e39c6f;
+            --dark-accent-hover: #eeb389;
+            --dark-code-bg: #292e32;
+            --dark-border: #2c3033;
+            --dark-bold: #f1f2f2;
+            --dark-italic: #b9bec1;
         }
     </style>
     <meta name="theme-color" id="tc" />
@@ -119,26 +124,30 @@
     </header>
     <hr class="site-sep" />
     <main id="main">
-<article>
-    <header>
+<article class="post">
+    <header class="post-header">
         <h1>The Three Queues Hiding Inside a Channel</h1>
+        
+        <p class="post-dek">The mental model I actually use for Go channels, not a pipe but three queues and a lock, plus the gotchas that fall out of it.</p>
+        
         <div class="post-meta">
             <time datetime="2026-08-12">12 Aug 2026</time>
-            
-            <span>The mental model I actually use for Go channels, not a pipe but three queues and a lock, plus the gotchas that fall out of it.</span>
-             
-            <span class="post-tags">
-                <span class="post-tags-label">Tags: </span>
-                
-                <a href="https://yazeed1s.github.io/tags/go">go</a><span
-                    class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/concurrency">concurrency</a><span
-                    class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/systems-programming">systems programming</a>
-            </span>
-            
+            <span class="meta-sep">·</span>
+            <span>9 min read</span>
         </div>
+        
+        <ul class="tags">
+            
+            <li><a href="https://yazeed1s.github.io/tags/go">go</a></li>
+            
+            <li><a href="https://yazeed1s.github.io/tags/concurrency">concurrency</a></li>
+            
+            <li><a href="https://yazeed1s.github.io/tags/systems-programming">systems programming</a></li>
+            
+        </ul>
+        
     </header>
+    <hr class="post-rule" />
      <p>Everyone gets taught channels the Rob Pike way, don't communicate by sharing memory, share memory by communicating, and it's a nice sentence but it doesn't tell you anything about how the thing actually behaves once two goroutines are fighting over it. The model that finally made channels click for me wasn't the CSP quote, it was picturing what's actually sitting inside a channel value at runtime. Almost every weird behavior channels have falls out of that picture once you hold it in your head, and once I actually went and read how the runtime implements this, a bunch of stuff that felt like magic turned out to be pretty mechanical.</p>
 <h2 id="what-a-channel-actually-is">what a channel actually is</h2>
 <p>A channel value is a pointer to a small struct the runtime calls <code>hchan</code>. Making one with <code>make(chan int, 3)</code> allocates that struct, it doesn't hand you a pipe or a socket or anything like that, it's just memory with a lock on it. Inside that struct there are three things that matter.</p>

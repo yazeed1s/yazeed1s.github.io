@@ -25,43 +25,48 @@
 
     <link rel="icon" href="/favicon.ico" />
     
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:ital,wght@0,400;0,500;0,600;1,400&display=swap"
+        rel="stylesheet" />
     <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
     <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
     <link id="giallo-light" rel="stylesheet" href="https://yazeed1s.github.io/giallo-light.css" />
     <link id="giallo-dark" rel="stylesheet" href="https://yazeed1s.github.io/giallo-dark.css" />
 
-           
-    
+             
     
     
 
-          
-    
+            
     
     
     <style>
         :root {
             --nav-basis: 25.0%;
-            --light-bg: #eae6deff;
-            --light-text: #1a1410;
-            --light-text-muted: #1a1410;
-            --light-accent: #9E4440;
-            --light-accent-hover: #7A3533;
-            --light-code-bg: #e1ded6ff;
-            --light-border: #abaaaaff;
-            --light-bold: #1a1410;
-            --light-italic: #1a1410;
-            --light-headers: #1a1410;
-            --dark-bg: #303132;
-            --dark-text: #bebbb9ff;
-            --dark-text-muted: #d5d2cf;
-            --dark-accent: #e57665;
-            --dark-accent-hover: #888885;
-            --dark-code-bg: #282829;
-            --dark-border: #524f4c;
-            --dark-bold: #d5d2cf;
-            --dark-italic: #d5d2cf;
-            --dark-headers: #d5d2cf;
+            --light-bg: #eef0f0;
+            --light-text-heading: #1b1e21;
+            --light-body-text: #444a4e;
+            --light-text-muted: #757c82;
+            --light-heading-mark: #a9b4b8;
+            --light-accent: #c97d4a;
+            --light-accent-hover: #a3623a;
+            --light-code-bg: #e6e8e6;
+            --light-border: #d2d5d6;
+            --light-bold: #14171a;
+            --light-italic: #4a5155;
+            --dark-bg: #111214ff;
+            --dark-text-heading: #e7e9ea;
+            --dark-body-text: #d6dcddff;
+            --dark-text-muted: #8b9198;
+            --dark-heading-mark: #5c6368;
+            --dark-accent: #e39c6f;
+            --dark-accent-hover: #eeb389;
+            --dark-code-bg: #292e32;
+            --dark-border: #2c3033;
+            --dark-bold: #f1f2f2;
+            --dark-italic: #b9bec1;
         }
     </style>
     <meta name="theme-color" id="tc" />
@@ -119,26 +124,30 @@
     </header>
     <hr class="site-sep" />
     <main id="main">
-<article>
-    <header>
+<article class="post">
+    <header class="post-header">
         <h1>EWMH and ICCCM: What a WM Actually Needs to Implement</h1>
+        
+        <p class="post-dek">The two specs that define how X11 window managers communicate with clients.</p>
+        
         <div class="post-meta">
             <time datetime="2024-06-02">02 Jun 2024</time>
-            
-            <span>The two specs that define how X11 window managers communicate with clients.</span>
-             
-            <span class="post-tags">
-                <span class="post-tags-label">Tags: </span>
-                
-                <a href="https://yazeed1s.github.io/tags/linux">linux</a><span
-                    class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/x11">x11</a><span
-                    class="tag-comma">,</span> 
-                <a href="https://yazeed1s.github.io/tags/window-manager">window manager</a>
-            </span>
-            
+            <span class="meta-sep">·</span>
+            <span>5 min read</span>
         </div>
+        
+        <ul class="tags">
+            
+            <li><a href="https://yazeed1s.github.io/tags/linux">linux</a></li>
+            
+            <li><a href="https://yazeed1s.github.io/tags/x11">x11</a></li>
+            
+            <li><a href="https://yazeed1s.github.io/tags/window-manager">window manager</a></li>
+            
+        </ul>
+        
     </header>
+    <hr class="post-rule" />
      <p>EWMH and ICCCM are the two specs that define how window managers and clients talk to each other through properties on windows, atoms, and message formats. Without them every app would need to know specifically how to talk to your particular WM, and with them apps can just assume standard behavior. Every WM implements some subset of these, and here's what actually matters.</p>
 <h2 id="icccm-the-old-one">ICCCM: the old one</h2>
 <p>ICCCM is the Inter-Client Communication Conventions Manual from 1988 and it covers the basics, so <code>WM_NAME</code> holds the window title, <code>WM_CLASS</code> holds the instance name and class name that you match windows to rules with, <code>WM_HINTS</code> carries the input focus model and icon and initial state, <code>WM_NORMAL_HINTS</code> carries size hints like min/max size and aspect ratio and resize increments, <code>WM_PROTOCOLS</code> lists which protocols the client supports such as <code>WM_DELETE_WINDOW</code>, and <code>WM_STATE</code> is the current state (normal, iconic, withdrawn).</p>
