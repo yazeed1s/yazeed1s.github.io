@@ -67,9 +67,9 @@ code_bg = "#e6e8e6"
 border = "#d2d5d6"
 
 [extra.colours.dark]
-background = "#14171a"
+background = "#111214ff"
 text_heading = "#e7e9ea"
-body_text = "#ccd1d2"
+body_text = "#d6dcddff"
 text_muted = "#8b9198"
 heading_mark = "#5c6368"
 accent = "#e39c6f"
