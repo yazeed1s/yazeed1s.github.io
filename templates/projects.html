@@ -1,6 +1,9 @@
 {% extends "base.html" -%} {% block content -%}
-<h1>{{ section.title }}</h1>
-{{ section.content | safe }} {% set projects_data = load_data(path="content/" ~
+<header class="section-header">
+    <h1>{{ section.title }}</h1>
+    {{ section.content | safe }}
+</header>
+{% set projects_data = load_data(path="content/" ~
 section.path ~ "projects.toml", required=false) -%} {% if projects_data and
 projects_data.projects -%}
 <div class="projects">
@@ -33,9 +36,7 @@ projects_data.projects -%}
         </ul>
         {% endif -%}
     </article>
-    {% if not loop.last %}
-    <hr />
-    {% endif %} {% endfor -%}
+    {% endfor -%}
 </div>
 {% else -%}
 <p>No projects found. Add a <code>projects.toml</code> file to this section.</p>

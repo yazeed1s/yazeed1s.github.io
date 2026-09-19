@@ -1,17 +1,23 @@
 {% extends "base.html" %} {% block content %}
-<h1>{{ taxonomy.name | capitalize }}: {{ term.name | capitalize }}</h1>
-{% for year, posts in term.pages | group_by(attribute="year") %}
-<h2>{{ year }}</h2>
-<ul class="p">
-    {% for post in posts %}
-    <li>
-        <time datetime="{{ post.date }}"
-            >{{ post.date | date(format='%d %b') }}</time
-        >
-        <a href="{{ post.permalink | safe }}">{{ post.title }}</a>{% if
-        post.draft %} <span class="s">(Draft)</span>{% endif %} {{<hooks.posts_below_title
-        page={post} />}}
-    </li>
-    {% endfor %}
-</ul>
+<header class="section-header">
+    <h1><span class="section-label">{{ taxonomy.name }}</span>{{ term.name }}</h1>
+</header>
+{% set sorted_pages = term.pages | sort(attribute="date") | reverse %}
+{% set_global cur_year = "" %}
+{% for post in sorted_pages %}
+{% set y = post.date | date(format="%Y") %}
+{% if y != cur_year %}
+{% if not loop.first %}</ul>{% endif %}
+<h2 class="year-heading">{{ y }}</h2>
+<ul class="p ledger">
+{% set_global cur_year = y %}
+{% endif %}
+<li>
+    <a href="{{ post.permalink | safe }}">
+        <span class="ledger-title">{{ post.title }}{% if post.draft %} <span class="s">(Draft)</span>{% endif %}</span>
+        <time datetime="{{ post.date }}">{{ post.date | date(format='%d %b') }}</time>
+    </a>
+    {{<hooks.posts_below_title page={post} />}}
+</li>
+{% if loop.last %}</ul>{% endif %}
 {% endfor %} {% endblock content %}

@@ -7,6 +7,11 @@
     endblock og_preview -%} {% if config.extra.favicon %}
     <link rel="icon" href="{{ config.extra.favicon }}" />
     {% endif %}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:ital,wght@0,400;0,500;0,600;1,400&display=swap"
+        rel="stylesheet" />
     <link rel="stylesheet" href="{{ get_url(path='font.css', trailing_slash=false) }}" />
     {% set nav_count = config.extra.menu_links | length -%} {% if nav_count
     >= 6 -%} {% set_global items_per_row = ((nav_count + 1) / 2) | round -%}
@@ -19,57 +24,65 @@
 
     {# Colour configuration with defaults #} {% set light_bg =
     config.extra.colours.light.background | default(value="#FAF7F2") %} {%
-    set light_text = config.extra.colours.light.text |
-    default(value="#1a1a1a") %} {% set light_text_muted =
-    config.extra.colours.light.text_muted | default(value="#3a3a3a") %} {%
+    set light_text_heading = config.extra.colours.light.text_heading |
+    default(value="#1a1a1a") %} {% set light_body_text =
+    config.extra.colours.light.body_text | default(value="#333333") %} {%
+    set light_text_muted =
+    config.extra.colours.light.text_muted | default(value="#6a6a6a") %} {%
+    set light_heading_mark = config.extra.colours.light.heading_mark |
+    default(value=light_text_muted) %} {%
     set light_accent = config.extra.colours.light.accent |
     default(value="#B85450") %} {% set light_accent_hover =
     config.extra.colours.light.accent_hover | default(value="#7A3533") %} {%
     set light_code_bg = config.extra.colours.light.code_bg |
     default(value="#f0ebe3") %} {% set light_border =
     config.extra.colours.light.border | default(value="#e0d9ce") %}
-    {% set light_bold = config.extra.colours.light.bold | default(value=light_text) %}
-    {% set light_italic = config.extra.colours.light.italic | default(value=light_text) %}
-    {% set light_headers = config.extra.colours.light.headers | default(value=light_text) %}
+    {% set light_bold = config.extra.colours.light.bold | default(value=light_text_heading) %}
+    {% set light_italic = config.extra.colours.light.italic | default(value=light_text_heading) %}
 
     {% set
     dark_bg = config.extra.colours.dark.background |
-    default(value="#141413") %} {% set dark_text =
-    config.extra.colours.dark.text | default(value="#e8e8e8") %} {% set
+    default(value="#141413") %} {% set dark_text_heading =
+    config.extra.colours.dark.text_heading | default(value="#e8e8e8") %} {% set
+    dark_body_text = config.extra.colours.dark.body_text |
+    default(value="#cfcfcf") %} {% set
     dark_text_muted = config.extra.colours.dark.text_muted |
-    default(value="#a0a0a0") %} {% set dark_accent =
+    default(value="#a0a0a0") %} {% set dark_heading_mark =
+    config.extra.colours.dark.heading_mark | default(value=dark_text_muted) %} {%
+    set dark_accent =
     config.extra.colours.dark.accent | default(value="#E07A5F") %} {% set
     dark_accent_hover = config.extra.colours.dark.accent_hover |
     default(value="#F4A594") %} {% set dark_code_bg =
     config.extra.colours.dark.code_bg | default(value="#1e1e1d") %} {% set
     dark_border = config.extra.colours.dark.border |
     default(value="#2a2a29") %}
-    {% set dark_bold = config.extra.colours.dark.bold | default(value=dark_text) %}
-    {% set dark_italic = config.extra.colours.dark.italic | default(value=dark_text) %}
-    {% set dark_headers = config.extra.colours.dark.headers | default(value=dark_text) %}
+    {% set dark_bold = config.extra.colours.dark.bold | default(value=dark_text_heading) %}
+    {% set dark_italic = config.extra.colours.dark.italic | default(value=dark_text_heading) %}
     <style>
         :root {
             --nav-basis: {{basis}}%;
             --light-bg: {{light_bg}};
-            --light-text: {{light_text}};
+            --light-text-heading: {{light_text_heading}};
+            --light-body-text: {{light_body_text}};
             --light-text-muted: {{light_text_muted}};
+            --light-heading-mark: {{light_heading_mark}};
             --light-accent: {{light_accent}};
             --light-accent-hover: {{light_accent_hover}};
             --light-code-bg: {{light_code_bg}};
             --light-border: {{light_border}};
             --light-bold: {{light_bold}};
             --light-italic: {{light_italic}};
-            --light-headers: {{light_headers}};
             --dark-bg: {{dark_bg}};
-            --dark-text: {{dark_text}};
+            --dark-text-heading: {{dark_text_heading}};
+            --dark-body-text: {{dark_body_text}};
             --dark-text-muted: {{dark_text_muted}};
+            --dark-heading-mark: {{dark_heading_mark}};
             --dark-accent: {{dark_accent}};
             --dark-accent-hover: {{dark_accent_hover}};
             --dark-code-bg: {{dark_code_bg}};
             --dark-border: {{dark_border}};
             --dark-bold: {{dark_bold}};
             --dark-italic: {{dark_italic}};
-            --dark-headers: {{dark_headers}};
         }
     </style>
     <meta name="theme-color" id="tc" />

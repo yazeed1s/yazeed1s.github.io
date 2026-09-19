@@ -6,21 +6,24 @@
     class="profile-pic"
 />
 {% endif %}
-<article>{{ section.content | safe }}</article>
+<article class="hero">{{ section.content | safe }}</article>
 
 {% set posts_section = get_section(path="posts/_index.md") %}
 {% if posts_section.pages %}
 {% set count = config.extra.recent_posts_count | default(value=5) %}
 <section class="recent-posts">
-    <h2>Recent Posts</h2>
-    <ul class="p">
+    <h2><span class="section-label">Recent</span></h2>
+    <ul class="p ledger">
     {% for post in posts_section.pages[:count] %}
         <li>
-            <time datetime="{{ post.date }}">{{ post.date | date(format='%Y-%m-%d') }}</time>
-            <a href="{{ post.permalink | safe }}">{{ post.title }}</a>
+            <a href="{{ post.permalink | safe }}">
+                <span class="ledger-title">{{ post.title }}</span>
+                <time datetime="{{ post.date }}">{{ post.date | date(format='%b %Y') }}</time>
+            </a>
         </li>
     {% endfor %}
     </ul>
+    <a href="{{ get_url(path='posts/') | safe }}" class="all-posts-link">All posts →</a>
 </section>
 {% endif %}
 
