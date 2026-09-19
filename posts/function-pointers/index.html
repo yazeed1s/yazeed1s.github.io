@@ -1,237 +1,245 @@
 <!doctype html>
 <html lang="en">
-
 <head>
+    
 <meta charset="UTF-8" />
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
 <meta name="description" content="How C uses structs of function pointers to get dispatch without inheritance." />
-<meta
-    name="keywords"
-    content="yazeed, blog, alharthi, yaz, yazeed1s"
-/>
+
+<meta name="keywords" content="yazeed, blog, alharthi, yaz, yazeed1s" />
 <link rel="canonical" href="https://yazeed1s.github.io/posts/function-pointers/" />
 
+    
 <title>Function Pointers as Poor Man&#39;s Polymorphism | Yazeed&#39;s Blog</title>
 <meta property="og:site_name" content="Yazeed&#39;s Blog" />
-<meta property="og:title" content="Function Pointers as Poor Man&#39;s Polymorphism | Yazeed&#39;s Blog" />
-<meta property="og:type" content="website" />
+<meta property="og:title" content="Function Pointers as Poor Man&#39;s Polymorphism" />
+<meta property="og:type" content="article" />
 <meta property="og:url" content="https://yazeed1s.github.io/posts/function-pointers/" />
 <meta property="og:description" content="How C uses structs of function pointers to get dispatch without inheritance." />
+<meta property="article:published_time" content="2026-01-12" />
 
-<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="Function Pointers as Poor Man&#39;s Polymorphism" />
 <meta name="twitter:description" content="How C uses structs of function pointers to get dispatch without inheritance." />
 
-    <link rel="icon" href="/favicon.ico" />
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:ital,wght@0,400;0,500;0,600;1,400&display=swap"
-        rel="stylesheet" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="https://yazeed1s.github.io/favicon.ico" />
+    <link rel="preload" href="https://yazeed1s.github.io/fonts/chivo-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
-    <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
-    <link id="giallo-light" rel="stylesheet" href="https://yazeed1s.github.io/giallo-light.css" />
-    <link id="giallo-dark" rel="stylesheet" href="https://yazeed1s.github.io/giallo-dark.css" />
-
-             
-    
-    
-
-            
-    
-    
     <style>
         :root {
-            --nav-basis: 25.0%;
-            --light-bg: #eef0f0;
-            --light-text-heading: #1b1e21;
-            --light-body-text: #444a4e;
-            --light-text-muted: #757c82;
-            --light-heading-mark: #a9b4b8;
-            --light-accent: #c97d4a;
-            --light-accent-hover: #a3623a;
-            --light-code-bg: #e6e8e6;
-            --light-border: #d2d5d6;
-            --light-bold: #14171a;
-            --light-italic: #4a5155;
-            --dark-bg: #111214ff;
-            --dark-text-heading: #e7e9ea;
-            --dark-body-text: #d6dcddff;
-            --dark-text-muted: #8b9198;
-            --dark-heading-mark: #5c6368;
-            --dark-accent: #e39c6f;
-            --dark-accent-hover: #eeb389;
-            --dark-code-bg: #292e32;
-            --dark-border: #2c3033;
-            --dark-bold: #f1f2f2;
-            --dark-italic: #b9bec1;
+            
+            
+            --dark-accent: #92aff1;
+            
+            --dark-background: #121416;
+            
+            --dark-body-text: #ccd0d5;
+            
+            --dark-border: #353940;
+            
+            --dark-code-bg: #202329;
+            
+            --dark-selection: #304675;
+            
+            --dark-text-heading: #eeeef0;
+            
+            --dark-text-muted: #989fa9;
+            
+            
+            
+            --light-accent: #345fc0;
+            
+            --light-background: #f5f5f3;
+            
+            --light-body-text: #353a41;
+            
+            --light-border: #d9dce0;
+            
+            --light-code-bg: #eceef0;
+            
+            --light-selection: #d9e3fc;
+            
+            --light-text-heading: #20242a;
+            
+            --light-text-muted: #656b74;
+            
+            
         }
     </style>
-    <meta name="theme-color" id="tc" />
+    <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+    <link id="syntax-light" rel="stylesheet" href="https://yazeed1s.github.io/giallo-light.css" media="(prefers-color-scheme: light)" />
+    <link id="syntax-dark" rel="stylesheet" href="https://yazeed1s.github.io/giallo-dark.css" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f5f5f3" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#121416" media="(prefers-color-scheme: dark)" />
     <script>
-        (function () {
-            var m = matchMedia("(prefers-color-scheme:dark)"),
-                t = localStorage.theme || (m.matches ? "dark" : "light"),
-                h = document.documentElement,
-                c = document.getElementById("tc"),
-                gl = document.getElementById("giallo-light"),
-                gd = document.getElementById("giallo-dark");
-            h.className = t;
-            function u() {
-                c.content = getComputedStyle(h).getPropertyValue("--tc");
-                gl.disabled = t !== "light";
-                gd.disabled = t !== "dark";
+        (() => {
+            const root = document.documentElement;
+            const system = matchMedia('(prefers-color-scheme: dark)');
+            let preference;
+            try { preference = localStorage.getItem('theme'); } catch (_) {}
+            if (preference !== 'light' && preference !== 'dark') preference = null;
+            function apply() {
+                const theme = preference || (system.matches ? 'dark' : 'light');
+                if (preference) root.dataset.theme = preference;
+                else delete root.dataset.theme;
+                document.getElementById('syntax-light').media = theme === 'light' ? 'all' : 'not all';
+                document.getElementById('syntax-dark').media = theme === 'dark' ? 'all' : 'not all';
+                document.querySelectorAll('meta[name="theme-color"]').forEach(meta => {
+                    meta.content = getComputedStyle(root).getPropertyValue('--background').trim();
+                });
+                const button = document.getElementById('theme-toggle');
+                if (button) {
+                    button.hidden = false;
+                    button.setAttribute('aria-pressed', String(theme === 'dark'));
+                }
             }
-            u();
-            window.T = function () {
-                t = t === "dark" ? "light" : "dark";
-                localStorage.theme = t;
-                h.className = t;
-                u();
-            };
+            apply();
+            system.addEventListener('change', apply);
+            document.addEventListener('DOMContentLoaded', () => {
+                apply();
+                document.getElementById('theme-toggle').addEventListener('click', () => {
+                    preference = (preference || (system.matches ? 'dark' : 'light')) === 'dark' ? 'light' : 'dark';
+                    try { localStorage.setItem('theme', preference); } catch (_) {}
+                    apply();
+                });
+            });
         })();
     </script>
     
 </head>
-
-<body>
-    <a href="#main" class="skip-link">Skip to content</a>
-    <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><symbol id="light" viewBox="0 0 32 32"><rect x="15" y="2" width="2" height="5"/><rect x="21.6675" y="6.8536" width="4.958" height="1.9998" transform="translate(1.5191 19.3744) rotate(-45)"/><rect x="25" y="15" width="5" height="2"/><rect x="23.1466" y="21.6675" width="1.9998" height="4.958" transform="translate(-10.0018 24.1465) rotate(-45)"/><rect x="15" y="25" width="2" height="5"/><rect x="5.3745" y="23.1466" width="4.958" height="1.9998" transform="translate(-14.7739 12.6256) rotate(-45)"/><rect x="2" y="15" width="5" height="2"/><rect x="6.8536" y="5.3745" width="1.9998" height="4.958" transform="translate(-3.253 7.8535) rotate(-45)"/><path d="M16,12a4,4,0,1,1-4,4,4.0045,4.0045,0,0,1,4-4m0-2a6,6,0,1,0,6,6,6,6,0,0,0-6-6Z"/></symbol>
-<symbol id="asleep" viewBox="0 0 32 32"><path d="M13.5025,5.4136A15.0755,15.0755,0,0,0,25.096,23.6082a11.1134,11.1134,0,0,1-7.9749,3.3893c-.1385,0-.2782.0051-.4178,0A11.0944,11.0944,0,0,1,13.5025,5.4136M14.98,3a1.0024,1.0024,0,0,0-.1746.0156A13.0959,13.0959,0,0,0,16.63,28.9973c.1641.006.3282,0,.4909,0a13.0724,13.0724,0,0,0,10.702-5.5556,1.0094,1.0094,0,0,0-.7833-1.5644A13.08,13.08,0,0,1,15.8892,4.38,1.0149,1.0149,0,0,0,14.98,3Z"/></symbol>
-<symbol id="rss" viewBox="0 0 32 32"><path d="M8,18c-3.3,0-6,2.7-6,6s2.7,6,6,6s6-2.7,6-6C14,20.7,11.3,18,8,18z M8,28c-2.2,0-4-1.8-4-4s1.8-4,4-4s4,1.8,4,4C12,26.2,10.2,28,8,28z"/><path d="M30,24h-2C28,13,19,4,8,4V2C20.1,2,30,11.9,30,24z"/><path d="M22,24h-2c0-6.6-5.4-12-12-12v-2C15.7,10,22,16.3,22,24z"/></symbol>
-</svg>
-
-    <header id="site-header">
-        <div>
-            <span class="header-brand"><a href="https://yazeed1s.github.io"><strong><span style="color: var(--accent-hover);">~/</span>Yazeed&#39;s Blog</strong></a></span>
-            <nav>
-                <a href="https://yazeed1s.github.io/" >Home</a>
-                <a href="https://yazeed1s.github.io/posts/"  class="active" >Posts</a>
-                <a href="https://yazeed1s.github.io/projects/" >Projects</a>
-                <a href="https://yazeed1s.github.io/tags/" >Tags</a>
+<body id="top">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div class="site-shell">
+        <header class="site-header">
+            <a class="site-name" href="https://yazeed1s.github.io">Yazeed&#39;s Blog</a>
+            <div class="navigation">
+                <nav aria-label="Main navigation">
+                    
+                    
+                    
+                    
+                    <a href="https://yazeed1s.github.io/">Home</a>
+                    
+                    
+                    
+                    
+                    <a href="https://yazeed1s.github.io/posts/" aria-current="location">Posts</a>
+                    
+                    
+                    
+                    
+                    <a href="https://yazeed1s.github.io/projects/">Projects</a>
+                    
+                    
+                    
+                    
+                    <a href="https://yazeed1s.github.io/tags/">Tags</a>
+                    
                 </nav>
-            <a href="#" onclick="
-                        T();
-                        return false;
-                    " class="theme" aria-label="Toggle theme" title="Toggle theme">
-<svg><use href="#light"/></svg>
-
-<svg><use href="#asleep"/></svg>
-</a>
-        </div>
-    </header>
-    <hr class="site-sep" />
-    <main id="main">
+                <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Dark mode" aria-pressed="false" hidden>
+                    <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M10 3a7 7 0 0 1 0 14Z" fill="currentColor"/></svg>
+                </button>
+            </div>
+        </header>
+        <main id="main" tabindex="-1">
 <article class="post">
     <header class="post-header">
+        <div class="post-meta"><time datetime="2026-01-12">12 Jan 2026</time><span aria-hidden="true">/</span><span>4 min read</span></div>
         <h1>Function Pointers as Poor Man&#39;s Polymorphism</h1>
+        <p class="post-description">How C uses structs of function pointers to get dispatch without inheritance.</p>
         
-        <p class="post-dek">How C uses structs of function pointers to get dispatch without inheritance.</p>
-        
-        <div class="post-meta">
-            <time datetime="2026-01-12">12 Jan 2026</time>
-            <span class="meta-sep">·</span>
-            <span>4 min read</span>
-        </div>
-        
-        <ul class="tags">
-            
-            <li><a href="https://yazeed1s.github.io/tags/c">C</a></li>
-            
-            <li><a href="https://yazeed1s.github.io/tags/systems-programming">systems programming</a></li>
-            
-            <li><a href="https://yazeed1s.github.io/tags/patterns">patterns</a></li>
-            
+        <ul class="tags" aria-label="Tags">
+            <li><a href="https://yazeed1s.github.io/tags/c/">C</a></li><li><a href="https://yazeed1s.github.io/tags/systems-programming/">systems programming</a></li><li><a href="https://yazeed1s.github.io/tags/patterns/">patterns</a></li>
         </ul>
         
     </header>
-    <hr class="post-rule" />
-     <p>C doesn't have interfaces, virtual methods, or inheritance, but it has function pointers, and a struct of function pointers is basically an interface. The pattern is everywhere, the Linux kernel uses it for nearly everything, and I used it in ZWM without thinking about it as polymorphism until later.</p>
+    
+    <div class="prose"><p>C doesn't have interfaces, virtual methods, or inheritance, but it has function pointers, and a struct of function pointers is basically an interface. The pattern is everywhere, the Linux kernel uses it for nearly everything, and I used it in ZWM without thinking about it as polymorphism until later.</p>
 <h2 id="the-basic-pattern">the basic pattern</h2>
 <p>Say you have different types that need to support the same operations, so in C++ you'd make a base class with virtual methods and in C you make a struct of function pointers.</p>
-<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-4 z-d-8">typedef</span><span class="z-l-4 z-d-8"> struct</span><span class="z-d-1"> {</span></span>
-<span class="giallo-l"><span class="z-l-4 z-d-8">    int</span><span class="z-d-1">  (</span><span class="z-d-6">*</span><span>open</span><span class="z-d-1">)</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">const</span><span class="z-l-4 z-d-8"> char</span><span class="z-d-6"> *</span><span>path</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
-<span class="giallo-l"><span class="z-l-4 z-d-8">    int</span><span class="z-d-1">  (</span><span class="z-d-6">*</span><span>read</span><span class="z-d-1">)</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">void</span><span class="z-d-6"> *</span><span>buf</span><span class="z-d-1">,</span><span class="z-l-4 z-d-8"> size_t</span><span> n</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
-<span class="giallo-l"><span class="z-l-4 z-d-8">    int</span><span class="z-d-1">  (</span><span class="z-d-6">*</span><span>write</span><span class="z-d-1">)</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">const</span><span class="z-l-4 z-d-8"> void</span><span class="z-d-6"> *</span><span>buf</span><span class="z-d-1">,</span><span class="z-l-4 z-d-8"> size_t</span><span> n</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
-<span class="giallo-l"><span class="z-l-4 z-d-8">    void</span><span class="z-d-1"> (</span><span class="z-d-6">*</span><span>close</span><span class="z-d-1">)</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">void</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
-<span class="giallo-l"><span class="z-d-1">}</span><span class="z-l-7 z-d-4"> io_ops_t</span><span class="z-d-1">;</span></span></code></pre>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-2 z-d-1">typedef</span><span class="z-l-2 z-d-1"> struct</span><span class="z-l-5 z-d-4"> {</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">    int</span><span class="z-l-5 z-d-4">  (</span><span class="z-l-5 z-d-4">*</span><span>open</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">(</span><span class="z-l-2 z-d-1">const</span><span class="z-l-2 z-d-1"> char</span><span class="z-l-5 z-d-4"> *</span><span>path</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">    int</span><span class="z-l-5 z-d-4">  (</span><span class="z-l-5 z-d-4">*</span><span>read</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">(</span><span class="z-l-2 z-d-1">void</span><span class="z-l-5 z-d-4"> *</span><span>buf</span><span class="z-l-5 z-d-4">,</span><span class="z-l-2 z-d-1"> size_t</span><span> n</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">    int</span><span class="z-l-5 z-d-4">  (</span><span class="z-l-5 z-d-4">*</span><span>write</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">(</span><span class="z-l-2 z-d-1">const</span><span class="z-l-2 z-d-1"> void</span><span class="z-l-5 z-d-4"> *</span><span>buf</span><span class="z-l-5 z-d-4">,</span><span class="z-l-2 z-d-1"> size_t</span><span> n</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">    void</span><span class="z-l-5 z-d-4"> (</span><span class="z-l-5 z-d-4">*</span><span>close</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">(</span><span class="z-l-2 z-d-1">void</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"><span class="z-l-5 z-d-4">}</span><span class="z-l-4 z-d-7"> io_ops_t</span><span class="z-l-5 z-d-4">;</span></span></code></pre>
 <p>Then different implementations fill in different functions:</p>
-<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-4 z-d-8">static</span><span class="z-l-4 z-d-8"> int</span><span class="z-l-2 z-d-3"> file_open</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">const</span><span class="z-l-4 z-d-8"> char</span><span class="z-d-6"> *</span><span class="z-l-6">path</span><span class="z-d-1">)</span><span class="z-d-1">  {</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> /*</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> open a file </span><span class="z-l-5 z-l-i z-d-1 z-d-i">*/</span><span class="z-d-1"> }</span></span>
-<span class="giallo-l"><span class="z-l-4 z-d-8">static</span><span class="z-l-4 z-d-8"> int</span><span class="z-l-2 z-d-3"> file_read</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">void</span><span class="z-d-6"> *</span><span class="z-l-6">buf</span><span class="z-d-1">,</span><span class="z-l-4 z-d-8"> size_t</span><span class="z-l-6"> n</span><span class="z-d-1">)</span><span class="z-d-1">  {</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> /*</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> read from file </span><span class="z-l-5 z-l-i z-d-1 z-d-i">*/</span><span class="z-d-1"> }</span></span>
-<span class="giallo-l"><span class="z-l-5 z-l-i z-d-1 z-d-i">//</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> ...</span></span>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-2 z-d-1">static</span><span class="z-l-2 z-d-1"> int</span><span class="z-l-1 z-d-5"> file_open</span><span class="z-l-5 z-d-4">(</span><span class="z-l-2 z-d-1">const</span><span class="z-l-2 z-d-1"> char</span><span class="z-l-5 z-d-4"> *</span><span>path</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">  {</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> /*</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> open a file </span><span class="z-l-6 z-l-i z-d-2 z-d-i">*/</span><span class="z-l-5 z-d-4"> }</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">static</span><span class="z-l-2 z-d-1"> int</span><span class="z-l-1 z-d-5"> file_read</span><span class="z-l-5 z-d-4">(</span><span class="z-l-2 z-d-1">void</span><span class="z-l-5 z-d-4"> *</span><span>buf</span><span class="z-l-5 z-d-4">,</span><span class="z-l-2 z-d-1"> size_t</span><span> n</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">  {</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> /*</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> read from file </span><span class="z-l-6 z-l-i z-d-2 z-d-i">*/</span><span class="z-l-5 z-d-4"> }</span></span>
+<span class="giallo-l"><span class="z-l-6 z-l-i z-d-2 z-d-i">//</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> ...</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span class="z-l-4 z-d-8">static</span><span class="z-l-4 z-d-8"> int</span><span class="z-l-2 z-d-3"> sock_open</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">const</span><span class="z-l-4 z-d-8"> char</span><span class="z-d-6"> *</span><span class="z-l-6">path</span><span class="z-d-1">)</span><span class="z-d-1">  {</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> /*</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> connect to address </span><span class="z-l-5 z-l-i z-d-1 z-d-i">*/</span><span class="z-d-1"> }</span></span>
-<span class="giallo-l"><span class="z-l-4 z-d-8">static</span><span class="z-l-4 z-d-8"> int</span><span class="z-l-2 z-d-3"> sock_read</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">void</span><span class="z-d-6"> *</span><span class="z-l-6">buf</span><span class="z-d-1">,</span><span class="z-l-4 z-d-8"> size_t</span><span class="z-l-6"> n</span><span class="z-d-1">)</span><span class="z-d-1">  {</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> /*</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> recv from socket </span><span class="z-l-5 z-l-i z-d-1 z-d-i">*/</span><span class="z-d-1"> }</span></span>
-<span class="giallo-l"><span class="z-l-5 z-l-i z-d-1 z-d-i">//</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> ...</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">static</span><span class="z-l-2 z-d-1"> int</span><span class="z-l-1 z-d-5"> sock_open</span><span class="z-l-5 z-d-4">(</span><span class="z-l-2 z-d-1">const</span><span class="z-l-2 z-d-1"> char</span><span class="z-l-5 z-d-4"> *</span><span>path</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">  {</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> /*</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> connect to address </span><span class="z-l-6 z-l-i z-d-2 z-d-i">*/</span><span class="z-l-5 z-d-4"> }</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">static</span><span class="z-l-2 z-d-1"> int</span><span class="z-l-1 z-d-5"> sock_read</span><span class="z-l-5 z-d-4">(</span><span class="z-l-2 z-d-1">void</span><span class="z-l-5 z-d-4"> *</span><span>buf</span><span class="z-l-5 z-d-4">,</span><span class="z-l-2 z-d-1"> size_t</span><span> n</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">  {</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> /*</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> recv from socket </span><span class="z-l-6 z-l-i z-d-2 z-d-i">*/</span><span class="z-l-5 z-d-4"> }</span></span>
+<span class="giallo-l"><span class="z-l-6 z-l-i z-d-2 z-d-i">//</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> ...</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span class="z-l-7 z-d-4">io_ops_t</span><span> file_ops </span><span class="z-d-6">=</span><span class="z-d-1"> {</span><span> file_open</span><span class="z-d-1">,</span><span> file_read</span><span class="z-d-1">,</span><span> file_write</span><span class="z-d-1">,</span><span> file_close </span><span class="z-d-1">}</span><span class="z-d-1">;</span></span>
-<span class="giallo-l"><span class="z-l-7 z-d-4">io_ops_t</span><span> sock_ops </span><span class="z-d-6">=</span><span class="z-d-1"> {</span><span> sock_open</span><span class="z-d-1">,</span><span> sock_read</span><span class="z-d-1">,</span><span> sock_write</span><span class="z-d-1">,</span><span> sock_close </span><span class="z-d-1">}</span><span class="z-d-1">;</span></span></code></pre>
+<span class="giallo-l"><span class="z-l-4 z-d-7">io_ops_t</span><span> file_ops </span><span class="z-l-5 z-d-4">=</span><span class="z-l-5 z-d-4"> {</span><span> file_open</span><span class="z-l-5 z-d-4">,</span><span> file_read</span><span class="z-l-5 z-d-4">,</span><span> file_write</span><span class="z-l-5 z-d-4">,</span><span> file_close </span><span class="z-l-5 z-d-4">}</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-7">io_ops_t</span><span> sock_ops </span><span class="z-l-5 z-d-4">=</span><span class="z-l-5 z-d-4"> {</span><span> sock_open</span><span class="z-l-5 z-d-4">,</span><span> sock_read</span><span class="z-l-5 z-d-4">,</span><span> sock_write</span><span class="z-l-5 z-d-4">,</span><span> sock_close </span><span class="z-l-5 z-d-4">}</span><span class="z-l-5 z-d-4">;</span></span></code></pre>
 <p>Code that uses <code>io_ops_t</code> doesn't know if it's talking to a file or a socket, it just calls <code>ops-&gt;read(buf, n)</code>, and that's polymorphism without a vtable keyword or <code>virtual</code>, just a struct and some function pointers.</p>
 <h2 id="the-kernel-does-this-constantly">the kernel does this constantly</h2>
 <p>The Linux kernel's VFS layer is built on this. Every filesystem implements a <code>struct file_operations</code>:</p>
-<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-4 z-d-8">struct</span><span> file_operations </span><span class="z-d-1">{</span></span>
-<span class="giallo-l"><span class="z-l-4 z-d-8">    ssize_t</span><span class="z-d-1"> (</span><span class="z-d-6">*</span><span>read</span><span class="z-d-1">)</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">struct</span><span> file </span><span class="z-d-6">*</span><span class="z-d-1">,</span><span class="z-l-4 z-d-8"> char</span><span> __user </span><span class="z-d-6">*</span><span class="z-d-1">,</span><span class="z-l-4 z-d-8"> size_t</span><span class="z-d-1">,</span><span class="z-l-7 z-d-4"> loff_t</span><span class="z-d-6"> *</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
-<span class="giallo-l"><span class="z-l-4 z-d-8">    ssize_t</span><span class="z-d-1"> (</span><span class="z-d-6">*</span><span>write</span><span class="z-d-1">)</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">struct</span><span> file </span><span class="z-d-6">*</span><span class="z-d-1">,</span><span class="z-l-4 z-d-8"> const</span><span class="z-l-4 z-d-8"> char</span><span> __user </span><span class="z-d-6">*</span><span class="z-d-1">,</span><span class="z-l-4 z-d-8"> size_t</span><span class="z-d-1">,</span><span class="z-l-7 z-d-4"> loff_t</span><span class="z-d-6"> *</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
-<span class="giallo-l"><span class="z-l-4 z-d-8">    int</span><span class="z-d-1">     (</span><span class="z-d-6">*</span><span>open</span><span class="z-d-1">)</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">struct</span><span> inode </span><span class="z-d-6">*</span><span class="z-d-1">,</span><span class="z-l-4 z-d-8"> struct</span><span> file </span><span class="z-d-6">*</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
-<span class="giallo-l"><span class="z-l-4 z-d-8">    int</span><span class="z-d-1">     (</span><span class="z-d-6">*</span><span>release</span><span class="z-d-1">)</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">struct</span><span> inode </span><span class="z-d-6">*</span><span class="z-d-1">,</span><span class="z-l-4 z-d-8"> struct</span><span> file </span><span class="z-d-6">*</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
-<span class="giallo-l"><span class="z-l-4 z-d-8">    int</span><span class="z-d-1">     (</span><span class="z-d-6">*</span><span>mmap</span><span class="z-d-1">)</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">struct</span><span> file </span><span class="z-d-6">*</span><span class="z-d-1">,</span><span class="z-l-4 z-d-8"> struct</span><span> vm_area_struct </span><span class="z-d-6">*</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
-<span class="giallo-l"><span class="z-l-4 z-d-8">    long</span><span class="z-d-1">    (</span><span class="z-d-6">*</span><span>ioctl</span><span class="z-d-1">)</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">struct</span><span> file </span><span class="z-d-6">*</span><span class="z-d-1">,</span><span class="z-l-4 z-d-8"> unsigned</span><span class="z-l-4 z-d-8"> int</span><span class="z-d-1">,</span><span class="z-l-4 z-d-8"> unsigned</span><span class="z-l-4 z-d-8"> long</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
-<span class="giallo-l"><span class="z-l-5 z-l-i z-d-1 z-d-i">    //</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> ... many more</span></span>
-<span class="giallo-l"><span class="z-d-1">}</span><span class="z-d-1">;</span></span></code></pre>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-2 z-d-1">struct</span><span> file_operations </span><span class="z-l-5 z-d-4">{</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">    ssize_t</span><span class="z-l-5 z-d-4"> (</span><span class="z-l-5 z-d-4">*</span><span>read</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">(</span><span class="z-l-2 z-d-1">struct</span><span> file </span><span class="z-l-5 z-d-4">*</span><span class="z-l-5 z-d-4">,</span><span class="z-l-2 z-d-1"> char</span><span> __user </span><span class="z-l-5 z-d-4">*</span><span class="z-l-5 z-d-4">,</span><span class="z-l-2 z-d-1"> size_t</span><span class="z-l-5 z-d-4">,</span><span class="z-l-4 z-d-7"> loff_t</span><span class="z-l-5 z-d-4"> *</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">    ssize_t</span><span class="z-l-5 z-d-4"> (</span><span class="z-l-5 z-d-4">*</span><span>write</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">(</span><span class="z-l-2 z-d-1">struct</span><span> file </span><span class="z-l-5 z-d-4">*</span><span class="z-l-5 z-d-4">,</span><span class="z-l-2 z-d-1"> const</span><span class="z-l-2 z-d-1"> char</span><span> __user </span><span class="z-l-5 z-d-4">*</span><span class="z-l-5 z-d-4">,</span><span class="z-l-2 z-d-1"> size_t</span><span class="z-l-5 z-d-4">,</span><span class="z-l-4 z-d-7"> loff_t</span><span class="z-l-5 z-d-4"> *</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">    int</span><span class="z-l-5 z-d-4">     (</span><span class="z-l-5 z-d-4">*</span><span>open</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">(</span><span class="z-l-2 z-d-1">struct</span><span> inode </span><span class="z-l-5 z-d-4">*</span><span class="z-l-5 z-d-4">,</span><span class="z-l-2 z-d-1"> struct</span><span> file </span><span class="z-l-5 z-d-4">*</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">    int</span><span class="z-l-5 z-d-4">     (</span><span class="z-l-5 z-d-4">*</span><span>release</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">(</span><span class="z-l-2 z-d-1">struct</span><span> inode </span><span class="z-l-5 z-d-4">*</span><span class="z-l-5 z-d-4">,</span><span class="z-l-2 z-d-1"> struct</span><span> file </span><span class="z-l-5 z-d-4">*</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">    int</span><span class="z-l-5 z-d-4">     (</span><span class="z-l-5 z-d-4">*</span><span>mmap</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">(</span><span class="z-l-2 z-d-1">struct</span><span> file </span><span class="z-l-5 z-d-4">*</span><span class="z-l-5 z-d-4">,</span><span class="z-l-2 z-d-1"> struct</span><span> vm_area_struct </span><span class="z-l-5 z-d-4">*</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">    long</span><span class="z-l-5 z-d-4">    (</span><span class="z-l-5 z-d-4">*</span><span>ioctl</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">(</span><span class="z-l-2 z-d-1">struct</span><span> file </span><span class="z-l-5 z-d-4">*</span><span class="z-l-5 z-d-4">,</span><span class="z-l-2 z-d-1"> unsigned</span><span class="z-l-2 z-d-1"> int</span><span class="z-l-5 z-d-4">,</span><span class="z-l-2 z-d-1"> unsigned</span><span class="z-l-2 z-d-1"> long</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"><span class="z-l-6 z-l-i z-d-2 z-d-i">    //</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> ... many more</span></span>
+<span class="giallo-l"><span class="z-l-5 z-d-4">}</span><span class="z-l-5 z-d-4">;</span></span></code></pre>
 <p>You can find the full definition in <code>linux/fs.h</code>.</p>
 <p>ext4 fills in ext4 functions, tmpfs fills in tmpfs functions, procfs fills in procfs functions, and when you call <code>read()</code> from user space the syscall handler looks up which <code>file_operations</code> struct is attached to your fd and calls the right <code>.read</code>, so the VFS doesn't care what filesystem is underneath. Same idea with <code>struct inode_operations</code>, <code>struct address_space_operations</code>, and <code>struct net_device_ops</code>, and the kernel is basically a giant collection of these interface structs.</p>
 <h2 id="a-simpler-example-event-dispatch">a simpler example, event dispatch</h2>
 <p>In ZWM I needed to dispatch X11 events to handler functions where each event type maps to a function, and the table-driven approach looks like this:</p>
-<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-4 z-d-8">typedef</span><span class="z-l-4 z-d-8"> int</span><span class="z-d-1"> (</span><span class="z-d-6">*</span><span class="z-l-7 z-d-4">event_handler_t</span><span class="z-d-1">)</span><span class="z-d-1">(</span><span class="z-l-7 z-d-4">xcb_generic_event_t</span><span class="z-d-6"> *</span><span>event</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-2 z-d-1">typedef</span><span class="z-l-2 z-d-1"> int</span><span class="z-l-5 z-d-4"> (</span><span class="z-l-5 z-d-4">*</span><span class="z-l-4 z-d-7">event_handler_t</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">(</span><span class="z-l-4 z-d-7">xcb_generic_event_t</span><span class="z-l-5 z-d-4"> *</span><span>event</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span class="z-l-4 z-d-8">typedef</span><span class="z-l-4 z-d-8"> struct</span><span class="z-d-1"> {</span></span>
-<span class="giallo-l"><span class="z-l-4 z-d-8">    uint8_t</span><span>         type</span><span class="z-d-1">;</span></span>
-<span class="giallo-l"><span class="z-l-7 z-d-4">    event_handler_t</span><span> handle</span><span class="z-d-1">;</span></span>
-<span class="giallo-l"><span class="z-d-1">}</span><span class="z-l-7 z-d-4"> event_handler_entry_t</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">typedef</span><span class="z-l-2 z-d-1"> struct</span><span class="z-l-5 z-d-4"> {</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">    uint8_t</span><span>         type</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-7">    event_handler_t</span><span> handle</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"><span class="z-l-5 z-d-4">}</span><span class="z-l-4 z-d-7"> event_handler_entry_t</span><span class="z-l-5 z-d-4">;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span class="z-l-4 z-d-8">static</span><span class="z-l-4 z-d-8"> const</span><span class="z-l-7 z-d-4"> event_handler_entry_t</span><span> _handlers_</span><span class="z-l-4 z-d-8">[]</span><span class="z-d-6"> =</span><span class="z-d-1"> {</span></span>
-<span class="giallo-l"><span class="z-d-1">    {</span><span> XCB_MAP_REQUEST</span><span class="z-d-1">,</span><span>       handle_map_request </span><span class="z-d-1">}</span><span class="z-d-1">,</span></span>
-<span class="giallo-l"><span class="z-d-1">    {</span><span> XCB_UNMAP_NOTIFY</span><span class="z-d-1">,</span><span>      handle_unmap_notify </span><span class="z-d-1">}</span><span class="z-d-1">,</span></span>
-<span class="giallo-l"><span class="z-d-1">    {</span><span> XCB_DESTROY_NOTIFY</span><span class="z-d-1">,</span><span>    handle_destroy_notify </span><span class="z-d-1">}</span><span class="z-d-1">,</span></span>
-<span class="giallo-l"><span class="z-d-1">    {</span><span> XCB_CLIENT_MESSAGE</span><span class="z-d-1">,</span><span>    handle_client_message </span><span class="z-d-1">}</span><span class="z-d-1">,</span></span>
-<span class="giallo-l"><span class="z-d-1">    {</span><span> XCB_CONFIGURE_REQUEST</span><span class="z-d-1">,</span><span> handle_configure_request </span><span class="z-d-1">}</span><span class="z-d-1">,</span></span>
-<span class="giallo-l"><span class="z-d-1">    {</span><span> XCB_ENTER_NOTIFY</span><span class="z-d-1">,</span><span>      handle_enter_notify </span><span class="z-d-1">}</span><span class="z-d-1">,</span></span>
-<span class="giallo-l"><span class="z-d-1">    {</span><span> XCB_KEY_PRESS</span><span class="z-d-1">,</span><span>         handle_key_press </span><span class="z-d-1">}</span><span class="z-d-1">,</span></span>
-<span class="giallo-l"><span class="z-d-1">}</span><span class="z-d-1">;</span></span></code></pre>
+<span class="giallo-l"><span class="z-l-2 z-d-1">static</span><span class="z-l-2 z-d-1"> const</span><span class="z-l-4 z-d-7"> event_handler_entry_t</span><span> _handlers_</span><span class="z-l-2 z-d-1">[]</span><span class="z-l-5 z-d-4"> =</span><span class="z-l-5 z-d-4"> {</span></span>
+<span class="giallo-l"><span class="z-l-5 z-d-4">    {</span><span> XCB_MAP_REQUEST</span><span class="z-l-5 z-d-4">,</span><span>       handle_map_request </span><span class="z-l-5 z-d-4">}</span><span class="z-l-5 z-d-4">,</span></span>
+<span class="giallo-l"><span class="z-l-5 z-d-4">    {</span><span> XCB_UNMAP_NOTIFY</span><span class="z-l-5 z-d-4">,</span><span>      handle_unmap_notify </span><span class="z-l-5 z-d-4">}</span><span class="z-l-5 z-d-4">,</span></span>
+<span class="giallo-l"><span class="z-l-5 z-d-4">    {</span><span> XCB_DESTROY_NOTIFY</span><span class="z-l-5 z-d-4">,</span><span>    handle_destroy_notify </span><span class="z-l-5 z-d-4">}</span><span class="z-l-5 z-d-4">,</span></span>
+<span class="giallo-l"><span class="z-l-5 z-d-4">    {</span><span> XCB_CLIENT_MESSAGE</span><span class="z-l-5 z-d-4">,</span><span>    handle_client_message </span><span class="z-l-5 z-d-4">}</span><span class="z-l-5 z-d-4">,</span></span>
+<span class="giallo-l"><span class="z-l-5 z-d-4">    {</span><span> XCB_CONFIGURE_REQUEST</span><span class="z-l-5 z-d-4">,</span><span> handle_configure_request </span><span class="z-l-5 z-d-4">}</span><span class="z-l-5 z-d-4">,</span></span>
+<span class="giallo-l"><span class="z-l-5 z-d-4">    {</span><span> XCB_ENTER_NOTIFY</span><span class="z-l-5 z-d-4">,</span><span>      handle_enter_notify </span><span class="z-l-5 z-d-4">}</span><span class="z-l-5 z-d-4">,</span></span>
+<span class="giallo-l"><span class="z-l-5 z-d-4">    {</span><span> XCB_KEY_PRESS</span><span class="z-l-5 z-d-4">,</span><span>         handle_key_press </span><span class="z-l-5 z-d-4">}</span><span class="z-l-5 z-d-4">,</span></span>
+<span class="giallo-l"><span class="z-l-5 z-d-4">}</span><span class="z-l-5 z-d-4">;</span></span></code></pre>
 <p>Dispatch is a simple loop:</p>
-<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-4 z-d-8">for</span><span class="z-d-1"> (</span><span class="z-l-4 z-d-8">size_t</span><span> i </span><span class="z-d-6">=</span><span class="z-l-4 z-d-5"> 0</span><span class="z-d-1">;</span><span> i </span><span class="z-d-6">&lt;</span><span> n</span><span class="z-d-1">;</span><span> i</span><span class="z-d-6">++</span><span class="z-d-1">)</span><span class="z-d-1"> {</span></span>
-<span class="giallo-l"><span class="z-l-4 z-d-8">    if</span><span class="z-d-1"> (</span><span class="z-l-6">_handlers_</span><span class="z-d-1">[</span><span>i</span><span class="z-d-1">]</span><span class="z-d-1">.</span><span class="z-l-6">type</span><span class="z-d-6"> ==</span><span> event_type</span><span class="z-d-1">)</span><span class="z-d-1"> {</span></span>
-<span class="giallo-l"><span class="z-l-4 z-d-8">        return</span><span class="z-l-6"> _handlers_</span><span class="z-d-1">[</span><span>i</span><span class="z-d-1">]</span><span class="z-d-1">.</span><span class="z-l-2 z-d-3">handle</span><span class="z-d-1">(</span><span>event</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
-<span class="giallo-l"><span class="z-d-1">    }</span></span>
-<span class="giallo-l"><span class="z-d-1">}</span></span></code></pre>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-2 z-d-1">for</span><span class="z-l-5 z-d-4"> (</span><span class="z-l-2 z-d-1">size_t</span><span> i </span><span class="z-l-5 z-d-4">=</span><span class="z-l-7 z-d-6"> 0</span><span class="z-l-5 z-d-4">;</span><span> i </span><span class="z-l-5 z-d-4">&lt;</span><span> n</span><span class="z-l-5 z-d-4">;</span><span> i</span><span class="z-l-5 z-d-4">++</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4"> {</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">    if</span><span class="z-l-5 z-d-4"> (</span><span>_handlers_</span><span class="z-l-5 z-d-4">[</span><span>i</span><span class="z-l-5 z-d-4">]</span><span class="z-l-5 z-d-4">.</span><span>type</span><span class="z-l-5 z-d-4"> ==</span><span> event_type</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4"> {</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">        return</span><span> _handlers_</span><span class="z-l-5 z-d-4">[</span><span>i</span><span class="z-l-5 z-d-4">]</span><span class="z-l-5 z-d-4">.</span><span class="z-l-1 z-d-5">handle</span><span class="z-l-5 z-d-4">(</span><span>event</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"><span class="z-l-5 z-d-4">    }</span></span>
+<span class="giallo-l"><span class="z-l-5 z-d-4">}</span></span></code></pre>
 <p>This isn't a struct-of-function-pointers in the interface sense, but it's the same idea, where data drives the dispatch instead of a switch statement, so adding a new event handler means adding a row rather than modifying control flow. A switch statement would work fine here too, but the table is easier to read when you have many entries, and you can build it at runtime if you need to.</p>
 <h2 id="the-vtable-pattern">the vtable pattern</h2>
 <p>Sometimes you want the function pointers attached to each instance rather than shared globally, which C++ does automatically with virtual methods and C makes you do manually:</p>
-<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-4 z-d-8">typedef</span><span class="z-l-4 z-d-8"> struct</span><span class="z-l-7 z-d-4"> shape_t</span><span class="z-l-7 z-d-4"> shape_t</span><span class="z-d-1">;</span></span>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-2 z-d-1">typedef</span><span class="z-l-2 z-d-1"> struct</span><span class="z-l-4 z-d-7"> shape_t</span><span class="z-l-4 z-d-7"> shape_t</span><span class="z-l-5 z-d-4">;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span class="z-l-4 z-d-8">typedef</span><span class="z-l-4 z-d-8"> struct</span><span class="z-d-1"> {</span></span>
-<span class="giallo-l"><span class="z-l-4 z-d-8">    float</span><span class="z-d-1"> (</span><span class="z-d-6">*</span><span>area</span><span class="z-d-1">)</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">const</span><span class="z-l-7 z-d-4"> shape_t</span><span class="z-d-6"> *</span><span>self</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
-<span class="giallo-l"><span class="z-l-4 z-d-8">    void</span><span class="z-d-1">  (</span><span class="z-d-6">*</span><span>draw</span><span class="z-d-1">)</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">const</span><span class="z-l-7 z-d-4"> shape_t</span><span class="z-d-6"> *</span><span>self</span><span class="z-d-1">)</span><span class="z-d-1">;</span></span>
-<span class="giallo-l"><span class="z-d-1">}</span><span class="z-l-7 z-d-4"> shape_ops_t</span><span class="z-d-1">;</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">typedef</span><span class="z-l-2 z-d-1"> struct</span><span class="z-l-5 z-d-4"> {</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">    float</span><span class="z-l-5 z-d-4"> (</span><span class="z-l-5 z-d-4">*</span><span>area</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">(</span><span class="z-l-2 z-d-1">const</span><span class="z-l-4 z-d-7"> shape_t</span><span class="z-l-5 z-d-4"> *</span><span>self</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">    void</span><span class="z-l-5 z-d-4">  (</span><span class="z-l-5 z-d-4">*</span><span>draw</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">(</span><span class="z-l-2 z-d-1">const</span><span class="z-l-4 z-d-7"> shape_t</span><span class="z-l-5 z-d-4"> *</span><span>self</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"><span class="z-l-5 z-d-4">}</span><span class="z-l-4 z-d-7"> shape_ops_t</span><span class="z-l-5 z-d-4">;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span class="z-l-4 z-d-8">struct</span><span class="z-l-7 z-d-4"> shape_t</span><span class="z-d-1"> {</span></span>
-<span class="giallo-l"><span class="z-l-4 z-d-8">    const</span><span class="z-l-7 z-d-4"> shape_ops_t</span><span class="z-d-6"> *</span><span>ops</span><span class="z-d-1">;</span></span>
-<span class="giallo-l"><span class="z-l-5 z-l-i z-d-1 z-d-i">    //</span><span class="z-l-5 z-l-i z-d-1 z-d-i"> shape data follows</span></span>
-<span class="giallo-l"><span class="z-d-1">}</span><span class="z-d-1">;</span></span></code></pre>
+<span class="giallo-l"><span class="z-l-2 z-d-1">struct</span><span class="z-l-4 z-d-7"> shape_t</span><span class="z-l-5 z-d-4"> {</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">    const</span><span class="z-l-4 z-d-7"> shape_ops_t</span><span class="z-l-5 z-d-4"> *</span><span>ops</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"><span class="z-l-6 z-l-i z-d-2 z-d-i">    //</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> shape data follows</span></span>
+<span class="giallo-l"><span class="z-l-5 z-d-4">}</span><span class="z-l-5 z-d-4">;</span></span></code></pre>
 <p>Each shape type defines its own ops:</p>
-<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-4 z-d-8">typedef</span><span class="z-l-4 z-d-8"> struct</span><span class="z-d-1"> {</span></span>
-<span class="giallo-l"><span class="z-l-7 z-d-4">    shape_t</span><span> base</span><span class="z-d-1">;</span></span>
-<span class="giallo-l"><span class="z-l-4 z-d-8">    float</span><span>   radius</span><span class="z-d-1">;</span></span>
-<span class="giallo-l"><span class="z-d-1">}</span><span class="z-l-7 z-d-4"> circle_t</span><span class="z-d-1">;</span></span>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-2 z-d-1">typedef</span><span class="z-l-2 z-d-1"> struct</span><span class="z-l-5 z-d-4"> {</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-7">    shape_t</span><span> base</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">    float</span><span>   radius</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"><span class="z-l-5 z-d-4">}</span><span class="z-l-4 z-d-7"> circle_t</span><span class="z-l-5 z-d-4">;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span class="z-l-4 z-d-8">static</span><span class="z-l-4 z-d-8"> float</span><span class="z-l-2 z-d-3"> circle_area</span><span class="z-d-1">(</span><span class="z-l-4 z-d-8">const</span><span class="z-l-7 z-d-4"> shape_t</span><span class="z-d-6"> *</span><span class="z-l-6">self</span><span class="z-d-1">)</span><span class="z-d-1"> {</span></span>
-<span class="giallo-l"><span class="z-l-7 z-d-4">    circle_t</span><span class="z-d-6"> *</span><span>c </span><span class="z-d-6">=</span><span class="z-d-1"> (</span><span class="z-l-7 z-d-4">circle_t</span><span class="z-d-6"> *</span><span class="z-d-1">)</span><span>self</span><span class="z-d-1">;</span></span>
-<span class="giallo-l"><span class="z-l-4 z-d-8">    return</span><span class="z-l-4 z-d-5"> 3</span><span class="z-l-4 z-d-5">.</span><span class="z-l-4 z-d-5">14159</span><span class="z-l-4 z-d-8">f</span><span class="z-d-6"> *</span><span class="z-l-6"> c</span><span class="z-d-1">-&gt;</span><span class="z-l-6">radius</span><span class="z-d-6"> *</span><span class="z-l-6"> c</span><span class="z-d-1">-&gt;</span><span class="z-l-6">radius</span><span class="z-d-1">;</span></span>
-<span class="giallo-l"><span class="z-d-1">}</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">static</span><span class="z-l-2 z-d-1"> float</span><span class="z-l-1 z-d-5"> circle_area</span><span class="z-l-5 z-d-4">(</span><span class="z-l-2 z-d-1">const</span><span class="z-l-4 z-d-7"> shape_t</span><span class="z-l-5 z-d-4"> *</span><span>self</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4"> {</span></span>
+<span class="giallo-l"><span class="z-l-4 z-d-7">    circle_t</span><span class="z-l-5 z-d-4"> *</span><span>c </span><span class="z-l-5 z-d-4">=</span><span class="z-l-5 z-d-4"> (</span><span class="z-l-4 z-d-7">circle_t</span><span class="z-l-5 z-d-4"> *</span><span class="z-l-5 z-d-4">)</span><span>self</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">    return</span><span class="z-l-7 z-d-6"> 3</span><span class="z-l-7 z-d-6">.</span><span class="z-l-7 z-d-6">14159</span><span class="z-l-2 z-d-1">f</span><span class="z-l-5 z-d-4"> *</span><span> c</span><span class="z-l-5 z-d-4">-&gt;</span><span>radius</span><span class="z-l-5 z-d-4"> *</span><span> c</span><span class="z-l-5 z-d-4">-&gt;</span><span>radius</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"><span class="z-l-5 z-d-4">}</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span class="z-l-4 z-d-8">static</span><span class="z-l-4 z-d-8"> const</span><span class="z-l-7 z-d-4"> shape_ops_t</span><span> circle_ops </span><span class="z-d-6">=</span><span class="z-d-1"> {</span><span> circle_area</span><span class="z-d-1">,</span><span> circle_draw </span><span class="z-d-1">}</span><span class="z-d-1">;</span></span></code></pre>
+<span class="giallo-l"><span class="z-l-2 z-d-1">static</span><span class="z-l-2 z-d-1"> const</span><span class="z-l-4 z-d-7"> shape_ops_t</span><span> circle_ops </span><span class="z-l-5 z-d-4">=</span><span class="z-l-5 z-d-4"> {</span><span> circle_area</span><span class="z-l-5 z-d-4">,</span><span> circle_draw </span><span class="z-l-5 z-d-4">}</span><span class="z-l-5 z-d-4">;</span></span></code></pre>
 <p>Now any code that has a <code>shape_t *</code> can call <code>shape-&gt;ops-&gt;area(shape)</code> and it works for circles, rectangles, whatever, and the cast from <code>shape_t *</code> to <code>circle_t *</code> works because <code>base</code> is the first member. This is exactly what a C++ vtable is, except the compiler generates the struct of function pointers and the dispatch for you, and in C you write it yourself.</p>
 <h2 id="where-this-falls-apart">where this falls apart</h2>
 <p>There's no type safety on the casts, so you cast <code>shape_t *</code> to <code>circle_t *</code> and the compiler just trusts you, and if you pass the wrong type you get garbage rather than a compile error. There's no enforcement that you filled in all the function pointers either, so leave one NULL and you segfault at runtime, and where C++ gives you pure virtual and abstract classes C gives you nothing, so you can add runtime checks like <code>assert(ops-&gt;read != NULL)</code> but it's manual. Function signature mismatches are silent if you're not careful, so if <code>ops-&gt;read</code> expects three arguments and you assign a function that takes two, some compilers warn and some don't depending on how you typedef things. And the <code>self</code> pointer pattern is verbose, since every method takes a <code>self</code> parameter and every call passes it, where C++ hides this with <code>this</code> and C makes you type it every time.</p>
@@ -244,52 +252,16 @@
 <li>SQLite uses this pattern for its VFS layer too. You can plug in custom file systems by providing a struct of function pointers.</li>
 <li>If you only need dispatch and not per-instance state, a simple function pointer array indexed by type is simpler than the vtable pattern.</li>
 </ul>
-  
+</div>
+    
+    
 </article>
 </main>
-    <hr class="site-sep bottom-sep" />
-    <footer class="s">
-        
-    </footer>
+        <footer class="site-footer">
+            <span>Notes on systems and low-level software.</span>
+            <a href="#top">Back to top ↑</a>
+        </footer>
+    </div>
     
-
-    <script>
-        document.querySelectorAll("article img[srcset]").forEach((i) => {
-            if (i.closest("a")) return;
-            i.style.cursor = "pointer";
-            i.onclick = () => {
-                let d = document.createElement("div"),
-                    s = i.srcset.split(",").pop().trim().split(" ")[0];
-                d.className = "lb";
-                d.innerHTML = '<img src="' + s + '">';
-                document.body.style.overflow = "hidden";
-                d.onclick = () => {
-                    d.remove();
-                    document.body.style.overflow = "";
-                };
-                document.body.appendChild(d);
-            };
-        });
-    </script>
-    
-<button id="scroll-to-top" aria-label="Scroll to top" title="Scroll to top">↑</button>
-<script>
-    (function() {
-        var btn = document.getElementById("scroll-to-top");
-        if (btn) {
-            window.addEventListener("scroll", function() {
-                if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
-                    btn.classList.add("show");
-                } else {
-                    btn.classList.remove("show");
-                }
-            });
-            btn.addEventListener("click", function() {
-                window.scrollTo({top: 0, behavior: 'smooth'});
-            });
-        }
-    })();
-</script>
 </body>
-
 </html>
