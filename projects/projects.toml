@@ -48,11 +48,11 @@ status = "Active"
 tags = ["Go", "FFmpeg", "SvelteKit", "PostgreSQL", "NATS", "Redis", "Streaming"]
 
 [[projects]]
-title = "SQLView"
+title = "Quarro"
 # emoji = "#"
 description = "Desktop client for databases, data-source agnostic across relational, document, and key-value stores (e.g. PostgreSQL, MongoDB, Redis). Wails app with a Go backend and Svelte frontend, one workspace with a visual query builder, live schema diagrams, server-pushed-down charts, and safe row editing."
-url = "https://sqlview.dev"
-image = "hero-editor.png"
+url = "https://quarro.io"
+image = "quarro-editor.png"
 date = "2025–Present"
 status = "Active"
 tags = [
