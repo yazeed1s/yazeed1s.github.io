@@ -6,10 +6,9 @@ description = "How the OS shuffles memory between RAM and disk."
 tags = ["OS", "memory", "paging"]
 +++
 
-I kept hitting concepts like "page fault" and "swap" while reading memory disaggregation papers, so I figured I should actually understand what these mean at a low level before going further.
 
-## what swap is
 
+What is a swap?
 Swap is disk space that acts as overflow for RAM, so when physical memory fills up the kernel moves some data to swap, and later, if that data is needed again, it gets loaded back. That's basically it, but the messy part is in the details.
 
 ## pages
