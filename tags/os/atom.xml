@@ -109,9 +109,8 @@
         <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/swap-paging/"/>
         <id>https://yazeed1s.github.io/posts/swap-paging/</id>
         
-        <content type="html" xml:base="https://yazeed1s.github.io/posts/swap-paging/">&lt;p&gt;I kept hitting concepts like &quot;page fault&quot; and &quot;swap&quot; while reading memory disaggregation papers, so I figured I should actually understand what these mean at a low level before going further.&lt;/p&gt;
-&lt;h2 id=&quot;what-swap-is&quot;&gt;what swap is&lt;/h2&gt;
-&lt;p&gt;Swap is disk space that acts as overflow for RAM, so when physical memory fills up the kernel moves some data to swap, and later, if that data is needed again, it gets loaded back. That&#39;s basically it, but the messy part is in the details.&lt;/p&gt;
+        <content type="html" xml:base="https://yazeed1s.github.io/posts/swap-paging/">&lt;p&gt;What is a swap?
+Swap is disk space that acts as overflow for RAM, so when physical memory fills up the kernel moves some data to swap, and later, if that data is needed again, it gets loaded back. That&#39;s basically it, but the messy part is in the details.&lt;/p&gt;
 &lt;h2 id=&quot;pages&quot;&gt;pages&lt;/h2&gt;
 &lt;p&gt;The kernel doesn&#39;t manage memory byte by byte because the bookkeeping would be too expensive, so instead it works in fixed-size chunks called &lt;strong&gt;pages&lt;/strong&gt;, usually 4KB.&lt;/p&gt;
 &lt;p&gt;When you allocate memory you get pages, and when data moves to disk it moves as pages. The physical counterpart is called a &lt;strong&gt;frame&lt;/strong&gt;, same size, different name: pages are virtual, frames are physical.&lt;/p&gt;

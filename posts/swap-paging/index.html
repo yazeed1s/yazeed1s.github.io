@@ -156,9 +156,8 @@
         
     </header>
     
-    <div class="prose"><p>I kept hitting concepts like "page fault" and "swap" while reading memory disaggregation papers, so I figured I should actually understand what these mean at a low level before going further.</p>
-<h2 id="what-swap-is">what swap is</h2>
-<p>Swap is disk space that acts as overflow for RAM, so when physical memory fills up the kernel moves some data to swap, and later, if that data is needed again, it gets loaded back. That's basically it, but the messy part is in the details.</p>
+    <div class="prose"><p>What is a swap?
+Swap is disk space that acts as overflow for RAM, so when physical memory fills up the kernel moves some data to swap, and later, if that data is needed again, it gets loaded back. That's basically it, but the messy part is in the details.</p>
 <h2 id="pages">pages</h2>
 <p>The kernel doesn't manage memory byte by byte because the bookkeeping would be too expensive, so instead it works in fixed-size chunks called <strong>pages</strong>, usually 4KB.</p>
 <p>When you allocate memory you get pages, and when data moves to disk it moves as pages. The physical counterpart is called a <strong>frame</strong>, same size, different name: pages are virtual, frames are physical.</p>

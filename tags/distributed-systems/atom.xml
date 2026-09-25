@@ -5,50 +5,8 @@
     <link rel="self" type="application/atom+xml" href="https://yazeed1s.github.io/tags/distributed-systems/atom.xml"/>
     <link rel="alternate" type="text/html" href="https://yazeed1s.github.io"/>
     <generator uri="https://www.getzola.org/">Zola</generator>
-    <updated>2026-02-02T00:00:00+00:00</updated>
+    <updated>2025-08-04T00:00:00+00:00</updated>
     <id>https://yazeed1s.github.io/tags/distributed-systems/atom.xml</id>
-    <entry xml:lang="en">
-        <title>Memory Disaggregation</title>
-        <published>2026-02-02T00:00:00+00:00</published>
-        <updated>2026-02-02T00:00:00+00:00</updated>
-        
-        <author>
-          <name>Unknown</name>
-        </author>
-        
-        <link rel="alternate" type="text/html" href="https://yazeed1s.github.io/posts/memory-disaggregation/"/>
-        <id>https://yazeed1s.github.io/posts/memory-disaggregation/</id>
-        
-        <content type="html" xml:base="https://yazeed1s.github.io/posts/memory-disaggregation/">&lt;p&gt;Memory is expensive, and in some clusters it&#39;s half the server cost while a lot of it sits idle. Over 70% of the time more than half of aggregate cluster memory is unused, yet some machines are paging to disk because they ran out.&lt;/p&gt;
-&lt;p&gt;Memory disaggregation is the idea that you pull memory out of servers, pool it, and let machines use what they need. A VMware Research paper I read recently asks why this hasn&#39;t happened already, and their answer is that the economics were bad but tolerable and the technology didn&#39;t exist, but now both are changing.&lt;/p&gt;
-&lt;h2 id=&quot;the-basic-idea&quot;&gt;the basic idea&lt;/h2&gt;
-&lt;p&gt;Traditional servers bundle CPU, memory, and storage into one box, so if you need more RAM you buy a bigger box or add DIMMs if you haven&#39;t hit the motherboard limit, and if you don&#39;t use all your RAM it just sits idle and you can&#39;t share it.&lt;/p&gt;
-&lt;p&gt;Memory disaggregation pulls memory out into separate pools that multiple servers can access, similar to how we went from local storage to SAN/NAS but for memory instead.&lt;/p&gt;
-&lt;p&gt;This gives you two things. One is capacity expansion, where a server can use more memory than it physically contains by reaching into the pool, similar to what Infiniswap does but with hardware support instead of software paging tricks. The other is data sharing, where pool memory can be mapped into multiple hosts at once so they can load/store to the same bytes without serializing everything into messages. You still need software to handle ownership and synchronization and failures, but the access itself looks like memory rather than network messages.&lt;/p&gt;
-&lt;h2 id=&quot;why-is-this-coming-up-now&quot;&gt;why is this coming up now&lt;/h2&gt;
-&lt;p&gt;The economics are getting painful because memory is like 50% of server cost and 37% of TCO, three companies control DRAM production, and demand is exploding from data centers and ML and in-memory databases. And the frustrating part is that clusters waste a lot of memory, so over 70% of the time more than half of aggregate memory sits unused while some machines are paging to disk because they ran out.&lt;/p&gt;
-&lt;p&gt;The technology also finally exists since RDMA gives single-digit microsecond latencies, but the bigger thing is CXL which gives you cache-coherent load/store access over PCIe, plus there&#39;s a roadmap toward switches and pooling and shared memory fabrics. The pool can even use cheaper denser slower DRAM since it&#39;s already the &quot;slow tier&quot; compared to local DIMMs anyway.&lt;/p&gt;
-&lt;h2 id=&quot;what-i-found-interesting&quot;&gt;what I found interesting&lt;/h2&gt;
-&lt;p&gt;This isn&#39;t only about capacity because most remote-memory systems like Infiniswap focus on paging to remote RAM, which helps but stays limited. CXL is aiming for memory that still behaves like memory with load/store access to a larger pool, and with the right fabric features you can even map the same bytes into multiple hosts, which is very different from shipping pages around.&lt;/p&gt;
-&lt;p&gt;The OS problems are hard though, and the paper mostly focuses on what&#39;s still unsolved, so memory allocation at scale, scheduling with memory locality, pointer sharing across servers, failure handling for &quot;optional&quot; memory, and security for hot-swappable pools, all of which need fundamental rethinking.&lt;/p&gt;
-&lt;p&gt;The timeline matches what happened with storage disaggregation, where you start small with a few hosts per pool, add switches for rack-scale, then push the fabric boundary outward. Whether it ends up being &quot;CXL over something&quot; or something else is open, but the trajectory rhymes with how storage disaggregation went.&lt;/p&gt;
-&lt;h2 id=&quot;where-it-fits-and-where-it-doesn-t&quot;&gt;where it fits and where it doesn&#39;t&lt;/h2&gt;
-&lt;p&gt;It&#39;s good for data-intensive workloads like Spark or Ray or distributed DBs that spend cycles serializing and copying, working sets that barely fit in local memory, clusters with memory imbalance, and places where memory is already 50%+ of server cost. It&#39;s bad for workloads that already fit in local memory since you&#39;re just adding latency for no reason, latency-sensitive apps that can&#39;t handle hundreds of extra nanoseconds, and traditional apps that don&#39;t share data across processes anyway. Pool memory is slower than local, hundreds of ns versus ~100ns, but still way faster than SSD or disk, so for workloads that currently page to disk this could be big, but for workloads that don&#39;t page at all adding a slower tier might just make things worse.&lt;/p&gt;
-&lt;h2 id=&quot;notes&quot;&gt;notes&lt;/h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Paper: &lt;a rel=&quot;external&quot; href=&quot;https://dl.acm.org/doi/10.1145/3606557.3606563&quot;&gt;Aguilera et al., &quot;Memory disaggregation: why now and what are the challenges&quot;, ACM SIGOPS, 2023&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;Position paper, no benchmarks, just analysis of the problem space&lt;/li&gt;
-&lt;li&gt;CXL 1.0: local memory expansion cards (shipping now)&lt;/li&gt;
-&lt;li&gt;CXL 2.0/3.0: fabric switches for pool memory (maybe 3-5 years out)&lt;/li&gt;
-&lt;li&gt;Latency estimates: local ~100ns, CXL local ~200-300ns, CXL pool ~500-1000ns, RDMA ~1-5μs, SSD ~100μs&lt;/li&gt;
-&lt;li&gt;Memory population rules (balanced channels, identical DIMMs) make upgrades nearly impossible in practice&lt;/li&gt;
-&lt;li&gt;Distributed shared memory from 90s taught us: cache coherence doesn&#39;t scale beyond rack&lt;/li&gt;
-&lt;li&gt;Security: DRAM retains data after power-down and pool memory is hot-swappable so encryption matters&lt;/li&gt;
-&lt;li&gt;Related work: Infiniswap, LegoOS, The Machine (HPE, discontinued)&lt;/li&gt;
-&lt;/ul&gt;
-</content>
-        
-    </entry>
     <entry xml:lang="en">
         <title>Exactly-Once Is a Lie</title>
         <published>2025-08-04T00:00:00+00:00</published>

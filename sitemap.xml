@@ -26,10 +26,6 @@
         <lastmod>2024-11-18</lastmod>
     </url>
     <url>
-        <loc>https://yazeed1s.github.io/posts/cxl/</loc>
-        <lastmod>2026-01-27</lastmod>
-    </url>
-    <url>
         <loc>https://yazeed1s.github.io/posts/ewmh-icccm/</loc>
         <lastmod>2024-06-02</lastmod>
     </url>
@@ -50,10 +46,6 @@
         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
-        <loc>https://yazeed1s.github.io/posts/infiniswap/</loc>
-        <lastmod>2026-01-18</lastmod>
-    </url>
-    <url>
         <loc>https://yazeed1s.github.io/posts/interrupts-traps/</loc>
         <lastmod>2025-02-18</lastmod>
     </url>
@@ -64,14 +56,6 @@
     <url>
         <loc>https://yazeed1s.github.io/posts/malloc-to-teired/</loc>
         <lastmod>2026-02-16</lastmod>
-    </url>
-    <url>
-        <loc>https://yazeed1s.github.io/posts/memory-disaggregation/</loc>
-        <lastmod>2026-02-02</lastmod>
-    </url>
-    <url>
-        <loc>https://yazeed1s.github.io/posts/memory-teiring/</loc>
-        <lastmod>2026-02-12</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/mmap-databases/</loc>
@@ -104,10 +88,6 @@
     <url>
         <loc>https://yazeed1s.github.io/posts/swap-paging/</loc>
         <lastmod>2025-10-30</lastmod>
-    </url>
-    <url>
-        <loc>https://yazeed1s.github.io/posts/swap-to-tiered/</loc>
-        <lastmod>2026-02-08</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/sync-map/</loc>
@@ -146,9 +126,6 @@
         <loc>https://yazeed1s.github.io/tags/cpu/</loc>
     </url>
     <url>
-        <loc>https://yazeed1s.github.io/tags/cxl/</loc>
-    </url>
-    <url>
         <loc>https://yazeed1s.github.io/tags/databases/</loc>
     </url>
     <url>
@@ -162,9 +139,6 @@
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/go/</loc>
-    </url>
-    <url>
-        <loc>https://yazeed1s.github.io/tags/hardware/</loc>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/linux/</loc>
