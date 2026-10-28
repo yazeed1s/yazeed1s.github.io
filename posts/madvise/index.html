@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+    
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="description" content="The small syscall where user space gets to have an opinion about its own memory." />
+
+<meta name="keywords" content="yazeed, blog, alharthi, yaz, yazeed1s" />
+<link rel="canonical" href="https://yazeed1s.github.io/posts/madvise/" />
+
+    
+<title>madvise, Or Talking Back to the Kernel | Yazeed&#39;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#39;s Blog" />
+<meta property="og:title" content="madvise, Or Talking Back to the Kernel" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://yazeed1s.github.io/posts/madvise/" />
+<meta property="og:description" content="The small syscall where user space gets to have an opinion about its own memory." />
+<meta property="article:published_time" content="2026-10-28" />
+
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="madvise, Or Talking Back to the Kernel" />
+<meta name="twitter:description" content="The small syscall where user space gets to have an opinion about its own memory." />
+
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="https://yazeed1s.github.io/favicon.ico" />
+    <link rel="preload" href="https://yazeed1s.github.io/fonts/chivo-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
+    <style>
+        :root {
+            
+            
+            --dark-accent: #92aff1;
+            
+            --dark-background: #121416;
+            
+            --dark-body-text: #ccd0d5;
+            
+            --dark-border: #353940;
+            
+            --dark-code-bg: #202329;
+            
+            --dark-selection: #304675;
+            
+            --dark-text-heading: #eeeef0;
+            
+            --dark-text-muted: #989fa9;
+            
+            
+            
+            --light-accent: #345fc0;
+            
+            --light-background: #f5f5f3;
+            
+            --light-body-text: #353a41;
+            
+            --light-border: #d9dce0;
+            
+            --light-code-bg: #eceef0;
+            
+            --light-selection: #d9e3fc;
+            
+            --light-text-heading: #20242a;
+            
+            --light-text-muted: #656b74;
+            
+            
+        }
+    </style>
+    <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+    <link id="syntax-light" rel="stylesheet" href="https://yazeed1s.github.io/giallo-light.css" media="(prefers-color-scheme: light)" />
+    <link id="syntax-dark" rel="stylesheet" href="https://yazeed1s.github.io/giallo-dark.css" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f5f5f3" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#121416" media="(prefers-color-scheme: dark)" />
+    <script>
+        (() => {
+            const root = document.documentElement;
+            const system = matchMedia('(prefers-color-scheme: dark)');
+            let preference;
+            try { preference = localStorage.getItem('theme'); } catch (_) {}
+            if (preference !== 'light' && preference !== 'dark') preference = null;
+            function apply() {
+                const theme = preference || (system.matches ? 'dark' : 'light');
+                if (preference) root.dataset.theme = preference;
+                else delete root.dataset.theme;
+                document.getElementById('syntax-light').media = theme === 'light' ? 'all' : 'not all';
+                document.getElementById('syntax-dark').media = theme === 'dark' ? 'all' : 'not all';
+                document.querySelectorAll('meta[name="theme-color"]').forEach(meta => {
+                    meta.content = getComputedStyle(root).getPropertyValue('--background').trim();
+                });
+                const button = document.getElementById('theme-toggle');
+                if (button) {
+                    button.hidden = false;
+                    button.setAttribute('aria-pressed', String(theme === 'dark'));
+                }
+            }
+            apply();
+            system.addEventListener('change', apply);
+            document.addEventListener('DOMContentLoaded', () => {
+                apply();
+                document.getElementById('theme-toggle').addEventListener('click', () => {
+                    preference = (preference || (system.matches ? 'dark' : 'light')) === 'dark' ? 'light' : 'dark';
+                    try { localStorage.setItem('theme', preference); } catch (_) {}
+                    apply();
+                });
+            });
+        })();
+    </script>
+    
+</head>
+<body id="top">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div class="site-shell">
+        <header class="site-header">
+            <a class="site-name" href="https://yazeed1s.github.io">Yazeed&#39;s Blog</a>
+            <div class="navigation">
+                <nav aria-label="Main navigation">
+                    
+                    
+                    
+                    
+                    <a href="https://yazeed1s.github.io/">Home</a>
+                    
+                    
+                    
+                    
+                    <a href="https://yazeed1s.github.io/posts/" aria-current="location">Posts</a>
+                    
+                    
+                    
+                    
+                    <a href="https://yazeed1s.github.io/projects/">Projects</a>
+                    
+                    
+                    
+                    
+                    <a href="https://yazeed1s.github.io/tags/">Tags</a>
+                    
+                </nav>
+                <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Dark mode" aria-pressed="false" hidden>
+                    <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M10 3a7 7 0 0 1 0 14Z" fill="currentColor"/></svg>
+                </button>
+            </div>
+        </header>
+        <main id="main" tabindex="-1">
+<article class="post">
+    <header class="post-header">
+        <div class="post-meta"><time datetime="2026-10-28">28 Oct 2026</time><span aria-hidden="true">/</span><span>5 min read</span></div>
+        <h1>madvise, Or Talking Back to the Kernel</h1>
+        <p class="post-description">The small syscall where user space gets to have an opinion about its own memory.</p>
+        
+        <ul class="tags" aria-label="Tags">
+            <li><a href="https://yazeed1s.github.io/tags/os/">OS</a></li><li><a href="https://yazeed1s.github.io/tags/memory/">memory</a></li><li><a href="https://yazeed1s.github.io/tags/linux/">linux</a></li>
+        </ul>
+        
+    </header>
+    
+    <div class="prose"><p>In the <a href="https://yazeed1s.github.io/posts/opt/">OPT post</a> I ended up at <code>madvise()</code> as the thing that already exists for "telling the kernel about the future", and I kept reading about it after, because it's kinda the only place in Linux where user space is officially allowed to have an opinion about its own pages. Everything else about virtual memory is the kernel deciding and you not knowing.</p>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-2 z-d-1">int</span><span class="z-l-1 z-d-5"> madvise</span><span class="z-l-5 z-d-4">(</span><span class="z-l-2 z-d-1">void</span><span class="z-l-5 z-d-4"> *</span><span>addr</span><span class="z-l-5 z-d-4">,</span><span class="z-l-2 z-d-1"> size_t</span><span> length</span><span class="z-l-5 z-d-4">,</span><span class="z-l-2 z-d-1"> int</span><span> advice</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">;</span></span></code></pre>
+<p>You give it a page-aligned range and a flag, and the kernel does something, or nothing, depends on the flag. That "or nothing" part is what makes it interesting to me.</p>
+<h2 id="hints-that-are-actually-hints">hints that are actually hints</h2>
+<p><code>MADV_SEQUENTIAL</code> and <code>MADV_RANDOM</code> describe how you're going to touch a file-backed mapping, so the kernel reads ahead more aggressively for sequential and basically turns readahead off for random. <code>MADV_WILLNEED</code> says I'll need this range soon, and for a file mapping the kernel starts reading it in asynchronously so the fault later is cheap (or doesn't happen). These are the polite ones, the kernel can ignore them and your program is still correct, just maybe slower.</p>
+<p><code>MADV_HUGEPAGE</code> is in the same family. If THP is set to <code>madvise</code> mode (common on servers), only ranges marked with this get huge pages, so it's an opt-in, and <code>MADV_NOHUGEPAGE</code> is the opt-out for the cases where huge pages hurt you, which happens more than people expect.</p>
+<h2 id="and-one-that-is-not-a-hint-at-all">and one that is not a hint at all</h2>
+<p><code>MADV_DONTNEED</code> sounds like the polite "I don't need this anymore, reclaim it if you want". It's not. On private anonymous memory Linux throws the pages away right now, and the next access gets a fresh zero page.</p>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-2 z-d-1">size_t</span><span> len </span><span class="z-l-5 z-d-4">=</span><span class="z-l-7 z-d-6"> 64</span><span class="z-l-5 z-d-4"> &lt;&lt;</span><span class="z-l-7 z-d-6"> 20</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">char</span><span class="z-l-5 z-d-4"> *</span><span>p </span><span class="z-l-5 z-d-4">=</span><span class="z-l-1 z-d-5"> mmap</span><span class="z-l-5 z-d-4">(</span><span class="z-l-7 z-d-6">NULL</span><span class="z-l-5 z-d-4">,</span><span> len</span><span class="z-l-5 z-d-4">,</span><span> PROT_READ </span><span class="z-l-5 z-d-4">|</span><span> PROT_WRITE</span><span class="z-l-5 z-d-4">,</span></span>
+<span class="giallo-l"><span>               MAP_PRIVATE </span><span class="z-l-5 z-d-4">|</span><span> MAP_ANONYMOUS</span><span class="z-l-5 z-d-4">,</span><span class="z-l-5 z-d-4"> -</span><span class="z-l-7 z-d-6">1</span><span class="z-l-5 z-d-4">,</span><span class="z-l-7 z-d-6"> 0</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"><span class="z-l-1 z-d-5">memset</span><span class="z-l-5 z-d-4">(</span><span>p</span><span class="z-l-5 z-d-4">,</span><span class="z-l-5 z-d-4"> &#39;</span><span class="z-l-3 z-d-3">a</span><span class="z-l-5 z-d-4">&#39;</span><span class="z-l-5 z-d-4">,</span><span> len</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span class="z-l-1 z-d-5">madvise</span><span class="z-l-5 z-d-4">(</span><span>p</span><span class="z-l-5 z-d-4">,</span><span> len</span><span class="z-l-5 z-d-4">,</span><span> MADV_DONTNEED</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"><span class="z-l-1 z-d-5">printf</span><span class="z-l-5 z-d-4">(</span><span class="z-l-5 z-d-4">&quot;</span><span class="z-l-7 z-d-6">%d</span><span class="z-l-7 z-d-6">\n</span><span class="z-l-5 z-d-4">&quot;</span><span class="z-l-5 z-d-4">,</span><span> p</span><span class="z-l-5 z-d-4">[</span><span class="z-l-7 z-d-6">0</span><span class="z-l-5 z-d-4">]</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">;</span><span class="z-l-6 z-l-i z-d-2 z-d-i">   //</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> 0, the &#39;a&#39;s are gone</span></span></code></pre>
+<p>So it's a free that keeps the mapping, which is actually useful (allocators use it exactly for this), but it's a command with a hint's name. POSIX has <code>posix_madvise(POSIX_MADV_DONTNEED)</code> which is supposed to be a real hint, and glibc on Linux just makes it a no-op, I'd guess because mapping it to the Linux one would silently destroy data in programs written for the POSIX meaning. Two functions, almost the same name, one does nothing and one deletes your data. lol.</p>
+<h2 id="madv-free-and-the-rss-confusion">MADV_FREE and the RSS confusion</h2>
+<p><code>MADV_FREE</code> (4.5) is the lazier version. It tells the kernel these pages are garbage, but it doesn't drop them until there's memory pressure, and if you write to the page before that happens the kernel just cancels the free and keeps it. For an allocator this is nicer, because a lot of freed memory gets reused soon and with <code>DONTNEED</code> you'd pay a fault plus zeroing every time.</p>
+<p>The problem is RSS doesn't go down. The pages are still counted against you until the kernel actually reclaims them, so tools and people looking at <code>top</code> think the program is leaking. Go switched its runtime to <code>MADV_FREE</code> and then switched back to <code>MADV_DONTNEED</code> by default a few versions later, mostly because of this, people saw memory "not being returned" and the monitoring and OOM decisions around containers believed RSS. So the technically better option lost to the number everyone looks at. I find that kinda funny and also fair, if your observability lies to you the optimization doesn't really exist.</p>
+<h2 id="cold-and-pageout">COLD and PAGEOUT</h2>
+<p><code>MADV_COLD</code> and <code>MADV_PAGEOUT</code> came in 5.4 and these are closest to the OPT thing. <code>COLD</code> moves the pages to the inactive list so they're first in line for reclaim, while <code>PAGEOUT</code> reclaims them now, anon pages go to swap and clean file pages get dropped. Neither destroys data, the next access just faults it back in.</p>
+<p>These came from Android, where the system knows an app went to the background long before the kernel's LRU figures it out. Which is exactly the "the app knows more than the kernel" argument, except here it's not the app that knows, it's the system manager that knows about the app. And for that there's <code>process_madvise()</code> (5.10), which lets one process give advice about another process's memory through a pidfd. Only a few flags are allowed there (<code>COLD</code>, <code>PAGEOUT</code>, <code>WILLNEED</code>, <code>COLLAPSE</code> I think) and you need <code>CAP_SYS_NICE</code> plus ptrace-level access to the target, which makes sense, letting random processes push other people's memory to swap would be a fun attack.</p>
+<p>This also kinda answers the trust question I had in the OPT post. Plain <code>madvise</code> only touches your own memory, so the worst a bad hint can do is hurt you, and the kernel doesn't need to trust you at all. The moment advice crosses a process boundary it needs permissions. I'm not sure that's a designed principle or it just happened that way, but it works.</p>
+<h2 id="the-weird-ones">the weird ones</h2>
+<p>Some flags aren't about caching at all and feel like they ended up in <code>madvise</code> because it was the syscall that takes a range. <code>MADV_DONTFORK</code> keeps a range out of the child after <code>fork()</code> (RDMA buffers need this), <code>MADV_WIPEONFORK</code> gives the child zeros instead of a copy, which is nice for RNG state or keys you don't want two processes to share by accident, and <code>MADV_DONTDUMP</code> keeps a range out of core dumps. <code>MADV_MERGEABLE</code> opts the range into KSM. <code>MADV_POPULATE_READ</code> / <code>WRITE</code> prefault the range so you don't take the faults later, which is basically <code>MAP_POPULATE</code> but for an existing mapping.</p>
+<p>At this point it's less "advice" and more a drawer for per-range memory flags. I don't think that's bad, but the name stopped meaning much a while ago.</p>
+<h2 id="what-i-think-about-it">what I think about it</h2>
+<p>The thing I like is that it's a small leak in the abstraction and not a hole. The default is still the kernel deciding everything, and most programs never call <code>madvise</code> and that's fine. The programs that do call it are mostly allocators, runtimes, databases and Android, people who already know their memory better than the kernel and want a way to say so without taking over (which is what <code>O_DIRECT</code> and buffer pools do).</p>
+<p>What's missing for me is anything with a notion of time, all of this is "now" or "soon" or "not anymore", nothing like "I'll need this in 10 seconds". Would the kernel even do anything useful with that? no idea, maybe not.</p>
+<h2 id="notes">notes</h2>
+<ul>
+<li><code>addr</code> has to be page-aligned, length gets rounded up to pages.</li>
+<li><code>MADV_DONTNEED</code> on shared or file-backed mappings doesn't zero anything, the next access just reads from the file/page cache again. The zeroing is the private anonymous case.</li>
+<li><code>MADV_FREE</code> only works on private anonymous memory.</li>
+<li><code>MADV_COLLAPSE</code> (6.1) synchronously collapses a range into huge pages instead of waiting for khugepaged.</li>
+<li><code>MADV_REMOVE</code> frees the backing store for shmem/tmpfs ranges, it punches a hole.</li>
+<li><code>man 2 madvise</code> is honestly pretty readable for once.</li>
+</ul>
+</div>
+    
+    
+</article>
+</main>
+        <footer class="site-footer">
+            <span>Notes on systems and low-level software.</span>
+            <a href="#top">Back to top ↑</a>
+        </footer>
+    </div>
+    
+</body>
+</html>

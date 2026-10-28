@@ -22,20 +22,12 @@
         <lastmod>2025-12-02</lastmod>
     </url>
     <url>
-        <loc>https://yazeed1s.github.io/posts/context-switches/</loc>
-        <lastmod>2024-11-18</lastmod>
-    </url>
-    <url>
         <loc>https://yazeed1s.github.io/posts/ewmh-icccm/</loc>
         <lastmod>2024-06-02</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/exactly-once/</loc>
         <lastmod>2025-08-04</lastmod>
-    </url>
-    <url>
-        <loc>https://yazeed1s.github.io/posts/force-memory-cleanup/</loc>
-        <lastmod>2023-12-17</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/function-pointers/</loc>
@@ -52,6 +44,10 @@
     <url>
         <loc>https://yazeed1s.github.io/posts/live-streaming/</loc>
         <lastmod>2025-12-22</lastmod>
+    </url>
+    <url>
+        <loc>https://yazeed1s.github.io/posts/madvise/</loc>
+        <lastmod>2026-10-28</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/malloc-to-teired/</loc>
@@ -74,6 +70,10 @@
         <lastmod>2025-12-12</lastmod>
     </url>
     <url>
+        <loc>https://yazeed1s.github.io/posts/opt/</loc>
+        <lastmod>2024-10-01</lastmod>
+    </url>
+    <url>
         <loc>https://yazeed1s.github.io/posts/outbox-inbox-patterns/</loc>
         <lastmod>2025-07-08</lastmod>
     </url>
@@ -92,10 +92,6 @@
     <url>
         <loc>https://yazeed1s.github.io/posts/sync-map/</loc>
         <lastmod>2026-09-04</lastmod>
-    </url>
-    <url>
-        <loc>https://yazeed1s.github.io/posts/what-a-process-owns/</loc>
-        <lastmod>2025-10-19</lastmod>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/posts/x11-wm-basics/</loc>
@@ -118,6 +114,9 @@
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/c/</loc>
+    </url>
+    <url>
+        <loc>https://yazeed1s.github.io/tags/cache/</loc>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/concurrency/</loc>
@@ -168,13 +167,7 @@
         <loc>https://yazeed1s.github.io/tags/performance/</loc>
     </url>
     <url>
-        <loc>https://yazeed1s.github.io/tags/processes/</loc>
-    </url>
-    <url>
         <loc>https://yazeed1s.github.io/tags/rdma/</loc>
-    </url>
-    <url>
-        <loc>https://yazeed1s.github.io/tags/signals/</loc>
     </url>
     <url>
         <loc>https://yazeed1s.github.io/tags/spatial-data-structures/</loc>

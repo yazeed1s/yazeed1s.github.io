@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+    
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="description" content="Would breaking OS transparency solve this?" />
+
+<meta name="keywords" content="yazeed, blog, alharthi, yaz, yazeed1s" />
+<link rel="canonical" href="https://yazeed1s.github.io/posts/opt/" />
+
+    
+<title>OPT, and telling the OS about the future | Yazeed&#39;s Blog</title>
+<meta property="og:site_name" content="Yazeed&#39;s Blog" />
+<meta property="og:title" content="OPT, and telling the OS about the future" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://yazeed1s.github.io/posts/opt/" />
+<meta property="og:description" content="Would breaking OS transparency solve this?" />
+<meta property="article:published_time" content="2024-10-01" />
+
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="OPT, and telling the OS about the future" />
+<meta name="twitter:description" content="Would breaking OS transparency solve this?" />
+
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="https://yazeed1s.github.io/favicon.ico" />
+    <link rel="preload" href="https://yazeed1s.github.io/fonts/chivo-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="https://yazeed1s.github.io/font.css" />
+    <style>
+        :root {
+            
+            
+            --dark-accent: #92aff1;
+            
+            --dark-background: #121416;
+            
+            --dark-body-text: #ccd0d5;
+            
+            --dark-border: #353940;
+            
+            --dark-code-bg: #202329;
+            
+            --dark-selection: #304675;
+            
+            --dark-text-heading: #eeeef0;
+            
+            --dark-text-muted: #989fa9;
+            
+            
+            
+            --light-accent: #345fc0;
+            
+            --light-background: #f5f5f3;
+            
+            --light-body-text: #353a41;
+            
+            --light-border: #d9dce0;
+            
+            --light-code-bg: #eceef0;
+            
+            --light-selection: #d9e3fc;
+            
+            --light-text-heading: #20242a;
+            
+            --light-text-muted: #656b74;
+            
+            
+        }
+    </style>
+    <link rel="stylesheet" href="https://yazeed1s.github.io/css/base.css" />
+    <link id="syntax-light" rel="stylesheet" href="https://yazeed1s.github.io/giallo-light.css" media="(prefers-color-scheme: light)" />
+    <link id="syntax-dark" rel="stylesheet" href="https://yazeed1s.github.io/giallo-dark.css" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f5f5f3" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#121416" media="(prefers-color-scheme: dark)" />
+    <script>
+        (() => {
+            const root = document.documentElement;
+            const system = matchMedia('(prefers-color-scheme: dark)');
+            let preference;
+            try { preference = localStorage.getItem('theme'); } catch (_) {}
+            if (preference !== 'light' && preference !== 'dark') preference = null;
+            function apply() {
+                const theme = preference || (system.matches ? 'dark' : 'light');
+                if (preference) root.dataset.theme = preference;
+                else delete root.dataset.theme;
+                document.getElementById('syntax-light').media = theme === 'light' ? 'all' : 'not all';
+                document.getElementById('syntax-dark').media = theme === 'dark' ? 'all' : 'not all';
+                document.querySelectorAll('meta[name="theme-color"]').forEach(meta => {
+                    meta.content = getComputedStyle(root).getPropertyValue('--background').trim();
+                });
+                const button = document.getElementById('theme-toggle');
+                if (button) {
+                    button.hidden = false;
+                    button.setAttribute('aria-pressed', String(theme === 'dark'));
+                }
+            }
+            apply();
+            system.addEventListener('change', apply);
+            document.addEventListener('DOMContentLoaded', () => {
+                apply();
+                document.getElementById('theme-toggle').addEventListener('click', () => {
+                    preference = (preference || (system.matches ? 'dark' : 'light')) === 'dark' ? 'light' : 'dark';
+                    try { localStorage.setItem('theme', preference); } catch (_) {}
+                    apply();
+                });
+            });
+        })();
+    </script>
+    
+</head>
+<body id="top">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div class="site-shell">
+        <header class="site-header">
+            <a class="site-name" href="https://yazeed1s.github.io">Yazeed&#39;s Blog</a>
+            <div class="navigation">
+                <nav aria-label="Main navigation">
+                    
+                    
+                    
+                    
+                    <a href="https://yazeed1s.github.io/">Home</a>
+                    
+                    
+                    
+                    
+                    <a href="https://yazeed1s.github.io/posts/" aria-current="location">Posts</a>
+                    
+                    
+                    
+                    
+                    <a href="https://yazeed1s.github.io/projects/">Projects</a>
+                    
+                    
+                    
+                    
+                    <a href="https://yazeed1s.github.io/tags/">Tags</a>
+                    
+                </nav>
+                <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Dark mode" aria-pressed="false" hidden>
+                    <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M10 3a7 7 0 0 1 0 14Z" fill="currentColor"/></svg>
+                </button>
+            </div>
+        </header>
+        <main id="main" tabindex="-1">
+<article class="post">
+    <header class="post-header">
+        <div class="post-meta"><time datetime="2024-10-01">01 Oct 2024</time><span aria-hidden="true">/</span><span>5 min read</span></div>
+        <h1>OPT, and telling the OS about the future</h1>
+        <p class="post-description">Would breaking OS transparency solve this?</p>
+        
+        <ul class="tags" aria-label="Tags">
+            <li><a href="https://yazeed1s.github.io/tags/os/">OS</a></li><li><a href="https://yazeed1s.github.io/tags/cache/">cache</a></li><li><a href="https://yazeed1s.github.io/tags/memory/">memory</a></li>
+        </ul>
+        
+    </header>
+    
+    <div class="prose"><p>In one of the lectures the instructor was going through cache replacement policies, LRU, FIFO, clock, the usual ones, and then he mentioned OPT, which is the one that is actually optimal and also the one nobody can implement. I wrote "blame OS transparency?" next to it in my notes and it stayed there for sometime, so this is me finally looking at it.</p>
+<h2 id="what-opt-does">what OPT does</h2>
+<p>When the cache is full and you need a slot, OPT evicts the page whose next use is furthest in the future, and a page that is never used again is the perfect victim. Belady showed in 1966 that this gives the minimum number of misses (that's why it's also called MIN, or Belady's algorithm, same thing). The problem is the kernel would need the future access sequence and it obviously doesn't have it, so OPT ends up as a measuring stick where you record a trace, run OPT on it offline, and see how far LRU or clock is from it.</p>
+<h2 id="my-lazy-thought">my lazy thought</h2>
+<p>The kernel only sees page faults and accessed bits, it has no idea my program is about to scan a 10GB file once and never touch it again, or that some table will be hit again in two seconds. But the program kinda knows that. So why can't it just tell the kernel something like "this page, I'll need it much later", or even hand over the path the code is going to take and let the kernel do something closer to OPT?</p>
+<p>I thought this was either dumb or genius, and turns out it's neither, people did it a long time ago.</p>
+<h2 id="it-already-exists-sort-of">it already exists, sort of</h2>
+<p>Linux has <code>madvise()</code> for memory and <code>posix_fadvise()</code> for files, and they're basically this idea in a very coarse form. <code>MADV_DONTNEED</code> / <code>POSIX_FADV_DONTNEED</code> say I'm done with this, <code>MADV_WILLNEED</code> says I'll need it soon so go prefetch, <code>MADV_SEQUENTIAL</code> and <code>MADV_RANDOM</code> describe the pattern, and newer kernels (5.4 I think) added <code>MADV_COLD</code> and <code>MADV_PAGEOUT</code> which mean "this is cold, deactivate it" and "just reclaim it now". <code>POSIX_FADV_NOREUSE</code> was a no-op on linux for years, I think it got wired up to something recently but I haven't checked how much it actually does. And <code>mlock()</code> goes the other direction and pins pages so they never get evicted.</p>
+<p>None of these say "next use is at time t", they're more like near vs far, but ranking near vs far is most of what OPT needs anyway, if the hints are honest that is.</p>
+<p>Databases skipped the conversation completely, they open files with <code>O_DIRECT</code> and run their own buffer pool (<a href="https://yazeed1s.github.io/posts/buffer-pools/">wrote about that here</a>) because they have the query plan, and a query plan is a pretty good description of the future.</p>
+<p>On the research side this was a 90s thing. Cao, Felten and Li had application-controlled file caching where the kernel decides how much cache each process gets and the process decides which of its own blocks to drop, and Patterson et al. had informed prefetching and caching where the app discloses its future accesses to the kernel, which is literally the "give the OS the path" line from my note lol. Exokernel went all the way and said the OS shouldn't hide resources at all, just multiplex them safely and let apps manage, so breaking transparency was not exactly a new idea, MIT built a whole OS around it.</p>
+<h2 id="why-it-s-still-not-opt">why it's still not OPT</h2>
+<p>The page cache is shared, so even if my program tells the kernel its exact future, global OPT needs everyone's future and the other processes aren't saying anything. The 90s work handles this by splitting it, the kernel does allocation between processes and each app does replacement inside its own share, which is reasonable but it's OPT-ish inside your slice, not OPT.</p>
+<p>There's also trust, because if hints affect eviction then every app will say its pages are important. I'd guess that's part of why <code>mlock</code> is capped by <code>RLIMIT_MEMLOCK</code>. Hints that evict your own stuff sooner are safe to honor, hints that push other people's stuff out are not.</p>
+<p>And the program often doesn't know the future either, which ngl kills most of my original idea. A scan or a loop over an array is predictable, but anything that branches on data, or waits on user input or the network, has a path that depends on values you don't have yet. You could hand the kernel probabilities instead, but then you're predicting again, which is what LRU already does, just from a different seat.</p>
+<p>One more thing that bugged me, OPT minimizes misses and not cost. Evicting a dirty page means a write while evicting a clean one is free, and when objects have different sizes (CDNs) the whole problem changes, so even perfect knowledge of the future doesn't give you the best policy in the sense you actually care about.</p>
+<h2 id="where-opt-actually-runs">where OPT actually runs</h2>
+<p>It runs wherever the future is known. Register allocation is one, when the compiler has to spill inside a basic block it can pick the value whose next use is furthest because it sees all the code, and that's Belady again with registers instead of pages. DNN training is another, the compute graph is fixed so you know exactly when each tensor is needed, and systems that swap tensors between GPU and host memory plan around that.</p>
+<p>Then there's learning from OPT, which I like more than the hint stuff. Hawkeye (CPU caches) runs OPT over past accesses and trains a predictor to guess whether OPT would have kept a new line, and LRB does something similar for CDNs. You can't know the future, but you can look at the past, ask what OPT would have done, and hope the future looks similar enough.</p>
+<p>So would breaking transparency solve it? partially, for programs that really know their access pattern, and those mostly already took the cache away from the kernel. For general stuff I don't think it helps much, the OS not hearing the app was never really the problem, the app doesn't know either. Not sure what a hint for "data-dependent future" would even look like.</p>
+<h2 id="notes">notes</h2>
+<ul>
+<li>Belady, "A study of replacement algorithms for a virtual-storage computer", IBM Systems Journal, 1966.</li>
+<li>Cao, Felten, Li, application-controlled file caching, USENIX 1994.</li>
+<li>Patterson et al., "Informed Prefetching and Caching", SOSP 1995.</li>
+<li>Engler, Kaashoek, O'Toole, "Exokernel", SOSP 1995.</li>
+<li>Hawkeye is Jain &amp; Lin, ISCA 2016. LRB is Song et al., NSDI 2020.</li>
+<li><code>madvise</code> hints are hints, the kernel is free to ignore most of them.</li>
+</ul>
+</div>
+    
+    
+</article>
+</main>
+        <footer class="site-footer">
+            <span>Notes on systems and low-level software.</span>
+            <a href="#top">Back to top ↑</a>
+        </footer>
+    </div>
+    
+</body>
+</html>
