@@ -146,7 +146,7 @@
         <main id="main" tabindex="-1">
 <article class="post">
     <header class="post-header">
-        <div class="post-meta"><time datetime="2024-10-01">01 Oct 2024</time><span aria-hidden="true">/</span><span>3 min read</span></div>
+        <div class="post-meta"><time datetime="2024-10-01">01 Oct 2024</time><span aria-hidden="true">/</span><span>2 min read</span></div>
         <h1>Using Bit Flags to Pack Multiple States Efficiently</h1>
         <p class="post-description">A simple way to embed multiple boolean conditions in a single integer.</p>
         
@@ -156,31 +156,24 @@
         
     </header>
     
-    <div class="prose"><p>Sometimes you need to track multiple related conditions, and a struct of booleans works fine until you start checking combinations or passing the state around, at which point it gets clunky. Bit flags are a simpler pattern for that, where you pack everything into a single integer, and the real win isn't memory usage but composability, since you end up with one value representing your entire state that you can pass, store, and compare in one go.</p>
+    <div class="prose"><p>A struct of booleans is fine until you need to check combinations or pass the whole state around, and then it gets clunky. I ended up using bit flags for this in a few places, one integer where each bit is a condition, and I care less about the memory than about having the whole state in one value I can pass, store and compare.</p>
 <h2 id="the-pattern">the pattern</h2>
-<p>Each bit represents one condition and you use powers of 2 so they don't overlap:</p>
+<p>Each flag is a different power of 2 so they never overlap (<code>1U</code> so shifting into bit 31 isn't signed overflow):</p>
 <pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-2 z-d-1">typedef</span><span class="z-l-2 z-d-1"> enum</span><span class="z-l-5 z-d-4"> {</span></span>
 <span class="giallo-l"><span>    FLAG_NONE </span><span class="z-l-5 z-d-4">=</span><span class="z-l-7 z-d-6"> 0</span><span class="z-l-5 z-d-4">,</span></span>
 <span class="giallo-l"><span>    FLAG_A    </span><span class="z-l-5 z-d-4">=</span><span class="z-l-5 z-d-4"> (</span><span class="z-l-7 z-d-6">1</span><span class="z-l-2 z-d-1">U</span><span class="z-l-5 z-d-4"> &lt;&lt;</span><span class="z-l-7 z-d-6"> 0</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">,</span></span>
 <span class="giallo-l"><span>    FLAG_B    </span><span class="z-l-5 z-d-4">=</span><span class="z-l-5 z-d-4"> (</span><span class="z-l-7 z-d-6">1</span><span class="z-l-2 z-d-1">U</span><span class="z-l-5 z-d-4"> &lt;&lt;</span><span class="z-l-7 z-d-6"> 1</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">,</span></span>
 <span class="giallo-l"><span>    FLAG_C    </span><span class="z-l-5 z-d-4">=</span><span class="z-l-5 z-d-4"> (</span><span class="z-l-7 z-d-6">1</span><span class="z-l-2 z-d-1">U</span><span class="z-l-5 z-d-4"> &lt;&lt;</span><span class="z-l-7 z-d-6"> 2</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">,</span></span>
 <span class="giallo-l"><span>    FLAG_D    </span><span class="z-l-5 z-d-4">=</span><span class="z-l-5 z-d-4"> (</span><span class="z-l-7 z-d-6">1</span><span class="z-l-2 z-d-1">U</span><span class="z-l-5 z-d-4"> &lt;&lt;</span><span class="z-l-7 z-d-6"> 3</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">,</span></span>
-<span class="giallo-l"><span class="z-l-5 z-d-4">}</span><span class="z-l-4 z-d-7"> flags_t</span><span class="z-l-5 z-d-4">;</span></span></code></pre>
-<p>The <code>1U</code> avoids signed overflow when shifting into bit 31.</p>
-<pre class="giallo z-l-code z-d-code" ><code data-lang="plain"><span class="giallo-l"><span>Bit position:    7   6   5   4   3   2   1   0</span></span>
-<span class="giallo-l"><span>               +---+---+---+---+---+---+---+---+</span></span>
-<span class="giallo-l"><span>               | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0 |  = 0x0E</span></span>
-<span class="giallo-l"><span>               +---+---+---+---+---+---+---+---+</span></span>
-<span class="giallo-l"><span>                                 ^   ^   ^</span></span>
-<span class="giallo-l"><span>                                 D   C   B</span></span></code></pre>
-<p>You set with <code>|=</code>, clear with <code>&amp;= ~</code>, and check with <code>&amp;</code>:</p>
-<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span>flags </span><span class="z-l-5 z-d-4">|=</span><span> FLAG_A</span><span class="z-l-5 z-d-4">;</span><span class="z-l-6 z-l-i z-d-2 z-d-i">           /*</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> set </span><span class="z-l-6 z-l-i z-d-2 z-d-i">*/</span></span>
+<span class="giallo-l"><span class="z-l-5 z-d-4">}</span><span class="z-l-4 z-d-7"> flags_t</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>flags </span><span class="z-l-5 z-d-4">|=</span><span> FLAG_A</span><span class="z-l-5 z-d-4">;</span><span class="z-l-6 z-l-i z-d-2 z-d-i">           /*</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> set </span><span class="z-l-6 z-l-i z-d-2 z-d-i">*/</span></span>
 <span class="giallo-l"><span>flags </span><span class="z-l-5 z-d-4">&amp;=</span><span class="z-l-5 z-d-4"> ~</span><span>FLAG_A</span><span class="z-l-5 z-d-4">;</span><span class="z-l-6 z-l-i z-d-2 z-d-i">          /*</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> clear </span><span class="z-l-6 z-l-i z-d-2 z-d-i">*/</span></span>
 <span class="giallo-l"><span class="z-l-2 z-d-1">if</span><span class="z-l-5 z-d-4"> (</span><span>flags </span><span class="z-l-5 z-d-4">&amp;</span><span> FLAG_A</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4"> {</span><span>...</span><span class="z-l-5 z-d-4">}</span><span class="z-l-6 z-l-i z-d-2 z-d-i">  /*</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> check </span><span class="z-l-6 z-l-i z-d-2 z-d-i">*/</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span class="z-l-6 z-l-i z-d-2 z-d-i">/*</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> check if ALL of A and B are set </span><span class="z-l-6 z-l-i z-d-2 z-d-i">*/</span></span>
-<span class="giallo-l"><span class="z-l-2 z-d-1">if</span><span class="z-l-5 z-d-4"> (</span><span class="z-l-5 z-d-4">(</span><span>flags </span><span class="z-l-5 z-d-4">&amp;</span><span class="z-l-5 z-d-4"> (</span><span>FLAG_A </span><span class="z-l-5 z-d-4">|</span><span> FLAG_B</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4"> ==</span><span class="z-l-5 z-d-4"> (</span><span>FLAG_A </span><span class="z-l-5 z-d-4">|</span><span> FLAG_B</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4"> {</span><span>...</span><span class="z-l-5 z-d-4">}</span></span></code></pre><h2 id="example-monitor-state-changes">example: monitor state changes</h2>
-<p>In my window manager I track what changed when monitors are plugged in or unplugged:</p>
+<span class="giallo-l"><span class="z-l-6 z-l-i z-d-2 z-d-i">/*</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> both A and B set </span><span class="z-l-6 z-l-i z-d-2 z-d-i">*/</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">if</span><span class="z-l-5 z-d-4"> (</span><span class="z-l-5 z-d-4">(</span><span>flags </span><span class="z-l-5 z-d-4">&amp;</span><span class="z-l-5 z-d-4"> (</span><span>FLAG_A </span><span class="z-l-5 z-d-4">|</span><span> FLAG_B</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4"> ==</span><span class="z-l-5 z-d-4"> (</span><span>FLAG_A </span><span class="z-l-5 z-d-4">|</span><span> FLAG_B</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4"> {</span><span>...</span><span class="z-l-5 z-d-4">}</span></span></code></pre><h2 id="monitor-changes-in-my-wm">monitor changes in my WM</h2>
+<p>In my window manager, when monitors get plugged or unplugged I collect what changed into one value:</p>
 <pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-2 z-d-1">typedef</span><span class="z-l-2 z-d-1"> enum</span><span class="z-l-5 z-d-4"> {</span></span>
 <span class="giallo-l"><span>    MON_CHANGE_NONE         </span><span class="z-l-5 z-d-4">=</span><span class="z-l-7 z-d-6"> 0</span><span class="z-l-5 z-d-4">,</span></span>
 <span class="giallo-l"><span>    MON_CHANGE_CONNECTED    </span><span class="z-l-5 z-d-4">=</span><span class="z-l-5 z-d-4"> (</span><span class="z-l-7 z-d-6">1</span><span class="z-l-2 z-d-1">U</span><span class="z-l-5 z-d-4"> &lt;&lt;</span><span class="z-l-7 z-d-6"> 0</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">,</span></span>
@@ -190,96 +183,26 @@
 <span class="giallo-l"></span>
 <span class="giallo-l"><span class="z-l-2 z-d-1">void</span><span class="z-l-1 z-d-5"> update_monitors</span><span class="z-l-5 z-d-4">(</span><span class="z-l-2 z-d-1">uint32_t</span><span class="z-l-5 z-d-4"> *</span><span>changes</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4"> {</span></span>
 <span class="giallo-l"><span class="z-l-5 z-d-4">    *</span><span>changes </span><span class="z-l-5 z-d-4">=</span><span> MON_CHANGE_NONE</span><span class="z-l-5 z-d-4">;</span></span>
-<span class="giallo-l"></span>
-<span class="giallo-l"><span class="z-l-2 z-d-1">    if</span><span class="z-l-5 z-d-4"> (</span><span>new_monitor_added</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4"> {</span></span>
-<span class="giallo-l"><span class="z-l-5 z-d-4">        *</span><span>changes </span><span class="z-l-5 z-d-4">|=</span><span> MON_CHANGE_CONNECTED</span><span class="z-l-5 z-d-4">;</span></span>
-<span class="giallo-l"><span class="z-l-5 z-d-4">    }</span></span>
-<span class="giallo-l"></span>
-<span class="giallo-l"><span class="z-l-2 z-d-1">    if</span><span class="z-l-5 z-d-4"> (</span><span>monitor_removed</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4"> {</span></span>
-<span class="giallo-l"><span class="z-l-5 z-d-4">        *</span><span>changes </span><span class="z-l-5 z-d-4">|=</span><span> MON_CHANGE_DISCONNECTED</span><span class="z-l-5 z-d-4">;</span></span>
-<span class="giallo-l"><span class="z-l-5 z-d-4">    }</span></span>
-<span class="giallo-l"></span>
-<span class="giallo-l"><span class="z-l-2 z-d-1">    if</span><span class="z-l-5 z-d-4"> (</span><span>resolution_changed</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4"> {</span></span>
-<span class="giallo-l"><span class="z-l-5 z-d-4">        *</span><span>changes </span><span class="z-l-5 z-d-4">|=</span><span> MON_CHANGE_LAYOUT</span><span class="z-l-5 z-d-4">;</span></span>
-<span class="giallo-l"><span class="z-l-5 z-d-4">    }</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">    if</span><span class="z-l-5 z-d-4"> (</span><span>new_monitor_added</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">  *</span><span>changes </span><span class="z-l-5 z-d-4">|=</span><span> MON_CHANGE_CONNECTED</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">    if</span><span class="z-l-5 z-d-4"> (</span><span>monitor_removed</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">    *</span><span>changes </span><span class="z-l-5 z-d-4">|=</span><span> MON_CHANGE_DISCONNECTED</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">    if</span><span class="z-l-5 z-d-4"> (</span><span>resolution_changed</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4"> *</span><span>changes </span><span class="z-l-5 z-d-4">|=</span><span> MON_CHANGE_LAYOUT</span><span class="z-l-5 z-d-4">;</span></span>
 <span class="giallo-l"><span class="z-l-5 z-d-4">}</span></span></code></pre>
-<p>If you plug in a monitor and its resolution differs from expected, both events fire:</p>
-<pre class="giallo z-l-code z-d-code" ><code data-lang="plain"><span class="giallo-l"><span>Start:               00000000  (MON_CHANGE_NONE)</span></span>
+<p>Plug in a monitor with an unexpected resolution and both bits get set, <code>0b101</code>, so the handler sees CONNECTED and LAYOUT in the same value and deals with each:</p>
+<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-2 z-d-1">uint32_t</span><span> m_change </span><span class="z-l-5 z-d-4">=</span><span> MON_CHANGE_NONE</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"><span class="z-l-1 z-d-5">update_monitors</span><span class="z-l-5 z-d-4">(</span><span class="z-l-5 z-d-4">&amp;</span><span>m_change</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">;</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">if</span><span class="z-l-5 z-d-4"> (</span><span>m_change </span><span class="z-l-5 z-d-4">==</span><span> MON_CHANGE_NONE</span><span class="z-l-5 z-d-4">)</span><span class="z-l-2 z-d-1"> return</span><span class="z-l-5 z-d-4">;</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span>New monitor detected:</span></span>
-<span class="giallo-l"><span>  set CONNECTED      |=  00000001  -&gt; 00000001</span></span>
-<span class="giallo-l"></span>
-<span class="giallo-l"><span>Resolution differs:</span></span>
-<span class="giallo-l"><span>  set LAYOUT         |=  00000100  -&gt; 00000101</span></span>
-<span class="giallo-l"></span>
-<span class="giallo-l"><span>Final:</span></span>
-<span class="giallo-l"><span>+---+---+---+---+---+---+---+---+</span></span>
-<span class="giallo-l"><span>| 0 | 0 | 0 | 0 | 0 | 1 | 0 | 1 |  = 0x05</span></span>
-<span class="giallo-l"><span>+---+---+---+---+---+---+---+---+</span></span>
-<span class="giallo-l"><span>  7   6   5   4   3   2   1   0</span></span>
-<span class="giallo-l"><span>                      L       C</span></span></code></pre>
-<p>One integer captures CONNECTED plus LAYOUT, so now I can handle both:</p>
-<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-2 z-d-1">void</span><span class="z-l-1 z-d-5"> handle_monitor_changes</span><span class="z-l-5 z-d-4">(</span><span class="z-l-2 z-d-1">void</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4"> {</span></span>
-<span class="giallo-l"><span class="z-l-2 z-d-1">    uint32_t</span><span> m_change </span><span class="z-l-5 z-d-4">=</span><span> MON_CHANGE_NONE</span><span class="z-l-5 z-d-4">;</span></span>
-<span class="giallo-l"><span class="z-l-1 z-d-5">    update_monitors</span><span class="z-l-5 z-d-4">(</span><span class="z-l-5 z-d-4">&amp;</span><span>m_change</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">;</span></span>
-<span class="giallo-l"></span>
-<span class="giallo-l"><span class="z-l-2 z-d-1">    if</span><span class="z-l-5 z-d-4"> (</span><span>m_change </span><span class="z-l-5 z-d-4">==</span><span> MON_CHANGE_NONE</span><span class="z-l-5 z-d-4">)</span><span class="z-l-2 z-d-1"> return</span><span class="z-l-5 z-d-4">;</span></span>
-<span class="giallo-l"></span>
-<span class="giallo-l"><span class="z-l-2 z-d-1">    if</span><span class="z-l-5 z-d-4"> (</span><span>m_change </span><span class="z-l-5 z-d-4">&amp;</span><span> MON_CHANGE_CONNECTED</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">    {</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> /*</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> ... </span><span class="z-l-6 z-l-i z-d-2 z-d-i">*/</span><span class="z-l-5 z-d-4"> }</span></span>
-<span class="giallo-l"><span class="z-l-2 z-d-1">    if</span><span class="z-l-5 z-d-4"> (</span><span>m_change </span><span class="z-l-5 z-d-4">&amp;</span><span> MON_CHANGE_DISCONNECTED</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4"> {</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> /*</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> ... </span><span class="z-l-6 z-l-i z-d-2 z-d-i">*/</span><span class="z-l-5 z-d-4"> }</span></span>
-<span class="giallo-l"><span class="z-l-2 z-d-1">    if</span><span class="z-l-5 z-d-4"> (</span><span>m_change </span><span class="z-l-5 z-d-4">&amp;</span><span> MON_CHANGE_LAYOUT</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">       {</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> /*</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> ... </span><span class="z-l-6 z-l-i z-d-2 z-d-i">*/</span><span class="z-l-5 z-d-4"> }</span></span>
-<span class="giallo-l"><span class="z-l-5 z-d-4">}</span></span></code></pre>
-<p>With a single integer I can track and respond to any combination of events.</p>
-<h2 id="another-example-red-black-tree">another example: red-black tree</h2>
-<p>A while back I implemented a red-black tree, and to validate the tree invariants I used bit flags to track which rules were violated:</p>
-<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-6 z-l-i z-d-2 z-d-i">/*</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> Red-black tree rules:</span></span>
-<span class="giallo-l"><span class="z-l-6 z-l-i z-d-2 z-d-i"> * 1- Every node is either red or black.</span></span>
-<span class="giallo-l"><span class="z-l-6 z-l-i z-d-2 z-d-i"> * 2- Root is always black.</span></span>
-<span class="giallo-l"><span class="z-l-6 z-l-i z-d-2 z-d-i"> * 3- Every leaf (NULL) is black.</span></span>
-<span class="giallo-l"><span class="z-l-6 z-l-i z-d-2 z-d-i"> * 4- If a node is red, both its children are black.</span></span>
-<span class="giallo-l"><span class="z-l-6 z-l-i z-d-2 z-d-i"> * 5- Every path from root to leaf has the same number of black nodes.</span></span>
-<span class="giallo-l"><span class="z-l-6 z-l-i z-d-2 z-d-i"> */</span></span>
-<span class="giallo-l"></span>
-<span class="giallo-l"><span class="z-l-2 z-d-1">typedef</span><span class="z-l-2 z-d-1"> enum</span><span class="z-l-5 z-d-4"> {</span></span>
-<span class="giallo-l"><span>    RB_VALID               </span><span class="z-l-5 z-d-4">=</span><span class="z-l-7 z-d-6"> 0</span><span class="z-l-5 z-d-4">,</span></span>
-<span class="giallo-l"><span>    RB_RED_ROOT            </span><span class="z-l-5 z-d-4">=</span><span class="z-l-5 z-d-4"> (</span><span class="z-l-7 z-d-6">1</span><span class="z-l-2 z-d-1">U</span><span class="z-l-5 z-d-4"> &lt;&lt;</span><span class="z-l-7 z-d-6"> 0</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">,</span></span>
-<span class="giallo-l"><span>    RB_RED_CHILD_OF_RED    </span><span class="z-l-5 z-d-4">=</span><span class="z-l-5 z-d-4"> (</span><span class="z-l-7 z-d-6">1</span><span class="z-l-2 z-d-1">U</span><span class="z-l-5 z-d-4"> &lt;&lt;</span><span class="z-l-7 z-d-6"> 1</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">,</span></span>
-<span class="giallo-l"><span>    RB_UNEQUAL_BLACK_PATHS </span><span class="z-l-5 z-d-4">=</span><span class="z-l-5 z-d-4"> (</span><span class="z-l-7 z-d-6">1</span><span class="z-l-2 z-d-1">U</span><span class="z-l-5 z-d-4"> &lt;&lt;</span><span class="z-l-7 z-d-6"> 2</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">,</span></span>
-<span class="giallo-l"><span class="z-l-5 z-d-4">}</span><span class="z-l-4 z-d-7"> rb_violation_t</span><span class="z-l-5 z-d-4">;</span></span>
-<span class="giallo-l"></span>
-<span class="giallo-l"><span class="z-l-2 z-d-1">uint32_t</span><span class="z-l-1 z-d-5"> validate_rbtree</span><span class="z-l-5 z-d-4">(</span><span class="z-l-4 z-d-7">node_t</span><span class="z-l-5 z-d-4"> *</span><span>root</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4"> {</span></span>
-<span class="giallo-l"><span class="z-l-2 z-d-1">    uint32_t</span><span> result </span><span class="z-l-5 z-d-4">=</span><span> RB_VALID</span><span class="z-l-5 z-d-4">;</span></span>
-<span class="giallo-l"></span>
-<span class="giallo-l"><span class="z-l-2 z-d-1">    if</span><span class="z-l-5 z-d-4"> (</span><span>root</span><span class="z-l-5 z-d-4">-&gt;</span><span>color</span><span class="z-l-5 z-d-4"> ==</span><span> RED</span><span class="z-l-5 z-d-4">)</span></span>
-<span class="giallo-l"><span>        result </span><span class="z-l-5 z-d-4">|=</span><span> RB_RED_ROOT</span><span class="z-l-5 z-d-4">;</span></span>
-<span class="giallo-l"><span class="z-l-2 z-d-1">    if</span><span class="z-l-5 z-d-4"> (</span><span class="z-l-1 z-d-5">has_red_child_of_red</span><span class="z-l-5 z-d-4">(</span><span>root</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">)</span></span>
-<span class="giallo-l"><span>        result </span><span class="z-l-5 z-d-4">|=</span><span> RB_RED_CHILD_OF_RED</span><span class="z-l-5 z-d-4">;</span></span>
-<span class="giallo-l"><span class="z-l-2 z-d-1">    if</span><span class="z-l-5 z-d-4"> (</span><span class="z-l-5 z-d-4">!</span><span class="z-l-1 z-d-5">paths_have_equal_black_count</span><span class="z-l-5 z-d-4">(</span><span>root</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">)</span></span>
-<span class="giallo-l"><span>        result </span><span class="z-l-5 z-d-4">|=</span><span> RB_UNEQUAL_BLACK_PATHS</span><span class="z-l-5 z-d-4">;</span></span>
-<span class="giallo-l"></span>
-<span class="giallo-l"><span class="z-l-2 z-d-1">    return</span><span> result</span><span class="z-l-5 z-d-4">;</span></span>
-<span class="giallo-l"><span class="z-l-5 z-d-4">}</span></span></code></pre>
-<p>The caller checks specific violations:</p>
-<pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-2 z-d-1">uint32_t</span><span> v </span><span class="z-l-5 z-d-4">=</span><span class="z-l-1 z-d-5"> validate_rbtree</span><span class="z-l-5 z-d-4">(</span><span>tree</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">;</span></span>
-<span class="giallo-l"></span>
-<span class="giallo-l"><span class="z-l-2 z-d-1">if</span><span class="z-l-5 z-d-4"> (</span><span>v </span><span class="z-l-5 z-d-4">==</span><span> RB_VALID</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4"> {</span></span>
-<span class="giallo-l"><span class="z-l-1 z-d-5">    printf</span><span class="z-l-5 z-d-4">(</span><span class="z-l-5 z-d-4">&quot;</span><span class="z-l-3 z-d-3">tree is valid</span><span class="z-l-7 z-d-6">\n</span><span class="z-l-5 z-d-4">&quot;</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">;</span></span>
-<span class="giallo-l"><span class="z-l-5 z-d-4">}</span><span class="z-l-2 z-d-1"> else</span><span class="z-l-5 z-d-4"> {</span></span>
-<span class="giallo-l"><span class="z-l-2 z-d-1">    if</span><span class="z-l-5 z-d-4"> (</span><span>v </span><span class="z-l-5 z-d-4">&amp;</span><span> RB_RED_ROOT</span><span class="z-l-5 z-d-4">)</span></span>
-<span class="giallo-l"><span class="z-l-1 z-d-5">        printf</span><span class="z-l-5 z-d-4">(</span><span class="z-l-5 z-d-4">&quot;</span><span class="z-l-3 z-d-3">violation: root is red</span><span class="z-l-7 z-d-6">\n</span><span class="z-l-5 z-d-4">&quot;</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">;</span></span>
-<span class="giallo-l"><span class="z-l-2 z-d-1">    if</span><span class="z-l-5 z-d-4"> (</span><span>v </span><span class="z-l-5 z-d-4">&amp;</span><span> RB_RED_CHILD_OF_RED</span><span class="z-l-5 z-d-4">)</span></span>
-<span class="giallo-l"><span class="z-l-1 z-d-5">        printf</span><span class="z-l-5 z-d-4">(</span><span class="z-l-5 z-d-4">&quot;</span><span class="z-l-3 z-d-3">violation: red node has red child</span><span class="z-l-7 z-d-6">\n</span><span class="z-l-5 z-d-4">&quot;</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">;</span></span>
-<span class="giallo-l"><span class="z-l-5 z-d-4">}</span></span></code></pre>
-<p>One return value, multiple possible problems, which is cleaner than an array of error codes or a struct with boolean fields.</p>
-<h2 id="why-uint32-t-not-uint8-t">why uint32_t, not uint8_t</h2>
-<p>The obvious question is why not <code>uint8_t</code> when you only have 4 flags, and the answer is integer promotion, because in C bitwise operations promote smaller types to <code>int</code>:</p>
+<span class="giallo-l"><span class="z-l-2 z-d-1">if</span><span class="z-l-5 z-d-4"> (</span><span>m_change </span><span class="z-l-5 z-d-4">&amp;</span><span> MON_CHANGE_CONNECTED</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">    {</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> /*</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> ... </span><span class="z-l-6 z-l-i z-d-2 z-d-i">*/</span><span class="z-l-5 z-d-4"> }</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">if</span><span class="z-l-5 z-d-4"> (</span><span>m_change </span><span class="z-l-5 z-d-4">&amp;</span><span> MON_CHANGE_DISCONNECTED</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4"> {</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> /*</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> ... </span><span class="z-l-6 z-l-i z-d-2 z-d-i">*/</span><span class="z-l-5 z-d-4"> }</span></span>
+<span class="giallo-l"><span class="z-l-2 z-d-1">if</span><span class="z-l-5 z-d-4"> (</span><span>m_change </span><span class="z-l-5 z-d-4">&amp;</span><span> MON_CHANGE_LAYOUT</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4">       {</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> /*</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> ... </span><span class="z-l-6 z-l-i z-d-2 z-d-i">*/</span><span class="z-l-5 z-d-4"> }</span></span></code></pre>
+<p>I used the same thing when I wrote a red-black tree, the validator returns one integer with a bit per broken rule (<code>RB_RED_ROOT</code>, <code>RB_RED_CHILD_OF_RED</code>, <code>RB_UNEQUAL_BLACK_PATHS</code>), and <code>0</code> means the tree is valid. One return value can carry several problems at once, which beats an array of error codes.</p>
+<h2 id="why-uint32-t-and-not-uint8-t">why uint32_t and not uint8_t</h2>
+<p>With 4 flags <code>uint8_t</code> looks like the obvious choice, but C promotes small types to <code>int</code> before bitwise ops:</p>
 <pre class="giallo z-l-code z-d-code" ><code data-lang="c"><span class="giallo-l"><span class="z-l-2 z-d-1">uint8_t</span><span> flags </span><span class="z-l-5 z-d-4">=</span><span class="z-l-2 z-d-1"> 0x</span><span class="z-l-7 z-d-6">FF</span><span class="z-l-5 z-d-4">;</span></span>
-<span class="giallo-l"><span class="z-l-2 z-d-1">if</span><span class="z-l-5 z-d-4"> (</span><span class="z-l-5 z-d-4">~</span><span>flags </span><span class="z-l-5 z-d-4">==</span><span class="z-l-7 z-d-6"> 0</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4"> {</span><span> ... </span><span class="z-l-5 z-d-4">}</span><span class="z-l-6 z-l-i z-d-2 z-d-i">  /*</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> false! ~flags is 0xFFFFFF00, not 0x00 </span><span class="z-l-6 z-l-i z-d-2 z-d-i">*/</span></span></code></pre>
-<p>The comparison happens at <code>int</code> width before truncation, which is easy to write and hard to debug. Shifts have their own footguns since the shift also happens after integer promotion, and shifting by more than or equal to the width of the promoted type is undefined behavior, for example <code>1U &lt;&lt; 32</code> on a system where <code>unsigned int</code> is 32-bit. If you really want <code>uint8_t</code> you can store it as <code>uint8_t</code> and be explicit about casts in your bit-twiddling, but in most code <code>uint32_t</code> is the boring choice that fits in a register, avoids the promotion surprises, and gives you room for 32 flags.</p>
-<h2 id="why-not-just-use-bools">why not just use bools</h2>
-<p>A <code>bool</code> in C is typically 1 byte and not 1 bit, and arrays and structs of bools don't pack bits either since each element takes a full byte, so the memory savings only really matter when you have many flags, say 5 or more. But memory isn't the point, the point is that bit flags compose, so a single integer can represent "connected AND layout changed" or "disconnected OR error" and you can pass that combined state to a function, store it, or compare it in one operation.</p>
-<h2 id="when-bit-flags-hurt">when bit flags hurt</h2>
-<p>Bit flags aren't always better. Readability takes a hit because <code>flags &amp; FLAG_A</code> isn't as obvious as <code>state.is_connected</code> at a glance, so if the code isn't systems-level or performance-sensitive the clarity cost might not be worth it. Debugging gets harder too since printing <code>0x0A</code> is less helpful than printing <code>"connected=true, layout=true"</code>, and you'll want helper functions to decode flags when something goes wrong. And it's overkill for few flags, so if you have 2-3 independent conditions that never combine, a struct of bools is simpler. The pattern shines when state composition matters, like events, options, validation results, or capability bits, and it's worse when conditions are truly independent and never need to travel together.</p>
+<span class="giallo-l"><span class="z-l-2 z-d-1">if</span><span class="z-l-5 z-d-4"> (</span><span class="z-l-5 z-d-4">~</span><span>flags </span><span class="z-l-5 z-d-4">==</span><span class="z-l-7 z-d-6"> 0</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4"> {</span><span> ... </span><span class="z-l-5 z-d-4">}</span><span class="z-l-6 z-l-i z-d-2 z-d-i">  /*</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> false, ~flags is 0xFFFFFF00 as int </span><span class="z-l-6 z-l-i z-d-2 z-d-i">*/</span></span></code></pre>
+<p>That's easy to write and annoying to debug. Shifts get promoted too, and shifting by the width of the type or more is undefined (<code>1U &lt;&lt; 32</code> with 32-bit <code>unsigned int</code>). You can store flags as <code>uint8_t</code> and cast carefully, but <code>uint32_t</code> is the boring choice, fits in a register, skips the promotion surprises, and gives you 32 flags.</p>
+<h2 id="when-i-wouldn-t">when I wouldn't</h2>
+<p><code>flags &amp; FLAG_A</code> reads worse than <code>state.is_connected</code>, and printing <code>0x0A</code> while debugging tells you less than <code>connected=true layout=true</code>, so you end up writing a decode helper. If I have two or three conditions that never travel together, a struct of bools is simpler and I'd just use that. Flags are worth it when the combination itself means something, events, options, validation results, capabilities.</p>
 </div>
     
     

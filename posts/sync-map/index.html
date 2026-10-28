@@ -5,7 +5,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<meta name="description" content="Why not just guard a plain map with a mutex? Go&#39;s own docs answer that directly, and the two exceptions they carve out explain the whole design." />
+<meta name="description" content="Why not just guard a plain map with a mutex? Go&#39;s own docs mostly agree with that." />
 
 <meta name="keywords" content="yazeed, blog, alharthi, yaz, yazeed1s" />
 <link rel="canonical" href="https://yazeed1s.github.io/posts/sync-map/" />
@@ -16,12 +16,12 @@
 <meta property="og:title" content="sync.Map, and the Question I Should&#39;ve Asked First" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://yazeed1s.github.io/posts/sync-map/" />
-<meta property="og:description" content="Why not just guard a plain map with a mutex? Go&#39;s own docs answer that directly, and the two exceptions they carve out explain the whole design." />
+<meta property="og:description" content="Why not just guard a plain map with a mutex? Go&#39;s own docs mostly agree with that." />
 <meta property="article:published_time" content="2026-09-04" />
 
 <meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="sync.Map, and the Question I Should&#39;ve Asked First" />
-<meta name="twitter:description" content="Why not just guard a plain map with a mutex? Go&#39;s own docs answer that directly, and the two exceptions they carve out explain the whole design." />
+<meta name="twitter:description" content="Why not just guard a plain map with a mutex? Go&#39;s own docs mostly agree with that." />
 
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="https://yazeed1s.github.io/favicon.ico" />
@@ -146,9 +146,9 @@
         <main id="main" tabindex="-1">
 <article class="post">
     <header class="post-header">
-        <div class="post-meta"><time datetime="2026-09-04">04 Sep 2026</time><span aria-hidden="true">/</span><span>6 min read</span></div>
+        <div class="post-meta"><time datetime="2026-09-04">04 Sep 2026</time><span aria-hidden="true">/</span><span>3 min read</span></div>
         <h1>sync.Map, and the Question I Should&#39;ve Asked First</h1>
-        <p class="post-description">Why not just guard a plain map with a mutex? Go&#39;s own docs answer that directly, and the two exceptions they carve out explain the whole design.</p>
+        <p class="post-description">Why not just guard a plain map with a mutex? Go&#39;s own docs mostly agree with that.</p>
         
         <ul class="tags" aria-label="Tags">
             <li><a href="https://yazeed1s.github.io/tags/go/">go</a></li><li><a href="https://yazeed1s.github.io/tags/concurrency/">concurrency</a></li>
@@ -156,10 +156,9 @@
         
     </header>
     
-    <div class="prose"><p>First time I ran into <code>sync.Map</code> I didn't reach for it, I just kept using a plain <code>map</code> behind a <code>sync.Mutex</code> like always, mostly because that shape is one I already trust and <code>sync.Map</code> felt like one more thing to learn for no obvious reason. It sat in the back of my head for a while as "the concurrent map I'm apparently not using," which is an annoying thing to leave unresolved.</p>
-<p>What I found is that <code>sync.Map</code> isn't a general-purpose replacement for map-plus-mutex at all, it's a narrow optimization for two specific access patterns, and the standard library says so plainly in its own doc comment, not as an implication I'm reading into it.</p>
-<h2 id="what-a-plain-map-won-t-survive">what a plain map won't survive</h2>
-<p>Start with the problem <code>sync.Map</code> exists to fix. A regular Go map isn't safe under concurrent access, and it's not a silent kind of unsafe either, the runtime detects it and kills the whole program.</p>
+    <div class="prose"><p>For a long time I just ignored <code>sync.Map</code> and kept writing a plain <code>map</code> behind a <code>sync.Mutex</code>, because that shape I already trust, and <code>sync.Map</code> sat in the back of my head as "the concurrent map I'm apparently not using". When I finally looked, the standard library's own docs say most code shouldn't use it either.</p>
+<h2 id="why-you-need-something">why you need something</h2>
+<p>A regular map with a concurrent read and write doesn't just give wrong answers, the runtime detects it and kills the process.</p>
 <pre class="giallo z-l-code z-d-code" ><code data-lang="go"><span class="giallo-l"><span>m</span><span class="z-l-5 z-d-4"> :=</span><span class="z-l-1 z-d-5"> make</span><span class="z-l-5 z-d-4">(</span><span class="z-l-2 z-d-1">map</span><span class="z-l-5 z-d-4">[</span><span class="z-l-2 z-d-1">string</span><span class="z-l-5 z-d-4">]</span><span class="z-l-2 z-d-1">int</span><span class="z-l-5 z-d-4">)</span></span>
 <span class="giallo-l"></span>
 <span class="giallo-l"><span class="z-l-2 z-d-1">go</span><span class="z-l-2 z-d-1"> func</span><span class="z-l-5 z-d-4">(</span><span class="z-l-5 z-d-4">)</span><span class="z-l-5 z-d-4"> {</span></span>
@@ -177,41 +176,23 @@
 <span class="giallo-l"><span class="z-l-2 z-d-1">select</span><span class="z-l-5 z-d-4"> {</span><span class="z-l-5 z-d-4">}</span></span>
 <span class="giallo-l"></span>
 <span class="giallo-l"><span class="z-l-6 z-l-i z-d-2 z-d-i">//</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> fatal error: concurrent map read and map write</span></span></code></pre>
-<p>That's not a <code>panic</code> you can <code>recover</code> from, it's a fatal error, the process is going down. And it's not only read-vs-write that trips it, just ranging over a map while another goroutine writes to it triggers the same fatal error. So something has to guard concurrent access, either a mutex you manage yourself or a type built to handle it internally.</p>
-<h2 id="the-pitch-and-the-very-next-sentence">the pitch, and the very next sentence</h2>
-<p><code>sync.Map</code> bills itself as a map "safe for concurrent use by multiple goroutines without additional locking or coordination." Using it looks exactly like a regular map:</p>
-<pre class="giallo z-l-code z-d-code" ><code data-lang="go"><span class="giallo-l"><span class="z-l-2 z-d-1">var</span><span> m</span><span class="z-l-4 z-d-7"> sync</span><span class="z-l-5 z-d-4">.</span><span class="z-l-4 z-d-7">Map</span></span>
-<span class="giallo-l"></span>
-<span class="giallo-l"><span>m</span><span class="z-l-5 z-d-4">.</span><span class="z-l-1 z-d-5">Store</span><span class="z-l-5 z-d-4">(</span><span class="z-l-5 z-d-4">&quot;</span><span class="z-l-3 z-d-3">foo</span><span class="z-l-5 z-d-4">&quot;</span><span class="z-l-5 z-d-4">,</span><span class="z-l-5 z-d-4"> &quot;</span><span class="z-l-3 z-d-3">bar</span><span class="z-l-5 z-d-4">&quot;</span><span class="z-l-5 z-d-4">)</span></span>
-<span class="giallo-l"><span>value</span><span class="z-l-5 z-d-4">,</span><span> ok</span><span class="z-l-5 z-d-4"> :=</span><span> m</span><span class="z-l-5 z-d-4">.</span><span class="z-l-1 z-d-5">Load</span><span class="z-l-5 z-d-4">(</span><span class="z-l-5 z-d-4">&quot;</span><span class="z-l-3 z-d-3">foo</span><span class="z-l-5 z-d-4">&quot;</span><span class="z-l-5 z-d-4">)</span></span>
-<span class="giallo-l"><span>fmt</span><span class="z-l-5 z-d-4">.</span><span class="z-l-1 z-d-5">Println</span><span class="z-l-5 z-d-4">(</span><span>value</span><span class="z-l-5 z-d-4">,</span><span> ok</span><span class="z-l-5 z-d-4">)</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> //</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> foo true</span></span>
-<span class="giallo-l"></span>
-<span class="giallo-l"><span>m</span><span class="z-l-5 z-d-4">.</span><span class="z-l-1 z-d-5">Delete</span><span class="z-l-5 z-d-4">(</span><span class="z-l-5 z-d-4">&quot;</span><span class="z-l-3 z-d-3">foo</span><span class="z-l-5 z-d-4">&quot;</span><span class="z-l-5 z-d-4">)</span></span>
-<span class="giallo-l"><span>value</span><span class="z-l-5 z-d-4">,</span><span> ok</span><span class="z-l-5 z-d-4"> =</span><span> m</span><span class="z-l-5 z-d-4">.</span><span class="z-l-1 z-d-5">Load</span><span class="z-l-5 z-d-4">(</span><span class="z-l-5 z-d-4">&quot;</span><span class="z-l-3 z-d-3">foo</span><span class="z-l-5 z-d-4">&quot;</span><span class="z-l-5 z-d-4">)</span></span>
-<span class="giallo-l"><span>fmt</span><span class="z-l-5 z-d-4">.</span><span class="z-l-1 z-d-5">Println</span><span class="z-l-5 z-d-4">(</span><span>value</span><span class="z-l-5 z-d-4">,</span><span> ok</span><span class="z-l-5 z-d-4">)</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> //</span><span class="z-l-6 z-l-i z-d-2 z-d-i"> &lt;nil&gt; false</span></span></code></pre>
-<p>No mutex in sight, no <code>recover</code>, nothing crashes under concurrent load. So far it does look like the drop-in fix. Then the same doc comment turns around and says most code should use a plain map with its own locking instead, for better type safety, right there in the sentence after the pitch. That's the standard library naming its own type and then telling you not to reach for it by default.</p>
-<h2 id="the-two-shapes-it-s-actually-for">the two shapes it's actually for</h2>
-<p>The doc doesn't leave "most code" vague, it names exactly two access patterns where <code>sync.Map</code> wins.</p>
-<p>The first is a cache that only grows. A key gets written once, maybe the first time it's computed, and after that it's read constantly and never written again. A memoized function's results, or a config value loaded at startup and read on every request afterward, both fit this shape.</p>
-<p>The second is a map split across goroutines by key rather than by lock. Several goroutines are all touching the same <code>sync.Map</code>, but goroutine A only ever reads and writes keys <code>"a1"</code>, <code>"a2"</code>, <code>"a3"</code>, while goroutine B only ever touches <code>"b1"</code>, <code>"b2"</code>. Nobody's actually contending for the same entry, even though they're technically sharing one map.</p>
-<p>Outside those two shapes, a mutex-guarded map is the better call, in the standard library's own words.</p>
-<h2 id="why-those-two-shapes-specifically">why those two shapes specifically</h2>
-<p>None of that reasoning is in the doc comment, you have to look at how the type used to be built to see why those two cases are the special ones, and once I did it stopped feeling arbitrary.</p>
-<p>For a long time, up through Go 1.23, <code>sync.Map</code> kept two maps internally, not one. A read-only map you could load from with no lock at all, and a dirty map behind an actual mutex for anything the read map didn't have yet. A lookup that missed the read map fell back to locking and checking the dirty map, and that counted as a miss. Once enough misses piled up to justify the cost, the dirty map got copied over and promoted into a new read map, and the cycle started again.</p>
-<p>Once you see that structure, the two blessed shapes stop being a random list. Write-once-read-forever means a key needs the slow, locked path exactly once, then every read after that hits the lock-free map for good. Disjoint keys means goroutines aren't colliding on the same entries in the first place, so the contention a shared mutex would create barely happens here either. Outside those two shapes you're paying for two maps and a promotion scheme and getting nothing back for it, a single map behind a single mutex does the same job with less machinery.</p>
-<h2 id="the-design-didn-t-stay-put">the design didn't stay put</h2>
-<p>What I didn't expect digging into this is that the two-map design had a real cost of its own, one the Go team went back and fixed instead of just documenting around. Go 1.24 replaced the internals with a hash-trie map, specifically to remove what the release notes called ramp-up time, the old design needed a string of misses before a key's reads actually became lock-free, so there was a cold-start tax built into the exact fast path people picked <code>sync.Map</code> for in the first place. Go 1.24 shipped it behind a fallback you could opt out of if it broke something, and by Go 1.26 that fallback is gone and the hash-trie is just the implementation, full stop.</p>
-<p>So the read-only-plus-dirty-map design in the previous section is history at this point, not current behavior. I still think it's worth knowing, it's the reason the two access patterns in the docs are the ones they are, and that reasoning didn't change just because the data structure underneath did.</p>
-<h2 id="so-back-to-the-mutex">so, back to the mutex</h2>
-<p>Which loops back to the actual question. For nearly everything I'd reach for a concurrent map to do, a mutex around a plain map wins outright, and the standard library says so plainly, better type safety being the exact phrase it uses. <code>sync.Map</code> still takes <code>any</code> and returns <code>any</code> on every call, so you're type-asserting on every access no matter what Go version you're on, where <code>map[string]int</code> guarded by a mutex just never makes you do that. It also has no <code>Len()</code>, and <code>Range</code> doesn't lock the whole map for the duration, so a range over a <code>sync.Map</code> being modified concurrently isn't guaranteed to see a consistent snapshot, which is a real cost if you need one.</p>
-<p><code>sync.Map</code> only pays off once you can point at your access pattern and say it's one of the two specific shapes ahead of time. If you can't, you're not who it was built for, and reaching for it because the name starts with "sync" and sounds like the safe default is exactly the assumption the doc comment is trying to talk you out of.</p>
+<p>It's a fatal error and not a panic, so <code>recover</code> can't catch it, and ranging over the map while another goroutine writes triggers it too. So something has to guard it.</p>
+<h2 id="what-the-docs-say">what the docs say</h2>
+<p><code>sync.Map</code> describes itself as safe for concurrent use "without additional locking or coordination", and using it looks like a normal map with <code>Store</code>, <code>Load</code> and <code>Delete</code>. Then the next part of the same doc comment says most code should use a plain map with separate locking, for better type safety, and that <code>sync.Map</code> is for two cases.</p>
+<p>The first is a key written once and then read a lot, like a cache that only grows or config loaded at startup. The second is goroutines working on disjoint sets of keys, A only touches <code>a1</code>, <code>a2</code>, B only touches <code>b1</code>, <code>b2</code>, so they share one map but never fight over the same entry.</p>
+<h2 id="why-those-two">why those two</h2>
+<p>The doc doesn't explain it, but the old implementation does. Up to Go 1.23 <code>sync.Map</code> had two maps inside, a read-only one you could load from without any lock, and a dirty one behind a mutex for new keys. A lookup that missed the read map took the lock and checked the dirty map, and after enough misses the dirty map got promoted to be the new read map.</p>
+<p>With that in mind the two cases make sense. A write-once key goes through the slow locked path one time, then every later read is lock-free. Disjoint keys mean goroutines aren't contending anyway. Anything else, and you're paying for two maps and a promotion scheme where one mutex would have done the same job.</p>
+<p>Go 1.24 replaced all this with a hash-trie, partly to get rid of the warm-up where a key needed a bunch of misses before its reads became lock-free. There was an opt-out for the old version at first, and I think it's gone now. So the two-map design is history, but it's still why the docs list those two cases.</p>
+<h2 id="so-the-mutex">so, the mutex</h2>
+<p>For almost everything I'd want a concurrent map for, mutex plus map is better. <code>sync.Map</code> takes and returns <code>any</code>, so you type-assert on every access, there's no <code>Len()</code>, and <code>Range</code> doesn't lock the whole map, so if someone modifies it while you range you don't get a consistent snapshot. If I can't say ahead of time that my access pattern is one of the two cases, I'm not who it was built for, and I think picking it because it has "sync" in the name is the exact mistake the doc comment is warning about.</p>
 <h2 id="notes">notes</h2>
 <ul>
-<li><code>Load</code>, <code>Store</code>, and <code>Delete</code> are documented as amortized constant time, amortized is doing real work in that sentence, individual calls can be slower, the promotion/rebalancing underneath is what makes the average hold</li>
-<li>like every other sync primitive, a <code>sync.Map</code> must not be copied after it's been used, copying it copies the internal state and the safety guarantee just quietly stops applying</li>
-<li>the zero value works with no setup at all, that part is genuinely nicer than mutex-plus-map, where you have to remember to initialize both pieces yourself</li>
-<li><code>LoadOrStore</code>, <code>LoadAndDelete</code>, <code>Swap</code>, <code>CompareAndSwap</code>, and <code>CompareAndDelete</code> exist because those are exactly the operations that would otherwise force you to hold your own mutex across two separate map operations, that's the one place <code>sync.Map</code> hands you something rolling your own doesn't give for free</li>
-<li><code>CompareAndSwap</code>, <code>CompareAndDelete</code>, and <code>Swap</code> only landed in Go 1.20, <code>Clear</code> in Go 1.23, so a lot of code written before that had to fake these with <code>LoadOrStore</code> and a loop</li>
+<li><code>Load</code>, <code>Store</code>, <code>Delete</code> are amortized constant time, single calls can be slower.</li>
+<li>Don't copy a <code>sync.Map</code> after first use, same rule as every other sync type.</li>
+<li>The zero value just works, which is nicer than remembering to init a map and a mutex.</li>
+<li><code>LoadOrStore</code>, <code>LoadAndDelete</code>, <code>Swap</code>, <code>CompareAndSwap</code>, <code>CompareAndDelete</code> are the one real win, they're the operations you'd otherwise need to hold your own lock across two map calls for.</li>
+<li><code>Swap</code> and the <code>CompareAnd*</code> ones came in Go 1.20, <code>Clear</code> in 1.23.</li>
 </ul>
 </div>
     

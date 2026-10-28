@@ -156,7 +156,7 @@
         
     </header>
     
-    <div class="prose"><p>This started as a side thought in advanced systems class, we were talking about OS transparency in general and I kept coming back to malloc afterward, because it's the abstraction I use the most and never actually question. Not a fully formed argument, just me chewing on it.</p>
+    <div class="prose"><p>This started as a side thought in advanced systems class, we were talking about OS transparency in general and I kept coming back to malloc afterward, because it's the abstraction I use the most and never question, so this is me chewing on it more than a full argument.</p>
 <h2 id="malloc-is-blind">malloc is blind</h2>
 <p>When you call <code>malloc()</code> you get a pointer, and the allocator has no idea if the physical page behind it is fast local DRAM or slower CXL-attached memory. glibc's allocator was built for a world where memory is mostly uniform, so it worries about arenas, chunks, <code>brk</code> vs <code>mmap</code> and lock contention, and leaves physical placement completely to the kernel. That was fine when the latency gap between memory was small, but machines now can have 2-3x differences between tiers, and from user space memory still looks flat.</p>
 <h2 id="the-kernel-fixes-it-later">the kernel fixes it later</h2>
