@@ -6,7 +6,7 @@ description = "glibc malloc was designed for uniform DRAM. Tiered memory changes
 tags = ["OS", "memory", "linux"]
 +++
 
-This started as a side thought in advanced systems class, we were talking about OS transparency in general and I kept coming back to malloc afterward, because it's the abstraction I use the most and never actually question. Not a fully formed argument, just me chewing on it.
+This started as a side thought in advanced systems class, we were talking about OS transparency in general and I kept coming back to malloc afterward, because it's the abstraction I use the most and never question, so this is me chewing on it more than a full argument.
 
 ## malloc is blind
 

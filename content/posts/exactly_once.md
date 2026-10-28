@@ -6,49 +6,32 @@ description = "What brokers actually give you when they say exactly-once."
 tags = ["distributed systems", "event driven", "messaging"]
 +++
 
-Every message broker eventually puts "exactly-once" somewhere in its docs. Kafka has it, Pulsar claims it, NATS JetStream has a version of it, and it sounds like the thing you want: send a message, it arrives once, nobody worries.
+Every broker puts "exactly-once" somewhere in its docs, Kafka has it, Pulsar has it, NATS JetStream has its own version, and it sounds like what everyone wants, send a message and it arrives once. The more I read about how it works the less I believe the label.
 
-But exactly-once delivery doesn't exist. What exists is engineering around the fact that it doesn't.
+## the three outcomes
 
-## what can actually happen
+A producer sends a message and one of three things happens. The broker gets it and the ack comes back, fine. The broker gets it but the ack is lost, so the producer thinks it failed, retries, and now there are two copies. Or the broker never gets it and it's gone.
 
-A producer sends a message to a broker and there are three outcomes. The broker receives it, acknowledges, and the producer gets the ack, which is the success case. Or the broker receives it and acknowledges but the ack is lost, so the producer doesn't know it worked and retries, creating two copies. Or the broker never receives it and the message is gone.
+You can kill the third case by retrying, but retrying is exactly what creates the second one, and you can't remove both on a network that loses packets. So the network gives you at-most-once (don't retry, lose some) or at-least-once (retry, get duplicates), and that's the full menu.
 
-That's it, those are the options on an unreliable network. You can avoid case 3 by retrying, but retrying introduces case 2, and you cannot eliminate both. At the network level you get at-most-once (don't retry, accept losses) or at-least-once (retry, accept duplicates), and there's no third option that the network gives you for free.
+## what Kafka does
 
-## what Kafka actually does
+Kafka's exactly-once is two mechanisms stacked together. The idempotent producer gives each producer an ID and each message a sequence number, so when a retry shows up with the same ID and sequence the broker drops it, which fixes the lost-ack case, at least while the producer session lives (restart with a new ID and that dedup state is gone). Then transactions let you read from a topic, write to another topic and commit your offsets atomically, so a failure in the middle rolls back all of it.
 
-Kafka advertises exactly-once semantics, but what it actually implements is two things working together.
+The duplicates still happen on the wire, Kafka just hides them before they reach your processing. So what you get is exactly-once *processing* built on at-least-once delivery, and when brokers say "exactly-once" this is what they mean, they just don't say it very clearly.
 
-The first is the idempotent producer, where each producer gets an ID and each message gets a sequence number, so if the broker sees the same producer ID and sequence number twice it drops the duplicate, which handles the lost-ack problem because the producer retries and the broker deduplicates. This only works within a single producer session though, so if the producer crashes and restarts with a new ID the deduplication state is gone.
+## outside Kafka it breaks
 
-The second is transactions, where Kafka lets you wrap a consume-process-produce cycle in a transaction so you read from the input topic, do work, write to the output topic, and commit offsets all atomically, and if anything fails everything rolls back.
+All of that only holds while you stay inside Kafka. Your consumer reads a message, writes a row to Postgres, crashes before committing the offset, and on restart it reads the same message again and Postgres gets the row twice. Kafka has no idea Postgres exists, so it can't roll that write back.
 
-So Kafka doesn't deliver messages exactly once. It uses at-least-once delivery with deduplication and atomic commits to make the _processing_ behave as if messages were delivered once, but the duplicates still happen at the transport layer and the broker just hides them.
+Which means duplicates are your problem no matter what the broker promises. Either the operation is idempotent by nature (setting a value is, incrementing isn't), or you record processed message IDs and skip the ones you've seen (that's the inbox pattern from my [outbox/inbox post](@/posts/outbox_inbox_patterns.md)), or you try a transaction across the broker offset and your database, which is hard and often not practical.
 
-## delivery vs processing
-
-These are different things. Exactly-once delivery would mean the network guarantees each message arrives once, and no system does this because the network is unreliable, acks get lost, connections drop, machines crash between receiving and acknowledging. Exactly-once processing means the side effects of handling a message happen once even if the message itself arrives more than once, and that's achievable but it takes work in the form of deduplication, idempotency, and transactions, so it's not a delivery guarantee, it's an application-level property.
-
-When brokers say "exactly-once" they mean the second thing, and they don't say that clearly.
-
-## the broker can't save you everywhere
-
-Even with Kafka transactions, exactly-once only works within Kafka: read from Kafka, write to Kafka, commit. That's a closed system where Kafka controls both sides.
-
-The moment your consumer does something outside Kafka the guarantee breaks, since Kafka doesn't know about a write to a database, an HTTP request, or a call to an external API, so if your consumer processes a message, writes to Postgres, then crashes before committing the Kafka offset, it'll reprocess on restart and Postgres gets the write twice. This is where the inbox pattern from my [outbox/inbox post](@/posts/outbox_inbox_patterns.md) comes in, where you need idempotency at your handler level, recording that you processed this message before doing the work, so if you see it again you skip it. The broker gives you tools, it doesn't give you a complete solution.
-
-## idempotency is always your problem
-
-Regardless of what your broker promises, if your consumer has side effects you need to handle duplicates, so you either make the operation naturally idempotent (SET is idempotent, INCREMENT is not), or track processed message IDs and skip duplicates, or use transactions that span both the broker offset and your external state, which is hard and often impractical.
-
-At-least-once delivery + idempotent handling gives you the effect of exactly-once, and that's what production systems actually do. The "exactly-once" label is marketing over a real but narrower mechanism.
+At-least-once plus idempotent handlers is what real systems run on, I'd guess almost all of them. "Effectively exactly-once" is a term some people use for this and I like it more, it's at least honest.
 
 ## notes
 
-- Two Generals Problem: you can't get agreement over an unreliable channel with finite messages, which is why ack-loss is unavoidable
-- Kafka's exactly-once (KIP-98) was controversial when introduced, and the original blog post title was literally "Exactly-once Semantics are Possible" which tells you something
-- NATS JetStream does deduplication by message ID with a configurable window, similar idea but simpler scope
-- Pulsar transactions work similarly to Kafka: read-process-write atomically within Pulsar
-- If you're using a broker without deduplication, you're getting at-least-once at best, plan for it
-- "Effectively exactly-once" is the more honest term some people use, and I prefer it
+- The reason a lost ack can't be fixed is the Two Generals problem, you can't reach agreement over a channel that drops messages with a finite number of messages.
+- Confluent's original blog post for this was titled "Exactly-once Semantics are Possible", which kinda tells you people expected it not to be.
+- NATS JetStream dedups by message ID inside a time window, same idea, smaller scope.
+- Pulsar transactions work like Kafka's, read-process-write atomically inside Pulsar.
+- No dedup on your broker means at-least-once at best, plan for it.

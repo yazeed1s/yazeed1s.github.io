@@ -16,7 +16,7 @@ When the cache is full and you need a slot, OPT evicts the page whose next use i
 
 The kernel only sees page faults and accessed bits, it has no idea my program is about to scan a 10GB file once and never touch it again, or that some table will be hit again in two seconds. But the program kinda knows that. So why can't it just tell the kernel something like "this page, I'll need it much later", or even hand over the path the code is going to take and let the kernel do something closer to OPT?
 
-I thought this was either dumb or genius, and turns out it's neither, people did it a long time ago.
+I thought I was onto something, and then found out people did this a long time ago.
 
 ## it already exists, sort of
 
@@ -24,17 +24,17 @@ Linux has `madvise()` for memory and `posix_fadvise()` for files, and they're ba
 
 None of these say "next use is at time t", they're more like near vs far, but ranking near vs far is most of what OPT needs anyway, if the hints are honest that is.
 
-Databases skipped the conversation completely, they open files with `O_DIRECT` and run their own buffer pool ([wrote about that here](@/posts/buffer_pools.md)) because they have the query plan, and a query plan is a pretty good description of the future.
+Databases skipped the conversation completely, they open files with `O_DIRECT` and run their own buffer pool because they have the query plan, and a query plan is a pretty good description of the future.
 
 On the research side this was a 90s thing. Cao, Felten and Li had application-controlled file caching where the kernel decides how much cache each process gets and the process decides which of its own blocks to drop, and Patterson et al. had informed prefetching and caching where the app discloses its future accesses to the kernel, which is literally the "give the OS the path" line from my note lol. Exokernel went all the way and said the OS shouldn't hide resources at all, just multiplex them safely and let apps manage, so breaking transparency was not exactly a new idea, MIT built a whole OS around it.
 
 ## why it's still not OPT
 
-The page cache is shared, so even if my program tells the kernel its exact future, global OPT needs everyone's future and the other processes aren't saying anything. The 90s work handles this by splitting it, the kernel does allocation between processes and each app does replacement inside its own share, which is reasonable but it's OPT-ish inside your slice, not OPT.
+The page cache is shared, so even if my program tells the kernel its exact future, global OPT needs everyone's future and the other processes aren't saying anything. The 90s work handles this by splitting it, the kernel does allocation between processes and each app does replacement inside its own share, which is reasonable, but you only get something close to OPT inside your own slice.
 
 There's also trust, because if hints affect eviction then every app will say its pages are important. I'd guess that's part of why `mlock` is capped by `RLIMIT_MEMLOCK`. Hints that evict your own stuff sooner are safe to honor, hints that push other people's stuff out are not.
 
-And the program often doesn't know the future either, which ngl kills most of my original idea. A scan or a loop over an array is predictable, but anything that branches on data, or waits on user input or the network, has a path that depends on values you don't have yet. You could hand the kernel probabilities instead, but then you're predicting again, which is what LRU already does, just from a different seat.
+And the program often doesn't know the future either, which ngl kills most of my original idea. A scan or a loop over an array is predictable, but anything that branches on data, or waits on user input or the network, has a path that depends on values you don't have yet. You could hand the kernel probabilities instead, but then you're predicting again, which is what LRU already does.
 
 One more thing that bugged me, OPT minimizes misses and not cost. Evicting a dirty page means a write while evicting a clean one is free, and when objects have different sizes (CDNs) the whole problem changes, so even perfect knowledge of the future doesn't give you the best policy in the sense you actually care about.
 
@@ -44,7 +44,7 @@ It runs wherever the future is known. Register allocation is one, when the compi
 
 Then there's learning from OPT, which I like more than the hint stuff. Hawkeye (CPU caches) runs OPT over past accesses and trains a predictor to guess whether OPT would have kept a new line, and LRB does something similar for CDNs. You can't know the future, but you can look at the past, ask what OPT would have done, and hope the future looks similar enough.
 
-So would breaking transparency solve it? partially, for programs that really know their access pattern, and those mostly already took the cache away from the kernel. For general stuff I don't think it helps much, the OS not hearing the app was never really the problem, the app doesn't know either. Not sure what a hint for "data-dependent future" would even look like.
+So would breaking transparency solve it? partially, for programs that really know their access pattern, and those mostly already took the cache away from the kernel. For general stuff I don't think it helps much, because the app usually doesn't know its future either. Not sure what a hint for "data-dependent future" would even look like.
 
 ## notes
 

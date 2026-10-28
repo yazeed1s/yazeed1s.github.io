@@ -6,66 +6,36 @@ description = "How the CPU switches between user and kernel mode, and what trigg
 tags = ["OS", "CPU", "linux"]
 +++
 
-Your app might call a syscall, a packet might arrive on the network card, or the timer might fire; all of these interrupt normal execution, but they're not the same thing. The terminology gets confusing because people use interrupt, trap, and exception loosely.
+A syscall, a packet arriving on the NIC, and the timer firing all end the same way, the CPU stops running your code and starts running kernel code in ring 0. But they're not the same thing, and people use interrupt, trap, exception and fault almost interchangeably, which confused me for longer than I'd like to admit.
 
-## user space vs kernel space
+## who caused it
 
-Starting from the basics, modern CPUs have privilege levels called rings on x86, where ring 0 is the most privileged (kernel) and ring 3 is the least privileged (user applications).
+The way I ended up sorting it is by asking who caused the switch.
 
-Your application runs in ring 3 and can execute normal instructions, access its own memory, and do math, but it cannot access hardware directly, read/write arbitrary memory addresses, or execute privileged instructions (like changing page tables or disabling interrupts). The kernel runs in ring 0 and can do all of those things.
+If hardware caused it, it's an interrupt. The NIC got a packet, the disk finished a read, the timer says your time slice is up, and none of that has anything to do with the instruction you're running, you could be in the middle of a loop and it just happens *to* you, asynchronously.
 
-When you call `read()` to read from a file, your code can't just talk to the disk controller, it has to ask the kernel. The CPU has to switch from ring 3 to ring 0, do the privileged work, then switch back.
+If your own instruction caused it, it's synchronous, and that's the trap/exception family. Some of them you asked for, like a syscall or `int3` from a debugger, and some you didn't, like a page fault, divide by zero, or an invalid opcode. Inside that family there's another split that actually matters, a fault can be fixed and the instruction retries (page fault loads the page, your load runs again and works), while an abort is unrecoverable and something is very wrong.
 
-This switch is the kernel boundary, and crossing it costs you a register save and restore, a privilege change, and sometimes cache disruption, which is why syscalls aren't free.
+So interrupt is external and async, trap is internal and intentional, exception is internal and usually not intentional, and fault is the exception that gets retried. Different books will draw these lines a bit differently and I don't think it's worth fighting over.
 
-## interrupts
+## where the CPU jumps
 
-An interrupt is a signal from hardware that says "stop what you're doing, I need attention." Examples are a keyboard telling you a key was pressed, a network card saying a packet arrived, a timer saying your time slice is up, or a disk controller saying that read you asked for is done.
+At boot the kernel fills the IDT, a table indexed by vector number, each entry holding a handler address and who's allowed to trigger it. When an interrupt or exception fires the CPU saves the instruction pointer, flags and stack, switches to ring 0 if needed, and jumps to the entry for that vector.
 
-Interrupts are asynchronous, they happen whenever the hardware needs attention regardless of what the CPU is currently doing. You could be in the middle of a for loop and suddenly an interrupt fires.
+Syscalls on x86-64 are the exception to this btw. The old `int 0x80` went through the IDT like any interrupt, but the `syscall` instruction skips it entirely and jumps to an address the kernel wrote into an MSR at boot, which is part of why it's faster.
 
-When an interrupt happens, the CPU stops executing the current instruction stream, saves the current state (registers, instruction pointer, flags), looks up the interrupt handler in the Interrupt Descriptor Table (IDT), jumps to that handler (now in ring 0), the handler does its work, and then the handler returns and the CPU restores state and continues where it left off. The key thing is that the currently running process doesn't trigger this, it just happens to it.
+## top half, bottom half
 
-## traps
+Hardware interrupt handlers run with that interrupt line masked (or interrupts off entirely), so if they take long, other devices wait. Linux splits the work, the top half runs right away, does the minimum (grab the packet from the NIC, ack the device) and schedules the rest, and the bottom half (softirqs, tasklets, workqueues) does the actual work later with interrupts enabled. For networking the bottom half is where the packet goes up the whole stack, which is a lot of work to be doing "later".
 
-A trap is a synchronous exception triggered by the currently running code, and it's intentional, the main example being syscalls, where when you call `read()` the C library eventually executes a special instruction (`syscall` on x86-64, `int 0x80` on older x86) that deliberately triggers a trap.
+## what crossing costs
 
-```
-User code calls read()
-  -> libc wrapper
-    -> syscall instruction (trap into kernel)
-      -> kernel syscall handler
-        -> returns to user space
-```
-
-The difference from interrupts is that you asked for this, the code executing triggered it, and it happens at a specific point in your instruction stream, not randomly.
-
-Other traps and exceptions include page faults (you accessed memory that isn't mapped, which could be a bug or could be demand paging doing its job), division by zero (arithmetic error), invalid opcode (tried to execute garbage), and breakpoint traps (int 3 for debuggers). Some of these are errors that kill your process (division by zero), and some are handled so execution continues (page fault loads the page and then your load instruction retries).
-
-## the naming confusion
-
-Different sources use these terms differently, and the way I think about it is that an interrupt is external, async, and from hardware, a trap is internal, sync, and intentional like a syscall, an exception is internal, sync, and usually an error like a page fault or div by zero, a fault is an exception that can be corrected where the instruction retries, and an abort is an unrecoverable error.
-
-## the interrupt descriptor table
-
-The CPU needs to know where to jump for each interrupt or exception, and this is stored in the IDT, a table in memory that the kernel sets up at boot. Each entry has a handler address, what privilege level can trigger it, and a gate type (interrupt gate, trap gate).
-
-For hardware interrupts, the entries point to kernel interrupt handlers, and for the syscall trap, it points to the syscall entry point. When an interrupt fires, the CPU uses the interrupt number as an index into the IDT, checks privilege, switches to ring 0 if needed, and jumps to the handler address.
-
-## hardware interrupts in more detail
-
-When a device needs attention, it signals an interrupt request (IRQ), and on modern systems this goes through an interrupt controller (APIC). The kernel has to acknowledge the interrupt, figure out which device caused it, call the right driver's handler, and tell the interrupt controller we're done. Handling needs to be fast because interrupts are disabled (or that IRQ is masked) while you're in the handler, and if you take too long you miss other interrupts.
-
-Linux splits this into a top half and a bottom half, where the top half runs in interrupt context, does the minimum work, and schedules the bottom half, and the bottom half runs later with interrupts enabled and does the real work through softirqs, tasklets, and workqueues. A network card interrupt's top half grabs the packet from hardware, queues it, and schedules the bottom half, which then processes the packet up the network stack.
-
-## syscall cost
-
-Crossing the kernel boundary isn't free, since you pay for saving and restoring registers, switching from the user stack to the kernel stack, TLB and cache effects, and Spectre mitigations on modern kernels like KPTI and retpolines. On a modern system a syscall might take a few hundred nanoseconds, which doesn't sound like much, but if you're doing thousands per second it adds up, and that cost is why people use batching to do more work per call, io_uring to submit many I/O requests with one syscall, and mmap to access files without read() syscalls at all.
+Every crossing means saving registers, switching to the kernel stack, and since Spectre also page table switches (KPTI) and other mitigations, which made syscalls noticeably more expensive overnight. A few hundred nanoseconds per syscall sounds like nothing until you do it hundreds of thousands of times a second. That's the reason io_uring batches I/O into shared rings, and why [mmap](@/posts/mmap.md) is attractive, after the first fault there's no crossing at all. Most of the "fast I/O" ideas I've looked at are just different ways to cross this line less often.
 
 ## notes
 
-- On x86-64, `syscall`/`sysret` are faster than the old `int 0x80` method
-- `/proc/interrupts` shows interrupt counts per CPU
-- `perf stat` can count context switches and syscalls
-- NMI (Non-Maskable Interrupt) can't be disabled, used for profiling and panic
-- The timer interrupt is what makes preemptive multitasking work
+- `/proc/interrupts` shows interrupt counts per CPU per device.
+- `perf stat` counts context switches, `strace -c` gives a quick syscall summary.
+- NMIs can't be masked, used for watchdogs and profiling.
+- The timer interrupt is what makes preemption possible, without it a busy loop would never give the CPU back.
+- Divide by zero becomes `SIGFPE`, which you can technically catch, but there's not much useful to do after.

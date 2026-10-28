@@ -6,95 +6,40 @@ description = "How mmap works, when to use it, and when not to."
 tags = ["linux", "memory", "systems programming"]
 +++
 
-`mmap` maps a file (or anonymous memory) into your process's address space so you can access it through pointers instead of read/write syscalls. The kernel sets up page table entries pointing to the file's pages, and when you access a mapped region the data appears in memory through the standard page fault mechanism.
-
-## how it works
-
-When you call `mmap`, the kernel creates a virtual memory area (VMA) in your process but doesn't actually load any data yet. The first time you access a page in the mapped region, a page fault fires, the kernel loads that page from the file into the page cache (or allocates a zero page for anonymous mappings), updates the page table, and your access continues. Subsequent accesses to the same page hit the page cache directly, no fault needed.
+`mmap` is one of those calls where the API is tiny and what happens behind it is most of the virtual memory system. You ask for a file (or just zeroed memory) to show up in your address space, you get a pointer back, and from then on you read and write the file like an array without any `read()` calls.
 
 ```c
 int fd = open("data.bin", O_RDONLY);
 struct stat st;
 fstat(fd, &st);
 
-void *ptr = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-// now ptr[0..st.st_size-1] is the file contents
+char *p = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+// p[0..st.st_size-1] is the file now
 ```
 
-The file is accessible through pointer arithmetic with no `read()` calls and no user-space buffers, and the kernel handles paging transparently.
+## nothing is loaded
 
-## flags that matter
+The part that took me a bit to accept is that `mmap` doesn't read anything. The kernel just creates a VMA (a note saying "this range of addresses belongs to that file at that offset") and returns, so the actual loading happens later when you touch a page, it faults, the kernel pulls that page into the page cache, points your page table at it, and you continue like nothing happened. Second touch is a normal memory access, no kernel involved at all in it, and that's why it can be faster than `read()`, there's no copy into a user buffer and no syscall per access.
 
-`mmap` behavior changes significantly based on the flags you pass, and the two most important are the sharing flags, where `MAP_PRIVATE` creates a copy-on-write mapping so writes go to a private copy and the original file is unchanged, while `MAP_SHARED` means writes go through to the actual file, so other processes mapping the same file see your changes and those changes eventually get written back to disk.
+## private vs shared
 
-`MAP_ANONYMOUS` creates a mapping not backed by any file, just zero-filled pages, and this is what malloc uses internally for large allocations. `MAP_FIXED` forces the mapping at a specific address (dangerous if you don't know what's there), and `MAP_POPULATE` pre-faults all pages at mmap time instead of waiting for access, which avoids page faults later but means the mmap call itself is slow.
+This is the flag that actually changes meaning. `MAP_PRIVATE` is copy-on-write, you read the file's pages but the first write gives you your own copy and the file never sees it. `MAP_SHARED` writes go into the page cache pages themselves, so other processes mapping the same file see them and they reach disk eventually, and "eventually" means whenever the kernel feels like it unless you call `msync`.
 
-Protection flags control access, so `PROT_READ` for read-only, `PROT_WRITE` for writable, `PROT_EXEC` for executable which is what JIT compilers use, and `PROT_NONE` for no access which is useful for guard pages, and you can change protections later with `mprotect`.
+Add `MAP_ANONYMOUS` and there's no file at all, just zero pages. glibc malloc does this for big allocations (over 128KB by default), which is nice because `munmap` gives the memory straight back to the kernel, while memory from `brk` can only shrink from the top of the heap. Anonymous plus shared gives you memory that survives `fork` as shared between parent and child, and `shm_open` + `mmap` does the same for unrelated processes.
 
-## anonymous mappings
+## where it's good and where it hurts
 
-When you `mmap` with `MAP_ANONYMOUS` there's no file involved, you just get zero-filled memory, and this is actually how glibc malloc works for large allocations, where small allocations come from `sbrk` on the heap but anything over a threshold, usually 128KB, gets its own anonymous mmap.
+It's good for reading big files with random access, and for read-only stuff many processes use, since they all map the same page cache pages, ten processes mapping a 1GB file don't cost 10GB. Shared libraries are loaded this way, and JITs use anonymous mappings with `PROT_EXEC`.
 
-```c
-// what malloc does internally for large allocs
-void *p = mmap(NULL, size,
-    PROT_READ | PROT_WRITE,
-    MAP_PRIVATE | MAP_ANONYMOUS,
-    -1, 0);
-```
+It hurts when you need control. The kernel decides when dirty pages hit disk, a page fault blocks your thread and you can't make it async, and if the file shrinks under you or the disk throws an I/O error you get `SIGBUS` instead of an error code, which is kinda horrible to handle. For databases all of this adds up, enough that most of them stopped using it. And for small files I don't think it's worth it, setting up the VMA and taking faults probably costs more than one `read()`, though I never measured it.
 
-The advantage is that when you free a large allocation, the kernel can immediately reclaim the pages since the mapping is independent. With sbrk, the heap can only shrink from the end, so fragmentation keeps memory allocated.
-
-## shared memory
-
-`MAP_SHARED` with `MAP_ANONYMOUS` gives you shared memory between parent and child processes (across `fork`), and `MAP_SHARED` with a named file gives you shared memory between unrelated processes. The file acts as the backing store, and the kernel ensures coherence through the page cache.
-
-For IPC, you can also use `shm_open` + `mmap` to create a named shared memory region without a real file on disk, which is how many high-performance IPC mechanisms work.
-
-## msync and coherence
-
-With `MAP_SHARED` file mappings, your writes eventually make it to disk, but "eventually" isn't a guarantee of when. If you need to ensure data has been written, you call `msync` which flushes dirty pages to the file.
-
-```c
-msync(ptr, length, MS_SYNC);  // blocks until written
-msync(ptr, length, MS_ASYNC); // schedules write, returns immediately
-```
-
-This matters for databases and anything that needs durability. Without explicit msync, a crash might lose recent writes. With MAP_PRIVATE you don't need msync because writes never go to the file anyway.
-
-## when mmap is good
-
-File I/O without syscall overhead is the classic use case, and it works well when you're reading a large file sequentially or doing random access across a file that mostly fits in memory. There are no read/write syscalls per access, just page faults on cold pages, and the kernel manages caching automatically.
-
-Memory-mapped I/O also shines for read-only shared data where multiple processes can map the same file and share the physical pages through the page cache, meaning ten processes mapping the same 1GB file don't use 10GB of RAM.
-
-Other good uses include loading shared libraries (`.so` files are mmap'd into process address space), JIT compilation (`PROT_EXEC` on anonymous mappings), and inter-process communication through shared mappings.
-
-## when mmap is bad
-
-For databases mmap is [usually the wrong choice](@/posts/mmap_databases.md), since the OS can flush dirty pages whenever it wants which breaks write-ahead logging, page faults stall threads unpredictably and there's no async fault interface, error handling goes through SIGBUS instead of return codes, and under memory pressure the TLB shootdowns during eviction can collapse throughput.
-
-Sequential writes to a new file are also better with `write()` because mmap requires you to know the file size upfront (or use `ftruncate` to grow it), and the page-fault-per-page overhead can be worse than buffered writes.
-
-Small files aren't worth the mmap overhead either, since the setup cost (VMA creation, page table manipulation) is higher than just calling read() once.
-
-## munmap and cleanup
-
-When you're done with a mapping, call `munmap` to release it. For `MAP_SHARED` mappings, you should `msync` first if you care about durability.
-
-```c
-msync(ptr, length, MS_SYNC);
-munmap(ptr, length);
-close(fd);
-```
-
-If you just exit without munmap, the kernel cleans up all mappings on process exit (same as all resources), but explicit cleanup is good practice for long-running processes to avoid accumulating VMAs.
+Appending to a file is also awkward, the mapping has a fixed size so you `ftruncate` to grow the file and remap, and at that point `write()` is just simpler.
 
 ## notes
 
-- `MAP_HUGETLB` for huge page mappings, reduces TLB pressure for large mappings
-- `madvise()` hints to the kernel about access patterns: `MADV_SEQUENTIAL`, `MADV_RANDOM`, `MADV_DONTNEED`
-- `MADV_DONTNEED` on anonymous memory zeros the pages, on file-backed it drops them from cache
-- The 64-bit address space means you can mmap very large files without worrying about address space exhaustion
-- `mmap` on `/dev/mem` gives access to physical memory (requires root, used for hardware access)
-- On 32-bit systems, mmap was limited by the 3GB user-space address space
+- `MAP_POPULATE` prefaults everything at map time, so `mmap` gets slow but later accesses don't fault.
+- `MAP_FIXED` puts the mapping at your exact address and silently replaces whatever was there. `MAP_FIXED_NOREPLACE` is the safer one.
+- `PROT_NONE` pages are good as guard pages, `mprotect` changes protection later.
+- `MAP_HUGETLB` for huge pages, less TLB pressure.
+- `madvise()` tells the kernel how you'll access the range (`MADV_SEQUENTIAL`, `MADV_RANDOM`, `MADV_WILLNEED`).
+- Exiting without `munmap` is fine, the kernel cleans up. Long-running stuff should unmap tho, or VMAs pile up.

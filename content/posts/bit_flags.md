@@ -6,11 +6,11 @@ description = "A simple way to embed multiple boolean conditions in a single int
 tags = ["C", "bit manipulation", "systems programming"]
 +++
 
-Sometimes you need to track multiple related conditions, and a struct of booleans works fine until you start checking combinations or passing the state around, at which point it gets clunky. Bit flags are a simpler pattern for that, where you pack everything into a single integer, and the real win isn't memory usage but composability, since you end up with one value representing your entire state that you can pass, store, and compare in one go.
+A struct of booleans is fine until you need to check combinations or pass the whole state around, and then it gets clunky. I ended up using bit flags for this in a few places, one integer where each bit is a condition, and I care less about the memory than about having the whole state in one value I can pass, store and compare.
 
 ## the pattern
 
-Each bit represents one condition and you use powers of 2 so they don't overlap:
+Each flag is a different power of 2 so they never overlap (`1U` so shifting into bit 31 isn't signed overflow):
 
 ```c
 typedef enum {
@@ -20,33 +20,18 @@ typedef enum {
     FLAG_C    = (1U << 2),
     FLAG_D    = (1U << 3),
 } flags_t;
-```
 
-The `1U` avoids signed overflow when shifting into bit 31.
-
-```text
-Bit position:    7   6   5   4   3   2   1   0
-               +---+---+---+---+---+---+---+---+
-               | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0 |  = 0x0E
-               +---+---+---+---+---+---+---+---+
-                                 ^   ^   ^
-                                 D   C   B
-```
-
-You set with `|=`, clear with `&= ~`, and check with `&`:
-
-```c
 flags |= FLAG_A;           /* set */
 flags &= ~FLAG_A;          /* clear */
 if (flags & FLAG_A) {...}  /* check */
 
-/* check if ALL of A and B are set */
+/* both A and B set */
 if ((flags & (FLAG_A | FLAG_B)) == (FLAG_A | FLAG_B)) {...}
 ```
 
-## example: monitor state changes
+## monitor changes in my WM
 
-In my window manager I track what changed when monitors are plugged in or unplugged:
+In my window manager, when monitors get plugged or unplugged I collect what changed into one value:
 
 ```c
 typedef enum {
@@ -58,123 +43,37 @@ typedef enum {
 
 void update_monitors(uint32_t *changes) {
     *changes = MON_CHANGE_NONE;
-
-    if (new_monitor_added) {
-        *changes |= MON_CHANGE_CONNECTED;
-    }
-
-    if (monitor_removed) {
-        *changes |= MON_CHANGE_DISCONNECTED;
-    }
-
-    if (resolution_changed) {
-        *changes |= MON_CHANGE_LAYOUT;
-    }
+    if (new_monitor_added)  *changes |= MON_CHANGE_CONNECTED;
+    if (monitor_removed)    *changes |= MON_CHANGE_DISCONNECTED;
+    if (resolution_changed) *changes |= MON_CHANGE_LAYOUT;
 }
 ```
 
-If you plug in a monitor and its resolution differs from expected, both events fire:
-
-```text
-Start:               00000000  (MON_CHANGE_NONE)
-
-New monitor detected:
-  set CONNECTED      |=  00000001  -> 00000001
-
-Resolution differs:
-  set LAYOUT         |=  00000100  -> 00000101
-
-Final:
-+---+---+---+---+---+---+---+---+
-| 0 | 0 | 0 | 0 | 0 | 1 | 0 | 1 |  = 0x05
-+---+---+---+---+---+---+---+---+
-  7   6   5   4   3   2   1   0
-                      L       C
-```
-
-One integer captures CONNECTED plus LAYOUT, so now I can handle both:
+Plug in a monitor with an unexpected resolution and both bits get set, `0b101`, so the handler sees CONNECTED and LAYOUT in the same value and deals with each:
 
 ```c
-void handle_monitor_changes(void) {
-    uint32_t m_change = MON_CHANGE_NONE;
-    update_monitors(&m_change);
+uint32_t m_change = MON_CHANGE_NONE;
+update_monitors(&m_change);
+if (m_change == MON_CHANGE_NONE) return;
 
-    if (m_change == MON_CHANGE_NONE) return;
-
-    if (m_change & MON_CHANGE_CONNECTED)    { /* ... */ }
-    if (m_change & MON_CHANGE_DISCONNECTED) { /* ... */ }
-    if (m_change & MON_CHANGE_LAYOUT)       { /* ... */ }
-}
+if (m_change & MON_CHANGE_CONNECTED)    { /* ... */ }
+if (m_change & MON_CHANGE_DISCONNECTED) { /* ... */ }
+if (m_change & MON_CHANGE_LAYOUT)       { /* ... */ }
 ```
 
-With a single integer I can track and respond to any combination of events.
+I used the same thing when I wrote a red-black tree, the validator returns one integer with a bit per broken rule (`RB_RED_ROOT`, `RB_RED_CHILD_OF_RED`, `RB_UNEQUAL_BLACK_PATHS`), and `0` means the tree is valid. One return value can carry several problems at once, which beats an array of error codes.
 
-## another example: red-black tree
+## why uint32_t and not uint8_t
 
-A while back I implemented a red-black tree, and to validate the tree invariants I used bit flags to track which rules were violated:
-
-```c
-/* Red-black tree rules:
- * 1- Every node is either red or black.
- * 2- Root is always black.
- * 3- Every leaf (NULL) is black.
- * 4- If a node is red, both its children are black.
- * 5- Every path from root to leaf has the same number of black nodes.
- */
-
-typedef enum {
-    RB_VALID               = 0,
-    RB_RED_ROOT            = (1U << 0),
-    RB_RED_CHILD_OF_RED    = (1U << 1),
-    RB_UNEQUAL_BLACK_PATHS = (1U << 2),
-} rb_violation_t;
-
-uint32_t validate_rbtree(node_t *root) {
-    uint32_t result = RB_VALID;
-
-    if (root->color == RED)
-        result |= RB_RED_ROOT;
-    if (has_red_child_of_red(root))
-        result |= RB_RED_CHILD_OF_RED;
-    if (!paths_have_equal_black_count(root))
-        result |= RB_UNEQUAL_BLACK_PATHS;
-
-    return result;
-}
-```
-
-The caller checks specific violations:
-
-```c
-uint32_t v = validate_rbtree(tree);
-
-if (v == RB_VALID) {
-    printf("tree is valid\n");
-} else {
-    if (v & RB_RED_ROOT)
-        printf("violation: root is red\n");
-    if (v & RB_RED_CHILD_OF_RED)
-        printf("violation: red node has red child\n");
-}
-```
-
-One return value, multiple possible problems, which is cleaner than an array of error codes or a struct with boolean fields.
-
-## why uint32_t, not uint8_t
-
-The obvious question is why not `uint8_t` when you only have 4 flags, and the answer is integer promotion, because in C bitwise operations promote smaller types to `int`:
+With 4 flags `uint8_t` looks like the obvious choice, but C promotes small types to `int` before bitwise ops:
 
 ```c
 uint8_t flags = 0xFF;
-if (~flags == 0) { ... }  /* false! ~flags is 0xFFFFFF00, not 0x00 */
+if (~flags == 0) { ... }  /* false, ~flags is 0xFFFFFF00 as int */
 ```
 
-The comparison happens at `int` width before truncation, which is easy to write and hard to debug. Shifts have their own footguns since the shift also happens after integer promotion, and shifting by more than or equal to the width of the promoted type is undefined behavior, for example `1U << 32` on a system where `unsigned int` is 32-bit. If you really want `uint8_t` you can store it as `uint8_t` and be explicit about casts in your bit-twiddling, but in most code `uint32_t` is the boring choice that fits in a register, avoids the promotion surprises, and gives you room for 32 flags.
+That's easy to write and annoying to debug. Shifts get promoted too, and shifting by the width of the type or more is undefined (`1U << 32` with 32-bit `unsigned int`). You can store flags as `uint8_t` and cast carefully, but `uint32_t` is the boring choice, fits in a register, skips the promotion surprises, and gives you 32 flags.
 
-## why not just use bools
+## when I wouldn't
 
-A `bool` in C is typically 1 byte and not 1 bit, and arrays and structs of bools don't pack bits either since each element takes a full byte, so the memory savings only really matter when you have many flags, say 5 or more. But memory isn't the point, the point is that bit flags compose, so a single integer can represent "connected AND layout changed" or "disconnected OR error" and you can pass that combined state to a function, store it, or compare it in one operation.
-
-## when bit flags hurt
-
-Bit flags aren't always better. Readability takes a hit because `flags & FLAG_A` isn't as obvious as `state.is_connected` at a glance, so if the code isn't systems-level or performance-sensitive the clarity cost might not be worth it. Debugging gets harder too since printing `0x0A` is less helpful than printing `"connected=true, layout=true"`, and you'll want helper functions to decode flags when something goes wrong. And it's overkill for few flags, so if you have 2-3 independent conditions that never combine, a struct of bools is simpler. The pattern shines when state composition matters, like events, options, validation results, or capability bits, and it's worse when conditions are truly independent and never need to travel together.
+`flags & FLAG_A` reads worse than `state.is_connected`, and printing `0x0A` while debugging tells you less than `connected=true layout=true`, so you end up writing a decode helper. If I have two or three conditions that never travel together, a struct of bools is simpler and I'd just use that. Flags are worth it when the combination itself means something, events, options, validation results, capabilities.
