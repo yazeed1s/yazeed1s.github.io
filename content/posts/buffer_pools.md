@@ -10,7 +10,7 @@ A database buffer pool manages fixed-size pages in memory, decides which ones to
 
 ## the OS already does this
 
-The kernel manages physical memory in 4KB page frames and maps virtual pages to physical frames through page tables, and when memory is full it evicts cold pages to disk, so when a process touches an evicted page it faults and the kernel loads it back, and it tracks which pages are dirty and writes them back when it needs to. This is the exact same problem a database has, where it has pages on disk, some of them need to be in memory, not all of them fit, and it has to decide which pages to keep, which to evict, and when to write the dirty ones back.
+The kernel manages physical memory in 4KB page frames and maps virtual pages to physical frames through page tables, and when memory is full it evicts cold (argubally) pages to disk, so when a process touches an evicted page it faults and the kernel loads it back, and it tracks which pages are dirty and writes them back when it needs to. This is the exact same problem a database has, where it has pages on disk, some of them need to be in memory, not all of them fit, and it has to decide which pages to keep, which to evict, and when to write the dirty ones back.
 
 So why not just let the OS handle it, map the database file with mmap and let the kernel manage everything? Some databases tried this and [it didn't go well](@/posts/mmap_databases.md).
 

@@ -46,8 +46,6 @@ Other traps and exceptions include page faults (you accessed memory that isn't m
 
 Different sources use these terms differently, and the way I think about it is that an interrupt is external, async, and from hardware, a trap is internal, sync, and intentional like a syscall, an exception is internal, sync, and usually an error like a page fault or div by zero, a fault is an exception that can be corrected where the instruction retries, and an abort is an unrecoverable error.
 
-Some people use "exception" as the umbrella term for everything, some use "interrupt" for everything, and the Intel manual has its own definitions. It's messy. What matters is understanding whether the trigger is external (hardware) or internal (executing code), and whether it's expected (syscall) or unexpected (error).
-
 ## the interrupt descriptor table
 
 The CPU needs to know where to jump for each interrupt or exception, and this is stored in the IDT, a table in memory that the kernel sets up at boot. Each entry has a handler address, what privilege level can trigger it, and a gate type (interrupt gate, trap gate).
